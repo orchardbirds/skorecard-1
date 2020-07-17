@@ -29,6 +29,8 @@ refers to a CDM that uses Logistic Regression as the classification algorithm.
    
 .gitignore                     <- Files for git to ignore
 .gitlab-ci.yml                 <- Setup file for CI pipeline
+.pre-commit-config.yaml        <- Setup file for pre-commit pipeline
+LICENSE                        <- License for potential open-sourcing
 main.py                        <- Main autoCR entry point
 README.md                      <- General information about the project and repo structure, how to use it, etc.
 requirements.txt               <- Python dependencies (packages & versions)
