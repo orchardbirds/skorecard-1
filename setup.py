@@ -14,6 +14,6 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    url="https://gitlab.com/ing_rpaa/probatus",
+    url="https://gitlab.ing.net/RiskandPricingAdvancedAnalytics/auto-cr",
     packages=find_packages(".", exclude=["tests", "notebooks"]),
 )
