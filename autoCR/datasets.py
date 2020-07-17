@@ -7,10 +7,10 @@ def load_uci_credit_card(return_X_y=False, as_frame=False):
     """Loads the UCI Credit Card Dataset.
 
     Args:
-        return_X_y:  If True, returns ``(data, target)`` instead of a dict object.
-        as_frame: give the pandas dataframe instead of X, y matrices (default=False).
+        return_X_y:  (bool) If True, returns ``(data, target)`` instead of a dict object.
+        as_frame: (bool) give the pandas dataframe instead of X, y matrices (default=False).
 
-    Returns: data and target.
+    Returns: data and target as dictionary if return_X_y is True or pandas dataframe if as_frame is True.
 
     """
     filepath = resource_filename("autoCR", os.path.join("data", "UCI_Credit_Card.zip"))
