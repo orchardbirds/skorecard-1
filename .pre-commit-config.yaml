@@ -15,7 +15,7 @@ repos:
       entry: mypy
       language: system
       types: [python]
-      args: [--ignore-missing-imports, --namespace-packages]
+      args: [--ignore-missing-imports, --pretty, --show-error-codes, --namespace-packages]
   - repo: local
     hooks:
     - id: flake8
