@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 
 setup(
-    name="auto-cr",
+    name="autoCR",
     version="0.1",
     description="Automated Credit Risk Modeling, 2020",
     author="RPAA",
@@ -14,6 +14,6 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    url="https://gitlab.ing.net/RiskandPricingAdvancedAnalytics/auto-cr",
+    url="https://gitlab.ing.net/RiskandPricingAdvancedAnalytics/autoCR",
     packages=find_packages(".", exclude=["tests", "notebooks"]),
 )

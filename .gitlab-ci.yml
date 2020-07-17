@@ -23,11 +23,11 @@ before_script:
 test:
   script:
     - pip install -r requirements.txt
-    - mypy --ignore-missing-imports --pretty --show-error-codes --namespace-packages -p auto-cr
-    - flake8 --max-line-length=120 --docstring-convention=google --ignore=D100 auto-cr
+    - mypy --ignore-missing-imports --pretty --show-error-codes --namespace-packages -p autoCR
+    - flake8 --max-line-length=120 --docstring-convention=google --ignore=D100 autoCR
     # Uncomment when first unit tests arrive
     #- pip install -r tests/test_requirements.txt
-    #- pytest --cov=auto-cr --cov-report term-missing
+    #- pytest --cov=autoCR --cov-report term-missing
   tags:
     - dare
     - python

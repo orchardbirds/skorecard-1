@@ -1,4 +1,4 @@
-# auto-cr
+# autoCR
 
 [![pipeline status](https://gitlab.ing.net/RiskandPricingAdvancedAnalytics/auto-cr/badges/master/pipeline.svg)](https://gitlab.ing.net/RiskandPricingAdvancedAnalytics/auto-cr/commits/master)
 [![coverage report](https://gitlab.ing.net/RiskandPricingAdvancedAnalytics/auto-cr/badges/master/coverage.svg)](https://gitlab.ing.net/RiskandPricingAdvancedAnalytics/auto-cr/commits/master)
@@ -24,15 +24,15 @@ refers to a CDM that uses Logistic Regression as the classification algorithm.
 │   ├── private                <- Private notebooks (.gitignored)
 │   ├── review                 <- Notebooks temporarily here for others to review, e.g. related to a MR
 │   └── demo                   <- Notebooks to demonstrate a function, analysis, modeling, etc. for posterity
-├── auto-ml                    <- All reusable source code
+├── autoCR                     <- All reusable source code
 └── tests                      <- Tests for unit and functional testing
    
 .gitignore                     <- Files for git to ignore
 .gitlab-ci.yml                 <- Setup file for CI pipeline
-main.py                        <- Main auto-ml entry point
+main.py                        <- Main autoCR entry point
 README.md                      <- General information about the project and repo structure, how to use it, etc.
 requirements.txt               <- Python dependencies (packages & versions)
-setup.py                       <- To setup auto-ml package locally via pip
+setup.py                       <- To setup autoCR package locally via pip
 ```
 
 
@@ -62,15 +62,15 @@ manually and automatically by the Transformers.
 ## How to run
 
 * `$ pip3 install -e .` to setup package locally
-* `$ python3 main.py` to run a sample auto-ml pipeline
+* `$ python3 main.py` to run a sample autoCR pipeline
 
 
 ## Contributing
 
-Get an overview of on-going and upcoming work on the auto-ml GitLab Board.
+Get an overview of on-going and upcoming work on the autoCR GitLab Board.
 
 Our work flow is the following:
-* Start on the auto-ml GitLab with an Issue. In the Issue, "Create merge request". Then in MR, "Check out branch".
+* Start on the autoCR GitLab with an Issue. In the Issue, "Create merge request". Then in MR, "Check out branch".
 * In a local terminal, check out branch with `git`.
 * Code. Add files. Commit files. Then `git pull origin master`. Resolve conflicts if any (then add/commit). Push.
 * Ask colleague to review MR on GitLab (e.g. by tagging them or assigning them). Discuss and resolve. Additional code
