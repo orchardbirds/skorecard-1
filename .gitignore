@@ -10,8 +10,6 @@ notebooks/private/
 
 ### DATA ###
 # to not push utils
-/data
-data
 
 ### macOS ###
 # General
