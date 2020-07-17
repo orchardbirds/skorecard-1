@@ -12,12 +12,14 @@ def load_uci_credit_card(return_X_y=False, as_frame=False):
     """
     filepath = resource_filename("autoCR", os.path.join("data", "UCI_Credit_Card.zip"))
     df = pd.read_csv(filepath)
+    df = df.rename(columns={"default.payment.next.month": "default"})
     if as_frame:
         return df
     X, y = (
-        df[["EDUCATION", "MARRIAGE", "LIMIT_BAL", "BILL_AMT4"]].values,
-        df["default.payment.next.month"].values,
+        df[["EDUCATION", "MARRIAGE", "LIMIT_BAL", "BILL_AMT1"]].values,
+        df["default"].values,
     )
     if return_X_y:
         return X, y
+
     return {"data": X, "target": y}
