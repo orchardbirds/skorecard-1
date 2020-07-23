@@ -21,7 +21,7 @@ def load_uci_credit_card(return_X_y=False, as_frame=False):
     df = pd.read_csv(filepath)
     df = df.rename(columns={"default.payment.next.month": "default"})
     if as_frame:
-        return df[["EDUCATION", "MARRIAGE", "LIMIT_BAL", "BILL_AMT1","default"]]
+        return df[["EDUCATION", "MARRIAGE", "LIMIT_BAL", "BILL_AMT1", "default"]]
     X, y = (
         df[["EDUCATION", "MARRIAGE", "LIMIT_BAL", "BILL_AMT1"]].values,
         df["default"].values,
