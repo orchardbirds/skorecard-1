@@ -1,3 +1,4 @@
+/notebooks/private/*
 .idea
 *.log
 tmd/csv_files/
@@ -9,8 +10,6 @@ notebooks/private/
 
 ### DATA ###
 # to not push utils
-/data
-data
 
 ### macOS ###
 # General
