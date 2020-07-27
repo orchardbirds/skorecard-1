@@ -32,13 +32,6 @@ class BucketTransformer(BaseEstimator, TransformerMixin):
         self.method = method
         self.kwargs = kwargs
 
-        if self.method == "simple":
-            self.Bucketer = SimpleBucketer(bin_count=self.bin_count, **kwargs)
-        elif self.method == "agglomerative":
-            self.Bucketer = AgglomerativeBucketer(bin_count=self.bin_count, **kwargs)
-        elif self.method == "quantile":
-            self.Bucketer = QuantileBucketer(bin_count=self.bin_count, **kwargs)
-
     def fit(self, X):
         """Fits the relevant Probatus bucket onto the numerical array.
 
@@ -53,8 +46,15 @@ class BucketTransformer(BaseEstimator, TransformerMixin):
         if self.mapping is None:
             self.BucketDict = {}
             for i in range(X.shape[1]):
-                self.Bucketer.fit(X[:, i])
+                if self.method == "simple":
+                    self.Bucketer = SimpleBucketer(bin_count=self.bin_count)
+                elif self.method == "agglomerative":
+                    self.Bucketer = AgglomerativeBucketer(bin_count=self.bin_count)
+                elif self.method == "quantile":
+                    self.Bucketer = QuantileBucketer(bin_count=self.bin_count)
+
                 self.BucketDict[f"Bucketer_{self.method}_feature_{i}"] = self.Bucketer
+                self.BucketDict[f"Bucketer_{self.method}_feature_{i}"].fit(X[:, i])
 
         else:
             # todo: apply mapping
@@ -69,6 +69,7 @@ class BucketTransformer(BaseEstimator, TransformerMixin):
         Returns:
             np.array of the transformed X, such that the values of X are replaced by the corresponding bucket numbers
         """
+        X = X.copy()
         if X.ndim == 1:
             X = np.expand_dims(X, 1)
 
