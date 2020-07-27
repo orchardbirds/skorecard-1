@@ -17,7 +17,7 @@ def load_uci_credit_card(return_X_y=False, as_frame=False):
         and the key `target` is the target
 
     """
-    filepath = resource_filename("autoCR", os.path.join("data", "UCI_Credit_Card.zip"))
+    filepath = resource_filename("skorecard", os.path.join("data", "UCI_Credit_Card.zip"))
     df = pd.read_csv(filepath)
     df = df.rename(columns={"default.payment.next.month": "default"})
     if as_frame:
