@@ -19,7 +19,6 @@ class BucketTransformer(BaseEstimator, TransformerMixin):
                           "agglomerative" - Bins by applying the Scikit-learn implementation of Agglomerative Clustering
                           "quantile" - Creates bins with equal number of elements
             mapping: Adds user-defined mapping. Not yet supported
-
         """
         if method not in [
             "simple",
@@ -84,8 +83,7 @@ class BucketTransformer(BaseEstimator, TransformerMixin):
         """Apply in succession the fit and transform functions defined above.
 
         Args:
-             X (np.array): The numerical data which will be used to fit and then subsequently transformed into the
-              corresponding buckets using the Probatus bucket methodology
+             X (np.array): The numerical data which will be transformed into the corresponding buckets
 
         Returns:
             np.array of the transformed X, such that the values of X are replaced by the corresponding bucket numbers
