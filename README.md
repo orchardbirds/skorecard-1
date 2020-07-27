@@ -1,7 +1,7 @@
-# autoCR
+# skorecard
 
-[![pipeline status](https://gitlab.ing.net/RiskandPricingAdvancedAnalytics/auto-cr/badges/master/pipeline.svg)](https://gitlab.ing.net/RiskandPricingAdvancedAnalytics/auto-cr/commits/master)
-[![coverage report](https://gitlab.ing.net/RiskandPricingAdvancedAnalytics/auto-cr/badges/master/coverage.svg)](https://gitlab.ing.net/RiskandPricingAdvancedAnalytics/auto-cr/commits/master)
+[![pipeline status](https://gitlab.ing.net/RiskandPricingAdvancedAnalytics/skorecard/badges/master/pipeline.svg)](https://gitlab.ing.net/RiskandPricingAdvancedAnalytics/skorecard/commits/master)
+[![coverage report](https://gitlab.ing.net/RiskandPricingAdvancedAnalytics/skorecard/badges/master/coverage.svg)](https://gitlab.ing.net/RiskandPricingAdvancedAnalytics/skorecard/commits/master)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
 
@@ -24,17 +24,17 @@ refers to a CDM that uses Logistic Regression as the classification algorithm.
 │   ├── private                <- Private notebooks (.gitignored)
 │   ├── review                 <- Notebooks temporarily here for others to review, e.g. related to a MR
 │   └── demo                   <- Notebooks to demonstrate a function, analysis, modeling, etc. for posterity
-├── autoCR                     <- All reusable source code
+├── skorecard                  <- All reusable source code
 └── tests                      <- Tests for unit and functional testing
    
 .gitignore                     <- Files for git to ignore
 .gitlab-ci.yml                 <- Setup file for CI pipeline
 .pre-commit-config.yaml        <- Setup file for pre-commit pipeline
 LICENSE                        <- License for potential open-sourcing
-main.py                        <- Main autoCR entry point
+main.py                        <- Main skorecard entry point
 README.md                      <- General information about the project and repo structure, how to use it, etc.
 requirements.txt               <- Python dependencies (packages & versions)
-setup.py                       <- To setup autoCR package locally via pip
+setup.py                       <- To setup skorecard package locally via pip
 ```
 
 
@@ -64,15 +64,15 @@ manually and automatically by the Transformers.
 ## How to run
 
 * `$ pip3 install -e .` to setup package locally
-* `$ python3 main.py` to run a sample autoCR pipeline
+* `$ python3 main.py` to run a sample skorecard pipeline
 
 
 ## Contributing
 
-Get an overview of on-going and upcoming work on the autoCR GitLab Board.
+Get an overview of on-going and upcoming work on the skorecard GitLab Board.
 
 Our work flow is the following:
-* Start on the autoCR GitLab with an Issue. In the Issue, "Create merge request". Then in MR, "Check out branch".
+* Start on the skorecard GitLab with an Issue. In the Issue, "Create merge request". Then in MR, "Check out branch".
 * In a local terminal, check out branch with `git`.
 * Code. Add files. Commit files. Then `git pull origin master`. Resolve conflicts if any (then add/commit). Push.
 * Ask colleague to review MR on GitLab (e.g. by tagging them or assigning them). Discuss and resolve. Additional code
