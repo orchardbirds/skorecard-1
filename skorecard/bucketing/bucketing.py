@@ -10,7 +10,7 @@ class BucketTransformer(BaseEstimator, TransformerMixin):
 
     """
 
-    def __init__(self, bin_count=3, method="simple", mapping=None, **kwargs):
+    def __init__(self, bin_count=3, method="simple", mapping=None):
         """Initialise BucketTransformer using Probatus Bucket methodologies.
 
         Args:
@@ -30,7 +30,6 @@ class BucketTransformer(BaseEstimator, TransformerMixin):
         self.mapping = mapping  # todo: figure out mapping
         self.bin_count = bin_count
         self.method = method
-        self.kwargs = kwargs
 
     def fit(self, X):
         """Fits the relevant Probatus bucket onto the numerical array.
