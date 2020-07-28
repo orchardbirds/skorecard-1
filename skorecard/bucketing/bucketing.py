@@ -4,37 +4,14 @@ from probatus.binning import SimpleBucketer, AgglomerativeBucketer, QuantileBuck
 
 
 class BucketTransformer(BaseEstimator, TransformerMixin):
-    """Buckets and transforms a numerical array using the Bucket methodologies in the Probatus package.
+    """Base class for the below Bucket transformer methodologies using the Bucketers in the Probatus package."""
 
-    Currently 3 methods are supported: Simple Bucketing, Agglomerative Bucketing and Quantile Bucketing
-
-    """
-
-    def __init__(self, bin_count=3, method="simple", mapping=None):
-        """Initialise BucketTransformer using Probatus Bucket methodologies.
-
-        Args:
-            bin_count (int): How many bins we wish to split our data into. Required for each Probatus Bucket method
-            method (str): "simple" - Creates equally spaced bins using numpy.histogram function
-                          "agglomerative" - Bins by applying the Scikit-learn implementation of Agglomerative Clustering
-                          "quantile" - Creates bins with equal number of elements
-            mapping: Adds user-defined mapping. Not yet supported
-        """
-        if method not in [
-            "simple",
-            "agglomerative",
-            "quantile",
-        ]:  # todo: add more options?
-            raise NotImplementedError("Method not supported!")
-
-        self.mapping = mapping  # todo: figure out mapping
-        self.bin_count = bin_count
-        self.method = method
+    def __init__(self):
+        """Initialise."""
+        self.fitted = False
 
     def fit(self, X, y=None):
         """Fits the relevant Probatus bucket onto the numerical array.
-
-         We must generate a Bucket object per column in our dataset.
 
         Args:
             X (np.array): The numerical data on which we wish to fit our BucketTransformer
@@ -42,29 +19,12 @@ class BucketTransformer(BaseEstimator, TransformerMixin):
         Returns:
             self (object): Fitted transformer
         """
-        # 1-d arrays can cause us some hassle when looping over columns
-        if X.ndim == 1:
-            X = np.expand_dims(X, 1)
-
-        if self.mapping is None:
-            self.BucketDict = {}
-            for i in range(X.shape[1]):
-                if self.method == "simple":
-                    self.Bucketer = SimpleBucketer(bin_count=self.bin_count)
-                elif self.method == "agglomerative":
-                    self.Bucketer = AgglomerativeBucketer(bin_count=self.bin_count)
-                elif self.method == "quantile":
-                    self.Bucketer = QuantileBucketer(bin_count=self.bin_count)
-
-                self.BucketDict[f"Bucketer_{self.method}_feature_{i}"] = self.Bucketer.fit(X[:, i])
-
-        else:
-            # todo: apply mapping
-            pass
+        self._fit(X, y)
+        self.fitted = True
 
         return self
 
-    def transform(self, X):
+    def transform(self, X, y=None):
         """Transforms a numerical array into its corresponding buckets using the fitted Probatus bucket methodology.
 
         Args:
@@ -73,13 +33,112 @@ class BucketTransformer(BaseEstimator, TransformerMixin):
         Returns:
             np.array of the transformed X, such that the values of X are replaced by the corresponding bucket numbers
         """
-        X = X.copy()
-        if X.ndim == 1:
-            X = np.expand_dims(X, 1)
+        return self._transform(X, y)
 
-        # todo: apply mapping
-        for i in range(X.shape[1]):
-            X[:, i] = np.digitize(
-                X[:, i], self.BucketDict[f"Bucketer_{self.method}_feature_{i}"].boundaries[1:], right=True,
-            )
-        return X
+
+class SimpleBucketTransformer(BucketTransformer):
+    """Bucket transformer implementing the Simple Bucketer in the Probatus package."""
+
+    def __init__(self, bin_count):
+        """Initialise BucketTransformer using Simple Probatus Bucketer.
+
+        Args:
+            bin_count (int): How many bins we wish to split our data into. Required for each Probatus Bucket method
+        """
+        super().__init__()
+        self.bin_count = bin_count
+
+    def _fit(self, X, y=None):
+        """Fits the Simple Probatus bucket onto the numerical array.
+
+        Args:
+            X (np.array): The numerical data on which we wish to fit our SimpleBucketTransformer
+
+        Returns:
+            self (object): Fitted transformer
+        """
+        self.Bucketer = SimpleBucketer(bin_count=self.bin_count)
+        self.Bucketer.fit(X)
+
+    def _transform(self, X, y=None):
+        """Transforms a numerical array into its corresponding buckets using the fitted Simple Probatus Bucketer.
+
+        Args:
+            X (np.array): The numerical data which will be transformed into the corresponding buckets
+
+        Returns:
+            np.array of the transformed X, such that the values of X are replaced by the corresponding bucket numbers
+        """
+        return np.digitize(X, self.Bucketer.boundaries[1:], right=True)
+
+
+class AgglomerativeBucketTransformer(BucketTransformer):
+    """Bucket transformer implementing the Agglomerative Bucketer in the Probatus package."""
+
+    def __init__(self, bin_count):
+        """Initialise BucketTransformer using Agglomerative Probatus Bucketer.
+
+        Args:
+            bin_count (int): How many bins we wish to split our data into. Required for each Probatus Bucket method
+        """
+        super().__init__()
+        self.bin_count = bin_count
+
+    def _fit(self, X, y=None):
+        """Fits the Agglomerative Probatus bucket onto the numerical array.
+
+        Args:
+            X (np.array): The numerical data on which we wish to fit our AgglomerativeBucketTransformer
+
+        Returns:
+            self (object): Fitted transformer
+        """
+        self.Bucketer = AgglomerativeBucketer(bin_count=self.bin_count)
+        self.Bucketer.fit(X)
+
+    def _transform(self, X, y=None):
+        """Transforms a numerical array into its corresponding buckets using the fitted Agglomerative Probatus Bucketer.
+
+        Args:
+            X (np.array): The numerical data which will be transformed into the corresponding buckets
+
+        Returns:
+            np.array of the transformed X, such that the values of X are replaced by the corresponding bucket numbers
+        """
+        return np.digitize(X, self.Bucketer.boundaries[1:], right=True)
+
+
+class QuantileBucketTransformer(BucketTransformer):
+    """Bucket transformer implementing the Quantile Bucketer in the Probatus package."""
+
+    def __init__(self, bin_count):
+        """Initialise BucketTransformer using Quantile Probatus Bucketer.
+
+        Args:
+            bin_count (int): How many bins we wish to split our data into. Required for each Probatus Bucket method
+        """
+        super().__init__()
+        self.bin_count = bin_count
+
+    def _fit(self, X, y=None):
+        """Fits the Quantile Probatus bucket onto the numerical array.
+
+        Args:
+            X (np.array): The numerical data on which we wish to fit our QuantileBucketTransformer
+
+        Returns:
+            self (object): Fitted transformer
+        """
+        self.Bucketer = QuantileBucketer(bin_count=self.bin_count)
+        self.Bucketer.fit(X)
+
+    def _transform(self, X, y=None):
+        """Transforms a numerical array into its corresponding buckets using the fitted Quantile Probatus Bucketer.
+
+        Args:
+            X (np.array): The numerical data which will be transformed into the corresponding buckets
+
+        Returns:
+            np.array of the transformed X, such that the values of X are replaced by the corresponding bucket numbers
+        """
+        return np.digitize(X, self.Bucketer.boundaries[1:], right=True)
