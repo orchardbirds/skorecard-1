@@ -14,6 +14,7 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
+    include_package_data=True,
     url="https://gitlab.ing.net/RiskandPricingAdvancedAnalytics/skorecard",
     packages=find_packages(".", exclude=["tests", "notebooks"]),
 )
