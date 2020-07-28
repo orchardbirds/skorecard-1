@@ -31,13 +31,16 @@ class BucketTransformer(BaseEstimator, TransformerMixin):
         self.bin_count = bin_count
         self.method = method
 
-    def fit(self, X):
+    def fit(self, X, y=None):
         """Fits the relevant Probatus bucket onto the numerical array.
 
          We must generate a Bucket object per column in our dataset.
 
         Args:
             X (np.array): The numerical data on which we wish to fit our BucketTransformer
+
+        Returns:
+            self (object): Fitted transformer
         """
         if X.ndim == 1:
             X = np.expand_dims(X, 1)
@@ -57,6 +60,8 @@ class BucketTransformer(BaseEstimator, TransformerMixin):
         else:
             # todo: apply mapping
             pass
+
+        return self
 
     def transform(self, X):
         """Transforms a numerical array into its corresponding buckets using the fitted Probatus bucket methodology.
@@ -78,7 +83,7 @@ class BucketTransformer(BaseEstimator, TransformerMixin):
             )
         return X
 
-    def fit_transform(self, X):
+    def fit_transform(self, X, y=None):
         """Apply in succession the fit and transform functions defined above.
 
         Args:
