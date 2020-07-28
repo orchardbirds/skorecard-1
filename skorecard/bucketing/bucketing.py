@@ -37,7 +37,7 @@ class BucketTransformer(BaseEstimator, TransformerMixin):
          We must generate a Bucket object per column in our dataset.
 
         Args:
-            X (np.array): The numerical data on which we wish to fit out BucketTransformer
+            X (np.array): The numerical data on which we wish to fit our BucketTransformer
         """
         if X.ndim == 1:
             X = np.expand_dims(X, 1)
