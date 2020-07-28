@@ -26,7 +26,7 @@ class BucketTransformer(BaseEstimator, TransformerMixin):
             "agglomerative",
             "quantile",
         ]:  # todo: add more options?
-            raise AttributeError("Method not supported!")
+            raise NotImplementedError("Method not supported!")
 
         self.mapping = mapping  # todo: figure out mapping
         self.bin_count = bin_count
@@ -83,18 +83,6 @@ class BucketTransformer(BaseEstimator, TransformerMixin):
                 X[:, i], self.BucketDict[f"Bucketer_{self.method}_feature_{i}"].boundaries[1:], right=True,
             )
         return X
-
-    def fit_transform(self, X, y=None):
-        """Apply in succession the fit and transform functions defined above.
-
-        Args:
-             X (np.array): The numerical data which will be transformed into the corresponding buckets
-
-        Returns:
-            np.array of the transformed X, such that the values of X are replaced by the corresponding bucket numbers
-        """
-        self.fit(X)
-        return self.transform(X)
 
     def save(self, filename):
         """Save the self.BucketDict in a YAML file. A separate section is written per Bucket object in this dictionary.
