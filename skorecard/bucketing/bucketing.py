@@ -43,6 +43,7 @@ class BucketTransformer(BaseEstimator, TransformerMixin):
         Returns:
             self (object): Fitted transformer
         """
+        # 1-d arrays can cause us some hassle when looping over columns
         if X.ndim == 1:
             X = np.expand_dims(X, 1)
 
