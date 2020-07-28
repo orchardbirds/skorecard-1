@@ -1,7 +1,6 @@
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 from probatus.binning import SimpleBucketer, AgglomerativeBucketer, QuantileBucketer
-import yaml
 
 
 class BucketTransformer(BaseEstimator, TransformerMixin):
@@ -84,30 +83,3 @@ class BucketTransformer(BaseEstimator, TransformerMixin):
                 X[:, i], self.BucketDict[f"Bucketer_{self.method}_feature_{i}"].boundaries[1:], right=True,
             )
         return X
-
-    def save(self, filename):
-        """Save the self.BucketDict in a YAML file. A separate section is written per Bucket object in this dictionary.
-
-        An example feature section is the following:
-
-        Feature 0:
-          bin_count: 5
-          boundaries:
-          - 10000.0
-          - 160000.0
-          - 310000.0
-          - 460000.0
-          - 610000.0
-          - 760000.0
-          method: simple
-
-        Args:
-            filename (str): Name of the YAML file that is saved
-        """
-        with open(f"{filename}.yaml", "w") as outfile:
-            for i, v in enumerate(self.BucketDict):
-                tmp_dict = {}
-                tmp_dict["bin_count"] = self.BucketDict[v].bin_count
-                tmp_dict["method"] = self.method
-                tmp_dict["boundaries"] = self.BucketDict[v].boundaries.tolist()
-                yaml.dump({f"Feature {i}": tmp_dict}, outfile, default_flow_style=False)
