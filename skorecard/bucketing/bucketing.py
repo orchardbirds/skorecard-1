@@ -52,8 +52,7 @@ class BucketTransformer(BaseEstimator, TransformerMixin):
                 elif self.method == "quantile":
                     self.Bucketer = QuantileBucketer(bin_count=self.bin_count)
 
-                self.BucketDict[f"Bucketer_{self.method}_feature_{i}"] = self.Bucketer
-                self.BucketDict[f"Bucketer_{self.method}_feature_{i}"].fit(X[:, i])
+                self.BucketDict[f"Bucketer_{self.method}_feature_{i}"] = self.Bucketer.fit(X[:, i])
 
         else:
             # todo: apply mapping
