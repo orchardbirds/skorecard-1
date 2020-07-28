@@ -1,5 +1,5 @@
-from pkg_resources import resource_filename
-import os
+import pkgutil
+import io
 import pandas as pd
 
 
@@ -17,8 +17,8 @@ def load_uci_credit_card(return_X_y=False, as_frame=False):
         and the key `target` is the target
 
     """
-    filepath = resource_filename("skorecard", os.path.join("data", "UCI_Credit_Card.zip"))
-    df = pd.read_csv(filepath)
+    file = pkgutil.get_data("skorecard", "data/UCI_Credit_Card.zip")
+    df = pd.read_csv(io.BytesIO(file), compression="zip")
     df = df.rename(columns={"default.payment.next.month": "default"})
     if as_frame:
         return df[["EDUCATION", "MARRIAGE", "LIMIT_BAL", "BILL_AMT1", "default"]]
