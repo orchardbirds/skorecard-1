@@ -6,7 +6,7 @@ setup(
     version="0.1",
     description="sklearn for Automated Credit Risk Modeling, 2020",
     author="RPAA",
-    author_email="sandro.bjelogrlic@ing.com, ryan.chaves@ing.com, floriana.zefi@ing.com, daniel.timbrel@ing.com",
+    author_email="sandro.bjelogrlic@ing.com, ryan.chaves@ing.com, floriana.zefi@ing.com, daniel.timbrell@ing.com",
     license="ING Open Source",
     python_requires=">=3.6",
     classifiers=[
