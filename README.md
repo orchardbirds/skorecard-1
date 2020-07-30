@@ -48,9 +48,10 @@ bucketing of features in scorecard CDMs.
 
 | Role              | Person              | Team           |
 | :---------------- | :------------------ | :------------- |
-| Data Scientist    | Sandro Bjelogrlc    | RPAA           |
+| Data Scientist    | Sandro Bjelogrlic   | RPAA           |
 | Data Scientist    | Ryan Chaves         | RPAA           |
 | Data Scientist    | Floriana Zefi       | RPAA           |
+| Data Scientist    | Daniel Timbrell     | RPAA           |
 | Code Reviewer     | TBD                 | RPAA           |
 
 
