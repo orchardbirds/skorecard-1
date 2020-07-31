@@ -1,7 +1,6 @@
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 from probatus.binning import SimpleBucketer, AgglomerativeBucketer, QuantileBucketer
-import yaml
 
 
 class BucketTransformer(BaseEstimator, TransformerMixin):
@@ -12,14 +11,37 @@ class BucketTransformer(BaseEstimator, TransformerMixin):
         self.fitted = False
         self.BucketDict = {}
 
-    def _check_dict_size(self, X):
-        """Checks that X and the dictionary have the same number of features.
+    def _check_boundary_dict(self, X):
+        """Checks that the boundary dict given for the Manual Transformer and X have the same number of features.
 
         Args:
             X (np.array): the data on which we are fitting
         """
-        if X.shape[1] != len(self.bin_count):
+        if (self.method == "Manual") and X.shape[1] != len(self.boundary_dict):
+            raise ValueError(
+                f"Length of bin_count ({len(self.boundary_dict)}) and shape of X ({X.shape[1]}) do not match!"
+            )
+
+    def _check_list_size(self, X):
+        """Checks that X and the list have the same number of features. We do not use this for the Manual Transformer.
+
+        Args:
+            X (np.array): the data on which we are fitting
+        """
+        if (self.method != "Manual") and X.shape[1] != len(self.bin_count):
             raise ValueError(f"Length of bin_count ({len(self.bin_count)}) and shape of X ({X.shape[1]}) do not match!")
+
+    def _enforce_bin_count_as_list(self):
+        """If the bin_count is given as an int, then we turn it into a list."""
+        if type(self.bin_count) == int:
+            self.bin_count = [self.bin_count]
+        elif type(self.bin_count) == float:
+            raise AttributeError("bin_count must be int or list!")
+
+    def _expand_single_entity_list(self, X):
+        """If an int is passed for bin_count, then we want to ensure this is used for every feature."""
+        if (self.method != "Manual") and (len(self.bin_count) == 1):
+            self.bin_count = np.repeat(self.bin_count, X.shape[1])
 
     def fit(self, X, y=None):
         """Fits the relevant Probatus bucket onto the numerical array.
@@ -34,8 +56,9 @@ class BucketTransformer(BaseEstimator, TransformerMixin):
         if X.ndim == 1:
             X = np.expand_dims(X, 1)
 
-        if isinstance(self.bin_count, dict):
-            self._check_dict_size(self, X)
+        self._expand_single_entity_list(X)
+        self._check_list_size(X)
+        self._check_boundary_dict(X)
 
         self._fit(X, y)
         self.fitted = True
@@ -51,29 +74,15 @@ class BucketTransformer(BaseEstimator, TransformerMixin):
         Returns:
             np.array of the transformed X, such that the values of X are replaced by the corresponding bucket numbers
         """
-        if isinstance(self.bin_count, dict):
-            self._check_dict_size(self, X)
-
         X = X.copy()
         if X.ndim == 1:
             X = np.expand_dims(X, 1)
 
+        self._expand_single_entity_list(X)
+        self._check_list_size(X)
+        self._check_boundary_dict(X)
+
         return self._transform(X, y)
-
-    def save(self, filename):
-        """Save the self.BucketDict in a YAML file. A separate section is written per Bucket object in this dictionary.
-
-        See docs/example.YAML for an example how this is saved
-
-        Args:
-            filename (str): Name of the YAML file that is saved
-        """
-        with open(f"{filename}.yaml", "w") as outfile:
-            for i, v in enumerate(self.BucketDict):
-                tmp_dict = {}
-                tmp_dict["bin_count"] = self.BucketDict[v].bin_count
-                tmp_dict["boundaries"] = self.BucketDict[v].boundaries.tolist()
-                yaml.dump({v: tmp_dict}, outfile, default_flow_style=False)
 
 
 class SimpleBucketTransformer(BucketTransformer):
@@ -83,10 +92,12 @@ class SimpleBucketTransformer(BucketTransformer):
         """Initialise BucketTransformer using Simple Probatus Bucketer.
 
         Args:
-            bin_count (int): How many bins we wish to split our data into. Required for each Probatus Bucket method
+            bin_count (int/list): How many bins we wish to split our data into for each feature.
+                              Required for each Probatus Bucket method
         """
         super().__init__()
         self.bin_count = bin_count
+        self._enforce_bin_count_as_list()
         self.method = "Simple"
 
     def _fit(self, X, y=None):
@@ -98,15 +109,9 @@ class SimpleBucketTransformer(BucketTransformer):
         Returns:
             self (object): Fitted transformer
         """
-        if isinstance(self.bin_count, dict):
-            for i, v in enumerate(self.bin_count):
-                self.Bucketer = SimpleBucketer(bin_count=self.bin_count[v])
-                self.BucketDict[f"Feature_{v}"] = self.Bucketer.fit(X[:, i])
-
-        else:
-            for i in range(X.shape[1]):
-                self.Bucketer = SimpleBucketer(bin_count=self.bin_count)
-                self.BucketDict[f"Feature_{i}"] = self.Bucketer.fit(X[:, i])
+        for i in range(X.shape[1]):
+            self.Bucketer = SimpleBucketer(bin_count=self.bin_count[i])
+            self.BucketDict[f"Feature_{i}"] = self.Bucketer.fit(X[:, i])
 
     def _transform(self, X, y=None):
         """Transforms a numerical array into its corresponding buckets using the fitted Simple Probatus Bucketer.
@@ -117,13 +122,8 @@ class SimpleBucketTransformer(BucketTransformer):
         Returns:
             np.array of the transformed X, such that the values of X are replaced by the corresponding bucket numbers
         """
-        if isinstance(self.bin_count, dict):
-            for i, v in enumerate(self.bin_count):
-                X[:, i] = np.digitize(X[:, i], self.BucketDict[f"Feature_{v}"].boundaries[1:], right=True,)
-
-        else:
-            for i in range(X.shape[1]):
-                X[:, i] = np.digitize(X[:, i], self.BucketDict[f"Feature_{i}"].boundaries[1:], right=True,)
+        for i in range(X.shape[1]):
+            X[:, i] = np.digitize(X[:, i], self.BucketDict[f"Feature_{i}"].boundaries[1:], right=True,)
 
         return X
 
@@ -135,10 +135,11 @@ class AgglomerativeBucketTransformer(BucketTransformer):
         """Initialise BucketTransformer using Agglomerative Probatus Bucketer.
 
         Args:
-            bin_count (int): How many bins we wish to split our data into. Required for each Probatus Bucket method
+            bin_count (int/list): How many bins we wish to split our data into. Required for each Probatus Bucket method
         """
         super().__init__()
         self.bin_count = bin_count
+        self._enforce_bin_count_as_list()
         self.method = "Agglomerative"
 
     def _fit(self, X, y=None):
@@ -150,15 +151,9 @@ class AgglomerativeBucketTransformer(BucketTransformer):
         Returns:
             self (object): Fitted transformer
         """
-        if isinstance(self.bin_count, dict):
-            for i, v in enumerate(self.bin_count):
-                self.Bucketer = AgglomerativeBucketer(bin_count=self.bin_count[v])
-                self.BucketDict[f"Feature_{v}"] = self.Bucketer.fit(X[:, i])
-
-        else:
-            for i in range(X.shape[1]):
-                self.Bucketer = AgglomerativeBucketer(bin_count=self.bin_count)
-                self.BucketDict[f"Feature_{i}"] = self.Bucketer.fit(X[:, i])
+        for i in range(X.shape[1]):
+            self.Bucketer = AgglomerativeBucketer(bin_count=self.bin_count[i])
+            self.BucketDict[f"Feature_{i}"] = self.Bucketer.fit(X[:, i])
 
     def _transform(self, X, y=None):
         """Transforms a numerical array into its corresponding buckets using the fitted Agglomerative Probatus Bucketer.
@@ -169,13 +164,8 @@ class AgglomerativeBucketTransformer(BucketTransformer):
         Returns:
             np.array of the transformed X, such that the values of X are replaced by the corresponding bucket numbers
         """
-        if isinstance(self.bin_count, dict):
-            for i, v in enumerate(self.bin_count):
-                X[:, i] = np.digitize(X[:, i], self.BucketDict[f"Feature_{v}"].boundaries[1:], right=True,)
-
-        else:
-            for i in range(X.shape[1]):
-                X[:, i] = np.digitize(X[:, i], self.BucketDict[f"Feature_{i}"].boundaries[1:], right=True,)
+        for i in range(X.shape[1]):
+            X[:, i] = np.digitize(X[:, i], self.BucketDict[f"Feature_{i}"].boundaries[1:], right=True,)
 
         return X
 
@@ -187,10 +177,11 @@ class QuantileBucketTransformer(BucketTransformer):
         """Initialise BucketTransformer using Quantile Probatus Bucketer.
 
         Args:
-            bin_count (int): How many bins we wish to split our data into. Required for each Probatus Bucket method
+            bin_count (int/list): How many bins we wish to split our data into. Required for each Probatus Bucket method
         """
         super().__init__()
         self.bin_count = bin_count
+        self._enforce_bin_count_as_list()
         self.method = "Quantile"
 
     def _fit(self, X, y=None):
@@ -202,15 +193,9 @@ class QuantileBucketTransformer(BucketTransformer):
         Returns:
             self (object): Fitted transformer
         """
-        if isinstance(self.bin_count, dict):
-            for i, v in enumerate(self.bin_count):
-                self.Bucketer = QuantileBucketer(bin_count=self.bin_count[v])
-                self.BucketDict[f"Feature_{v}"] = self.Bucketer.fit(X[:, i])
-
-        else:
-            for i in range(X.shape[1]):
-                self.Bucketer = QuantileBucketer(bin_count=self.bin_count)
-                self.BucketDict[f"Feature_{i}"] = self.Bucketer.fit(X[:, i])
+        for i in range(X.shape[1]):
+            self.Bucketer = QuantileBucketer(bin_count=self.bin_count[i])
+            self.BucketDict[f"Feature_{i}"] = self.Bucketer.fit(X[:, i])
 
     def _transform(self, X, y=None):
         """Transforms a numerical array into its corresponding buckets using the fitted Quantile Probatus Bucketer.
@@ -221,13 +206,8 @@ class QuantileBucketTransformer(BucketTransformer):
         Returns:
             np.array of the transformed X, such that the values of X are replaced by the corresponding bucket numbers
         """
-        if isinstance(self.bin_count, dict):
-            for i, v in enumerate(self.bin_count):
-                X[:, i] = np.digitize(X[:, i], self.BucketDict[f"Feature_{v}"].boundaries[1:], right=True,)
-
-        else:
-            for i in range(X.shape[1]):
-                X[:, i] = np.digitize(X[:, i], self.BucketDict[f"Feature_{i}"].boundaries[1:], right=True,)
+        for i in range(X.shape[1]):
+            X[:, i] = np.digitize(X[:, i], self.BucketDict[f"Feature_{i}"].boundaries[1:], right=True,)
 
         return X
 
@@ -235,17 +215,21 @@ class QuantileBucketTransformer(BucketTransformer):
 class ManualBucketTransformer(BucketTransformer):
     """Bucket transformer implementing user-defined boundaries."""
 
-    def __init__(self, mapping_config):
-        """Initialise the user-defined boundaries with a YAML config file.
+    def __init__(self, boundary_dict):
+        """Initialise the user-defined boundaries with a dictionary.
 
         Args:
-            mapping_config (dict): Contains the feature names and boundaries defined for each feature
+            boundary_dict (dict): Contains the feature column number and boundaries defined for this feature.
+                                  For example, the boundary_dict {1: [0, 5, 10],
+                                                                  3: [6, 8]}
+                                  means we apply boundaries [0, 5, 10] to column 1 and boundaries [6, 8] to column 3
         """
         super().__init__()
-        self.bin_count = mapping_config
+        self.boundary_dict = boundary_dict
+        self.method = "Manual"
 
     def _fit(self, X, y=None):
-        """As the boundaries are already defined here, we do not need a fit function, and hence we keep this empty."""
+        """As the boundaries are already defined here, we do not need a fit function, and hence we leave this empty."""
         pass
 
     def _transform(self, X, y=None):
@@ -257,6 +241,6 @@ class ManualBucketTransformer(BucketTransformer):
         Returns:
             np.array of the transformed X, such that the values of X are replaced by the corresponding bucket numbers
         """
-        for i, v in enumerate(self.bin_count):
-            X[:, i] = np.digitize(X[:, i], self.bin_count[v]["boundaries"][1:], right=True,)
+        for i, v in enumerate(self.boundary_dict):
+            X[:, i] = np.digitize(X[:, i], self.boundary_dict[v][1:], right=True,)
         return X
