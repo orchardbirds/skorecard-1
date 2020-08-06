@@ -217,7 +217,7 @@ class ManualBucketTransformer(BucketTransformer):
 
     def _fit(self, X, y=None):
         """As the boundaries are already defined here, we do not need a fit function, and hence we leave this empty."""
-        pass
+        return self
 
     def _transform(self, X, y=None):
         """Transforms a numerical array into its corresponding buckets using the user-defined boundaries.
