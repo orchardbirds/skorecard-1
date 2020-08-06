@@ -74,6 +74,29 @@ def test_bin_counts(df):
     return None
 
 
+def test_float_bin_count(df):
+    """Test that a float for bin_count raises an error."""
+    try:
+        SBT = SimpleBucketTransformer(bin_count=7.3)
+        SBT.fit_transform(df["LIMIT_BAL"].values)
+    except AttributeError:
+        assert True
+
+    try:
+        ABT = AgglomerativeBucketTransformer(bin_count=7.3)
+        ABT.fit_transform(df["LIMIT_BAL"].values)
+    except AttributeError:
+        assert True
+
+    try:
+        QBT = QuantileBucketTransformer(bin_count=7.3)
+        QBT.fit_transform(df["LIMIT_BAL"].values)
+    except AttributeError:
+        assert True
+
+    return None
+
+
 def test_bucket_dict_number(df):
     """Test that we get a separate Bucketer object per number of columns given."""
     SBT = SimpleBucketTransformer(bin_count=[3, 3])
