@@ -26,7 +26,7 @@ test:
     - mypy --ignore-missing-imports --pretty --show-error-codes --namespace-packages -p skorecard
     - flake8 --max-line-length=120 --docstring-convention=google --ignore=D100 skorecard
     # Uncomment when first unit tests arrive
-    #- pip install -r tests/test_requirements.txt
+    - pip install -r tests/test_requirements.txt
     - pytest --cov=skorecard --cov-config=.coveragerc --cov-report term-missing tests/
   tags:
     - dare
