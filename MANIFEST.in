@@ -1,1 +1,2 @@
 include skorecard/data/*zip
+include requirements.txt
