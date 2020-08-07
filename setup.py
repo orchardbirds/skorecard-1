@@ -1,5 +1,7 @@
 from setuptools import setup, find_packages
 
+with open("requirements.txt") as f:
+    required = f.read().splitlines()
 
 setup(
     name="skorecard",
@@ -15,6 +17,7 @@ setup(
         "Operating System :: OS Independent",
     ],
     include_package_data=True,
+    install_requires=required,
     url="https://gitlab.ing.net/RiskandPricingAdvancedAnalytics/skorecard",
     packages=find_packages(".", exclude=["tests", "notebooks"]),
 )
