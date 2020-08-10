@@ -1,6 +1,6 @@
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
-from probatus.binning import SimpleBucketer, AgglomerativeBucketer, QuantileBucketer
+from probatus.binning import SimpleBucketer, AgglomerativeBucketer, QuantileBucketer, TreeBucketer
 
 
 class BucketTransformer(BaseEstimator, TransformerMixin):
@@ -45,6 +45,10 @@ class BucketTransformer(BaseEstimator, TransformerMixin):
         if X.ndim == 1:
             X = np.expand_dims(X, 1)
 
+        y = y.copy()
+        if y.ndim == 1:
+            y = np.expand_dims(y, 1)
+
         self._expand_single_entity_list(X)
         self._check_list_size(X)
 
@@ -65,6 +69,10 @@ class BucketTransformer(BaseEstimator, TransformerMixin):
         X = X.copy()
         if X.ndim == 1:
             X = np.expand_dims(X, 1)
+
+        y = y.copy()
+        if y.ndim == 1:
+            y = np.expand_dims(y, 1)
 
         self._expand_single_entity_list(X)
         self._check_list_size(X)
@@ -230,4 +238,44 @@ class ManualBucketTransformer(BucketTransformer):
         """
         for i, v in enumerate(self.boundary_dict):
             X[:, i] = np.digitize(X[:, i], self.boundary_dict[v][1:], right=True,)
+        return X
+
+
+class TreeBucketTransformer(BucketTransformer):
+    """Bucket transformer implementing the Tree Bucketer in the Probatus package."""
+
+    def __init__(self, **kwargs):
+        """Initialise BucketTransformer using Tree Probatus Bucketer.
+
+        Args:
+            bin_count (int/list): How many bins we wish to split our data into. Required for each Probatus Bucket method
+        """
+        super().__init__(**kwargs)
+        self.method = "Tree"
+
+    def _fit(self, X, y=None):
+        """Fits the Tree Probatus bucket onto the numerical array.
+
+        Args:
+            X (np.array): The numerical data on which we wish to fit our TreeBucketTransformer
+
+        Returns:
+            self (object): Fitted transformer
+        """
+        for i in range(X.shape[1]):
+            self.Bucketer = TreeBucketer(**self.kwargs[i])
+            self.BucketDict[f"Feature_{i}"] = self.Bucketer.fit(X[:, i], y[:, i])
+
+    def _transform(self, X, y=None):
+        """Transforms a numerical array into its corresponding buckets using the fitted Tree Probatus Bucketer.
+
+        Args:
+            X (np.array): The numerical data which will be transformed into the corresponding buckets
+
+        Returns:
+            np.array of the transformed X, such that the values of X are replaced by the corresponding bucket numbers
+        """
+        for i in range(X.shape[1]):
+            X[:, i] = np.digitize(X[:, i], self.BucketDict[f"Feature_{i}"].boundaries[1:], right=True,)
+
         return X
