@@ -46,9 +46,10 @@ class BucketTransformer(BaseEstimator, TransformerMixin):
         if X.ndim == 1:
             X = np.expand_dims(X, 1)
 
-        y = y.copy()
-        if y.ndim == 1:
-            y = np.expand_dims(y, 1)
+        if y is not None:
+            y = y.copy()
+            if y.ndim == 1:
+                y = np.expand_dims(y, 1)
 
         self._expand_single_entity_list(X)
         self._check_list_size(X)
