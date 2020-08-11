@@ -246,7 +246,7 @@ class TreeBucketTransformer(BucketTransformer):
         """Initialise BucketTransformer using Tree Probatus Bucketer.
 
         Args:
-            bin_count (int/list): How many bins we wish to split our data into. Required for each Probatus Bucket method
+            **kwargs: the keyword arguments passed to the Tree Probatus Bucketer
         """
         super().__init__(**kwargs)
         self.method = "Tree"
@@ -262,7 +262,6 @@ class TreeBucketTransformer(BucketTransformer):
             self (object): Fitted transformer
         """
         for i in range(X.shape[1]):
-            print(X.shape)
             self.Bucketer = TreeBucketer(**self.kwargs)
             self.BucketDict[f"Feature_{i}"] = self.Bucketer.fit(X[:, i], y)
 
