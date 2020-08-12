@@ -1,4 +1,3 @@
-import numpy as np
 from skorecard import datasets
 from skorecard.preprocessing import AgglomerativeBucketTransformer
 
@@ -24,15 +23,15 @@ def test_bin_counts(df):
     """Test that we get the number of bins we request."""
     # Test single bin counts
     ABT = AgglomerativeBucketTransformer(bin_count=3)
-    X = ABT.fit_transform(df["MARRIAGE"].values)
-    assert len(np.unique(X)) == 3
+    ABT.fit_transform(df["MARRIAGE"].values)
+    assert ABT.BucketDict["Feature_0"].bin_count == 3
 
     # Test multiple bin counts
     ABT = AgglomerativeBucketTransformer(bin_count=[2, 2, 3])
-    X = ABT.fit_transform(df[["LIMIT_BAL", "MARRIAGE", "BILL_AMT1"]].values)
-    assert len(np.unique(X[:, 0])) == 2
-    assert len(np.unique(X[:, 1])) == 2
-    assert len(np.unique(X[:, 2])) == 3
+    ABT.fit_transform(df[["LIMIT_BAL", "MARRIAGE", "BILL_AMT1"]].values)
+    assert ABT.BucketDict["Feature_0"].bin_count == 2
+    assert ABT.BucketDict["Feature_1"].bin_count == 2
+    assert ABT.BucketDict["Feature_2"].bin_count == 3
 
     return None
 

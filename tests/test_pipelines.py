@@ -27,8 +27,8 @@ def test_bucket_transformer(df):
     X = transformer.fit_transform(df.values)
 
     # Test only non-categorical variables
-    assert len(np.unique(X[:, 2])) == 10
-    assert len(np.unique(X[:, 3])) == 6
+    assert len(np.unique(X[:, 2])) == 11
+    assert len(np.unique(X[:, 3])) == 7
     assert np.all(X[:, 4] == df["default"].values)
 
     return None

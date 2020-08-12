@@ -1,4 +1,3 @@
-import numpy as np
 from skorecard import datasets
 from skorecard.preprocessing import SimpleBucketTransformer
 
@@ -24,14 +23,14 @@ def test_bin_counts(df):
     """Test that we get the number of bins we request."""
     # Test single bin counts
     SBT = SimpleBucketTransformer(bin_count=7)
-    X = SBT.fit_transform(df["LIMIT_BAL"].values)
-    assert len(np.unique(X)) == 7
+    SBT.fit_transform(df["LIMIT_BAL"].values)
+    assert SBT.BucketDict["Feature_0"].bin_count == 7
 
     # Test multiple bin counts
     SBT = SimpleBucketTransformer(bin_count=[7, 5])
-    X = SBT.fit_transform(df[["LIMIT_BAL", "BILL_AMT1"]].values)
-    assert len(np.unique(X[:, 0])) == 7
-    assert len(np.unique(X[:, 1])) == 5
+    SBT.fit_transform(df[["LIMIT_BAL", "BILL_AMT1"]].values)
+    assert SBT.BucketDict["Feature_0"].bin_count == 7
+    assert SBT.BucketDict["Feature_1"].bin_count == 5
 
     return None
 
