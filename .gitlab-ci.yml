@@ -17,17 +17,16 @@ before_script:
   - python -V               # Print out python version for debugging
   - virtualenv venv
   - source venv/bin/activate
-  - pip install -e .
 
 # tags make sure correct public gitlab runner is picked
 test:
   script:
-    - pip install -r requirements.txt
+    - pip install --upgrade setuptools
+    - pip install --force-reinstall --upgrade -r tests/test_requirements.txt
+    - pip install -e .
     - mypy --ignore-missing-imports --pretty --show-error-codes --namespace-packages -p skorecard
     - flake8 --max-line-length=120 --docstring-convention=google --ignore=D100 skorecard
-    # Uncomment when first unit tests arrive
-    #- pip install -r tests/test_requirements.txt
-    #- pytest --cov=skorecard --cov-report term-missing
+    - pytest --cov=skorecard/ --cov-config=.coveragerc --cov-report term-missing tests/
   tags:
     - dare
     - python
