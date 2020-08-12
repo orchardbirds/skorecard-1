@@ -63,8 +63,6 @@ class LogisticRegression(lm.LogisticRegression):
         sample_weight : array-like of shape (n_samples,) default=None
             Array of weights that are assigned to individual samples.
             If not provided, then each sample is given unit weight.
-            .. versionadded:: 0.17
-               *sample_weight* support to LogisticRegression.
 
         Returns:
             self, Fitted estimator.
@@ -79,20 +77,19 @@ class LogisticRegression(lm.LogisticRegression):
         # Initiate matrix of 0's, fill diagonal with each predicted observation's variance
         V = np.diagflat(np.product(predProbs, axis=1))
 
-        # Covariance matrix
-        # Note that the @-operater does matrix multiplication in Python 3.5+, so if you're running
-        # Python 3.5+, you can replace the covLogit-line below with the more readable:
-        # covLogit = np.linalg.inv(X_design.T @ V @ X_design)
+        # Covariance matrix following the algepra
         self.cov_matrix = np.linalg.inv(np.dot(np.dot(X_design.T, V), X_design))
 
         std_err = np.sqrt(np.diag(self.cov_matrix))
 
+        # Index 0 corresponds to the intercept, from 1 onwards
         self.std_err_intercept_ = std_err[0]
         self.std_err_coef_ = std_err[1:]
 
         self.z_intercept_ = self.intercept_ / self.std_err_intercept_
         self.z_coef_ = self.coef_ / self.std_err_coef_
 
+        # Get p-values under the gaussian assumption
         self.p_val_intercept_ = scipy.stats.norm.sf(abs(self.z_intercept_)) * 2
         self.p_val_coef_ = scipy.stats.norm.sf(abs(self.z_coef_)) * 2
 
