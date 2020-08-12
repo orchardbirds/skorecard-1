@@ -1,4 +1,3 @@
-import numpy as np
 from skorecard import datasets
 from skorecard.preprocessing import QuantileBucketTransformer
 
@@ -24,16 +23,16 @@ def test_bin_counts(df):
     """Test that we get the number of bins we request."""
     # Test single bin counts
     QBT = QuantileBucketTransformer(bin_count=10)
-    X = QBT.fit_transform(df["BILL_AMT1"].values)
-    assert len(np.unique(X)) == 10
+    QBT.fit_transform(df["BILL_AMT1"].values)
+    assert QBT.BucketDict["Feature_0"].bin_count == 10
 
     # Test multiple bin counts
     QBT = QuantileBucketTransformer(bin_count=[4, 3, 2, 6])
-    X = QBT.fit_transform(df[["LIMIT_BAL", "MARRIAGE", "EDUCATION", "BILL_AMT1"]].values)
-    assert len(np.unique(X[:, 0])) == 4
-    assert len(np.unique(X[:, 1])) == 3
-    assert len(np.unique(X[:, 2])) == 2
-    assert len(np.unique(X[:, 3])) == 6
+    QBT.fit_transform(df[["LIMIT_BAL", "MARRIAGE", "EDUCATION", "BILL_AMT1"]].values)
+    assert QBT.BucketDict["Feature_0"].bin_count == 4
+    assert QBT.BucketDict["Feature_1"].bin_count == 3
+    assert QBT.BucketDict["Feature_2"].bin_count == 2
+    assert QBT.BucketDict["Feature_3"].bin_count == 6
 
     return None
 
