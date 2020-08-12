@@ -28,5 +28,5 @@ def test_example_boundary_dict(df, example_boundary_dict):
     X = MBT.fit_transform(df.values)
 
     # We do not test features 0 and 1 yet as they are categoricals
-    assert len(np.unique(X[:, 2])) == len(example_boundary_dict[2]) - 1
-    assert len(np.unique(X[:, 3])) == len(example_boundary_dict[3]) - 1
+    assert len(np.unique(X[:, 2])) == len(example_boundary_dict[2])
+    assert len(np.unique(X[:, 3])) == len(example_boundary_dict[3])
