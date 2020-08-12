@@ -1,15 +1,16 @@
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
-from probatus.binning import SimpleBucketer, AgglomerativeBucketer, QuantileBucketer
+from probatus.binning import SimpleBucketer, AgglomerativeBucketer, QuantileBucketer, TreeBucketer
 
 
 class BucketTransformer(BaseEstimator, TransformerMixin):
     """Base class for the below Bucket transformer methodologies using the Bucketers in the Probatus package."""
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         """Initialise with empty bucket dictionary to which we add our Bucketer(s) in self.fit()."""
         self.fitted = False
         self.BucketDict = {}
+        self.kwargs = kwargs
 
     def _check_list_size(self, X):
         """Checks that X and the list have the same number of features. We do not use this for the Manual Transformer.
@@ -17,7 +18,7 @@ class BucketTransformer(BaseEstimator, TransformerMixin):
         Args:
             X (np.array): the data on which we are fitting
         """
-        if (self.method != "Manual") and X.shape[1] != len(self.bin_count):
+        if (self.method not in ["Manual", "Tree"]) and X.shape[1] != len(self.bin_count):
             raise ValueError(f"Length of bin_count ({len(self.bin_count)}) and shape of X ({X.shape[1]}) do not match!")
 
     def _enforce_bin_count_as_list(self):
@@ -29,7 +30,7 @@ class BucketTransformer(BaseEstimator, TransformerMixin):
 
     def _expand_single_entity_list(self, X):
         """If an int is passed for bin_count, then we want to ensure this is used for every feature."""
-        if (self.method != "Manual") and (len(self.bin_count) == 1):
+        if (self.method not in ["Manual", "Tree"]) and (len(self.bin_count) == 1):
             self.bin_count = np.repeat(self.bin_count, X.shape[1])
 
     def fit(self, X, y=None):
@@ -44,6 +45,11 @@ class BucketTransformer(BaseEstimator, TransformerMixin):
         X = X.copy()
         if X.ndim == 1:
             X = np.expand_dims(X, 1)
+
+        if y is not None:
+            y = y.copy()
+            if y.ndim == 1:
+                y = np.expand_dims(y, 1)
 
         self._expand_single_entity_list(X)
         self._check_list_size(X)
@@ -230,4 +236,47 @@ class ManualBucketTransformer(BucketTransformer):
         """
         for i, v in enumerate(self.boundary_dict):
             X[:, i] = np.digitize(X[:, i], self.boundary_dict[v][1:], right=True,)
+        return X
+
+
+class TreeBucketTransformer(BucketTransformer):
+    """Bucket transformer implementing the Tree Bucketer in the Probatus package."""
+
+    def __init__(self, **kwargs):
+        """Initialise BucketTransformer using Tree Probatus Bucketer.
+
+        Args:
+            **kwargs: the keyword arguments passed to the Tree Probatus Bucketer
+        """
+        super().__init__(**kwargs)
+        self.method = "Tree"
+
+    def _fit(self, X, y=None):
+        """Fits the Tree Probatus bucket onto the numerical array.
+
+        Args:
+            X (np.array): The numerical data on which we wish to fit our TreeBucketTransformer
+            y (np.array): The binary target
+
+        Returns:
+            self (object): Fitted transformer
+        """
+        for i in range(X.shape[1]):
+            self.Bucketer = TreeBucketer(**self.kwargs)
+            self.BucketDict[f"Feature_{i}"] = self.Bucketer.fit(X[:, i], y)
+
+        return self
+
+    def _transform(self, X, y=None):
+        """Transforms a numerical array into its corresponding buckets using the fitted Tree Probatus Bucketer.
+
+        Args:
+            X (np.array): The numerical data which will be transformed into the corresponding buckets
+
+        Returns:
+            np.array of the transformed X, such that the values of X are replaced by the corresponding bucket numbers
+        """
+        for i in range(X.shape[1]):
+            X[:, i] = np.digitize(X[:, i], self.BucketDict[f"Feature_{i}"].boundaries[1:], right=True,)
+
         return X

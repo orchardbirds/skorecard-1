@@ -4,6 +4,7 @@ from .binning import (
     AgglomerativeBucketTransformer,
     QuantileBucketTransformer,
     ManualBucketTransformer,
+    TreeBucketTransformer,
 )
 
 __all__ = [
@@ -11,4 +12,5 @@ __all__ = [
     "AgglomerativeBucketTransformer",
     "QuantileBucketTransformer",
     "ManualBucketTransformer",
+    "TreeBucketTransformer",
 ]
