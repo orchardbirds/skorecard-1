@@ -116,7 +116,7 @@ class SimpleBucketTransformer(BucketTransformer):
             np.array of the transformed X, such that the values of X are replaced by the corresponding bucket numbers
         """
         for i in range(X.shape[1]):
-            X[:, i] = np.digitize(X[:, i], self.BucketDict[f"Feature_{i}"].boundaries[1:], right=True,)
+            X[:, i] = np.digitize(X[:, i], self.BucketDict[f"Feature_{i}"].boundaries, right=True)
 
         return X
 
@@ -158,7 +158,7 @@ class AgglomerativeBucketTransformer(BucketTransformer):
             np.array of the transformed X, such that the values of X are replaced by the corresponding bucket numbers
         """
         for i in range(X.shape[1]):
-            X[:, i] = np.digitize(X[:, i], self.BucketDict[f"Feature_{i}"].boundaries[1:], right=True,)
+            X[:, i] = np.digitize(X[:, i], self.BucketDict[f"Feature_{i}"].boundaries, right=True)
 
         return X
 
@@ -200,7 +200,7 @@ class QuantileBucketTransformer(BucketTransformer):
             np.array of the transformed X, such that the values of X are replaced by the corresponding bucket numbers
         """
         for i in range(X.shape[1]):
-            X[:, i] = np.digitize(X[:, i], self.BucketDict[f"Feature_{i}"].boundaries[1:], right=True,)
+            X[:, i] = np.digitize(X[:, i], self.BucketDict[f"Feature_{i}"].boundaries, right=True)
 
         return X
 
@@ -235,7 +235,7 @@ class ManualBucketTransformer(BucketTransformer):
             np.array of the transformed X, such that the values of X are replaced by the corresponding bucket numbers
         """
         for i, v in enumerate(self.boundary_dict):
-            X[:, i] = np.digitize(X[:, i], self.boundary_dict[v][1:], right=True,)
+            X[:, i] = np.digitize(X[:, i], self.boundary_dict[v], right=True)
         return X
 
 
@@ -277,6 +277,6 @@ class TreeBucketTransformer(BucketTransformer):
             np.array of the transformed X, such that the values of X are replaced by the corresponding bucket numbers
         """
         for i in range(X.shape[1]):
-            X[:, i] = np.digitize(X[:, i], self.BucketDict[f"Feature_{i}"].boundaries[1:], right=True,)
+            X[:, i] = np.digitize(X[:, i], self.BucketDict[f"Feature_{i}"].boundaries, right=True)
 
         return X
