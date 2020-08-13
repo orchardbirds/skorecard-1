@@ -51,14 +51,14 @@ class LogisticRegression(lm.LogisticRegression):
         # Covariance matrix following the algebra
         self.cov_matrix_ = np.linalg.inv(np.dot(np.dot(X_design.T, V), X_design))
 
-        std_err = np.sqrt(np.diag(self.cov_matrix_))
+        std_err = np.sqrt(np.diag(self.cov_matrix_)).reshape(1, -1)
 
         # In case fit_intercept is set to True, then in the std_error array
         # Index 0 corresponds to the intercept, from index 1 onwards it relates to the coefficients
         # If fit intercept is False, then all the values are related to the coefficients
         if lr.fit_intercept:
-            self.std_err_intercept_ = std_err[0]
-            self.std_err_coef_ = std_err[1:]
+            self.std_err_intercept_ = std_err[:, 0]
+            self.std_err_coef_ = std_err[:, 1:]
 
             self.z_intercept_ = self.intercept_ / self.std_err_intercept_
 
