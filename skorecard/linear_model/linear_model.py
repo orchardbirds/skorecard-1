@@ -39,7 +39,7 @@ class LogisticRegression(lm.LogisticRegression):
 
         predProbs = self.predict_proba(X)
 
-        # Design matrix -- add column of 1's at the beginning of your X_train matrix
+        # Design matrix -- add column of 1's at the beginning of your X matrix
         if lr.fit_intercept:
             X_design = np.hstack([np.ones((X.shape[0], 1)), X])
         else:
@@ -48,12 +48,14 @@ class LogisticRegression(lm.LogisticRegression):
         # Initiate matrix of 0's, fill diagonal with each predicted observation's variance
         V = np.diagflat(np.product(predProbs, axis=1))
 
-        # Covariance matrix following the algepra
+        # Covariance matrix following the algebra
         self.cov_matrix_ = np.linalg.inv(np.dot(np.dot(X_design.T, V), X_design))
 
         std_err = np.sqrt(np.diag(self.cov_matrix_))
 
-        # Index 0 corresponds to the intercept, from 1 onwards
+        # In case fit_intercept is set to True, then in the std_error array
+        # Index 0 corresponds to the intercept, from index 1 onwards it relates to the coefficients
+        # If fit intercept is False, then all the values are related to the coefficients
         if lr.fit_intercept:
             self.std_err_intercept_ = std_err[0]
             self.std_err_coef_ = std_err[1:]
