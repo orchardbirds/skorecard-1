@@ -113,20 +113,6 @@ class SimpleBucketTransformer(BucketTransformer):
             self.BucketDict[f"Feature_{i}"] = self.Bucketer.fit(X[:, i])
             self.boundary_dict[i] = self.BucketDict[f"Feature_{i}"].boundaries
 
-    def _transform(self, X, y=None):
-        """Transforms a numerical array into its corresponding buckets using the fitted Simple Probatus Bucketer.
-
-        Args:
-            X (np.array): The numerical data which will be transformed into the corresponding buckets
-
-        Returns:
-            np.array of the transformed X, such that the values of X are replaced by the corresponding bucket numbers
-        """
-        for i in range(X.shape[1]):
-            X[:, i] = np.digitize(X[:, i], self.BucketDict[f"Feature_{i}"].boundaries, right=True)
-
-        return X
-
 
 class AgglomerativeBucketTransformer(BucketTransformer):
     """Bucket transformer implementing the Agglomerative Bucketer in the Probatus package."""
@@ -155,20 +141,6 @@ class AgglomerativeBucketTransformer(BucketTransformer):
             self.Bucketer = AgglomerativeBucketer(bin_count=self.bin_count[i])
             self.BucketDict[f"Feature_{i}"] = self.Bucketer.fit(X[:, i])
             self.boundary_dict[i] = self.BucketDict[f"Feature_{i}"].boundaries
-
-    def _transform(self, X, y=None):
-        """Transforms a numerical array into its corresponding buckets using the fitted Agglomerative Probatus Bucketer.
-
-        Args:
-            X (np.array): The numerical data which will be transformed into the corresponding buckets
-
-        Returns:
-            np.array of the transformed X, such that the values of X are replaced by the corresponding bucket numbers
-        """
-        for i in range(X.shape[1]):
-            X[:, i] = np.digitize(X[:, i], self.BucketDict[f"Feature_{i}"].boundaries, right=True)
-
-        return X
 
 
 class QuantileBucketTransformer(BucketTransformer):
@@ -199,20 +171,6 @@ class QuantileBucketTransformer(BucketTransformer):
             self.BucketDict[f"Feature_{i}"] = self.Bucketer.fit(X[:, i])
             self.boundary_dict[i] = self.BucketDict[f"Feature_{i}"].boundaries
 
-    def _transform(self, X, y=None):
-        """Transforms a numerical array into its corresponding buckets using the fitted Quantile Probatus Bucketer.
-
-        Args:
-            X (np.array): The numerical data which will be transformed into the corresponding buckets
-
-        Returns:
-            np.array of the transformed X, such that the values of X are replaced by the corresponding bucket numbers
-        """
-        for i in range(X.shape[1]):
-            X[:, i] = np.digitize(X[:, i], self.BucketDict[f"Feature_{i}"].boundaries, right=True)
-
-        return X
-
 
 class ManualBucketTransformer(BucketTransformer):
     """Bucket transformer implementing user-defined boundaries."""
@@ -233,19 +191,6 @@ class ManualBucketTransformer(BucketTransformer):
     def _fit(self, X, y=None):
         """As the boundaries are already defined here, we do not need a fit function, and hence we leave this empty."""
         return self
-
-    def _transform(self, X, y=None):
-        """Transforms a numerical array into its corresponding buckets using the user-defined boundaries.
-
-        Args:
-            X (np.array): The numerical data which will be transformed into the corresponding buckets
-
-        Returns:
-            np.array of the transformed X, such that the values of X are replaced by the corresponding bucket numbers
-        """
-        for ix in self.boundary_dict.keys():
-            X[:, ix] = np.digitize(X[:, ix], self.boundary_dict[ix], right=True)
-        return X
 
 
 class TreeBucketTransformer(BucketTransformer):
@@ -276,17 +221,3 @@ class TreeBucketTransformer(BucketTransformer):
             self.boundary_dict[i] = self.BucketDict[f"Feature_{i}"].boundaries
 
         return self
-
-    def _transform(self, X, y=None):
-        """Transforms a numerical array into its corresponding buckets using the fitted Tree Probatus Bucketer.
-
-        Args:
-            X (np.array): The numerical data which will be transformed into the corresponding buckets
-
-        Returns:
-            np.array of the transformed X, such that the values of X are replaced by the corresponding bucket numbers
-        """
-        for i in range(X.shape[1]):
-            X[:, i] = np.digitize(X[:, i], self.BucketDict[f"Feature_{i}"].boundaries, right=True)
-
-        return X
