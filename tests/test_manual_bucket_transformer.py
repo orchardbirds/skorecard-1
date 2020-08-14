@@ -22,6 +22,12 @@ def example_boundary_dict():
     }
 
 
+@pytest.fixture()
+def one_feat_dictionary():
+    """Returns dictionary for one feature only."""
+    return {1: [0.0, 1.5, 3.0]}
+
+
 def test_example_boundary_dict(df, example_boundary_dict):
     """Test that we can use an example dict for ManualBucketTransformer."""
     MBT = ManualBucketTransformer(boundary_dict=example_boundary_dict)
@@ -30,3 +36,12 @@ def test_example_boundary_dict(df, example_boundary_dict):
     # We do not test features 0 and 1 yet as they are categoricals
     assert len(np.unique(X[:, 2])) == len(example_boundary_dict[2])
     assert len(np.unique(X[:, 3])) == len(example_boundary_dict[3])
+
+
+def test_only_one_feat_in_dict(df, one_feat_dictionary):
+    """Test that when not all the features are defined, only those defined get bucketed."""
+    MBT = ManualBucketTransformer(boundary_dict=one_feat_dictionary)
+    X = MBT.fit_transform(df.values)
+
+    # We do not test features 0 and 1 yet as they are categoricals
+    assert len(np.unique(X[:, 1])) == len(one_feat_dictionary[1])

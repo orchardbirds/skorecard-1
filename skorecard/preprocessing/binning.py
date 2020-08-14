@@ -234,8 +234,8 @@ class ManualBucketTransformer(BucketTransformer):
         Returns:
             np.array of the transformed X, such that the values of X are replaced by the corresponding bucket numbers
         """
-        for i, v in enumerate(self.boundary_dict):
-            X[:, i] = np.digitize(X[:, i], self.boundary_dict[v], right=True)
+        for ix in self.boundary_dict.keys():
+            X[:, ix] = np.digitize(X[:, ix], self.boundary_dict[ix], right=True)
         return X
 
 
