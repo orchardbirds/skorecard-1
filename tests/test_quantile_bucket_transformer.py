@@ -60,15 +60,11 @@ def test_bucket_dict_number(df):
 def test_bad_bin_count_shape(df):
     """Test that bad bin shape triggers ValueError."""
     # Quantile Bucketer
-    try:
-        QBT = QuantileBucketTransformer(bin_count=[3, 3])
+    QBT = QuantileBucketTransformer(bin_count=[3, 3])
+    with pytest.raises(ValueError):
         QBT.fit(df["LIMIT_BAL"].values)
-    except ValueError:
-        assert True
-    try:
-        QBT = QuantileBucketTransformer(bin_count=[3])
-        QBT.fit(df[["LIMIT_BAL", "BILL_AMT1"]].values)
-    except ValueError:
-        assert True
+
+    QBT = QuantileBucketTransformer(bin_count=[3])
+    QBT.fit(df[["LIMIT_BAL", "BILL_AMT1"]].values)
 
     return None
