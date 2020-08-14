@@ -15,7 +15,7 @@ repos:
       entry: mypy
       language: system
       types: [python]
-      args: [--ignore-missing-imports, --pretty, --show-error-codes, --namespace-packages]
+      args: [--ignore-missing-imports, --namespace-packages, --show-error-codes, --pretty]
   - repo: local
     hooks:
     - id: flake8
@@ -23,5 +23,6 @@ repos:
       entry: flake8
       language: system
       types: [python]
-      args: [--max-line-length=120, --docstring-convention=google, --ignore=D100]
+      args: [--max-line-length=120, --docstring-convention=google, "--ignore=D100,D104"]
 # D100 requires all Python files (modules) to have a "public" docstring even if all functions within have a docstring.
+# D104 requires __init__ files to have a docstring
