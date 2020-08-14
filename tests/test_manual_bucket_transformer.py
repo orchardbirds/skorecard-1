@@ -25,7 +25,10 @@ def example_boundary_dict():
 @pytest.fixture()
 def one_feat_dictionary():
     """Returns dictionary for one feature only."""
-    return {1: [0.0, 1.5, 3.0]}
+    return {
+        1: [0.0, 1.5, 3.0],
+        2: [10000.0, 30000.0, 140000.0, 360000.0, 760000.0],
+    }
 
 
 def test_example_boundary_dict(df, example_boundary_dict):
@@ -45,3 +48,4 @@ def test_only_one_feat_in_dict(df, one_feat_dictionary):
 
     # We do not test features 0 and 1 yet as they are categoricals
     assert len(np.unique(X[:, 1])) == len(one_feat_dictionary[1])
+    assert len(np.unique(X[:, 2])) == len(one_feat_dictionary[2])
