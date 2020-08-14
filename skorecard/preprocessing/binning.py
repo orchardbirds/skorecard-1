@@ -81,8 +81,6 @@ class BucketTransformer(BaseEstimator, TransformerMixin):
 
         return X
 
-        # return self._transform(X, y)
-
 
 class SimpleBucketTransformer(BucketTransformer):
     """Bucket transformer implementing the Simple Bucketer in the Probatus package."""
