@@ -187,27 +187,6 @@ class QuantileBucketTransformer(BucketTransformer):
             self.boundary_dict[i] = self.BucketDict[f"Feature_{i}"].boundaries
 
 
-class ManualBucketTransformer(BucketTransformer):
-    """Bucket transformer implementing user-defined boundaries."""
-
-    def __init__(self, boundary_dict):
-        """Initialise the user-defined boundaries with a dictionary.
-
-        Args:
-            boundary_dict (dict): Contains the feature column number and boundaries defined for this feature.
-                                  For example, the boundary_dict {1: [0, 5, 10],
-                                                                  3: [6, 8]}
-                                  means we apply boundaries [0, 5, 10] to column 1 and boundaries [6, 8] to column 3
-        """
-        super().__init__()
-        self.boundary_dict = boundary_dict
-        self.method = "Manual"
-
-    def _fit(self, X, y=None):
-        """As the boundaries are already defined here, we do not need a fit function, and hence we leave this empty."""
-        return self
-
-
 class TreeBucketTransformer(BucketTransformer):
     """Bucket transformer implementing the Tree Bucketer in the Probatus package."""
 
