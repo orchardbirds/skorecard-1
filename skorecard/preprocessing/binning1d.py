@@ -94,7 +94,7 @@ class BucketTransformer(BaseEstimator, TransformerMixin):
         self._check_list_size(X)
 
         for ix in self.boundary_dict.keys():
-            X[:, ix] = np.digitize(X[:, ix], self.boundary_dict[ix], right=True)
+            X[:, ix] = np.digitize(X[:, ix], self.boundary_dict[ix][1:], right=True)
 
         return X
 
