@@ -1,5 +1,6 @@
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
+from ..utils.exceptions import DimensionalityError
 from probatus.binning import SimpleBucketer, AgglomerativeBucketer, QuantileBucketer, TreeBucketer
 
 
@@ -34,6 +35,30 @@ class BucketTransformer(BaseEstimator, TransformerMixin):
         if (self.method not in ["Manual", "Tree"]) and (len(self.bin_count) == 1):
             self.bin_count = np.repeat(self.bin_count, X.shape[1])
 
+    def _assert_1d_array(self, X, y):
+
+        correct_X_shape = (X.ndim == 2 and X.shape[1] == 1) or X.ndim == 1
+
+        if not correct_X_shape:
+            raise DimensionalityError(f"You must fit one feature at the time: X shape is {X.shape}")
+
+        if y is not None:
+            correct_y_shape = (y.ndim == 2 and y.shape[1] == 1) or y.ndim == 1
+
+            if not correct_y_shape:
+                raise DimensionalityError(f"The target has a wrong shape: y shape is {y.shape}")
+
+    def _reshape_array(self, X, y):
+        if X.ndim == 1:
+            X = np.expand_dims(X, 1)
+
+        if y is not None:
+            y = y.copy()
+            if y.ndim == 1:
+                y = np.expand_dims(y, 1)
+
+        return X, y
+
     def fit(self, X, y=None):
         """Fits the relevant Probatus bucket onto the numerical array.
 
@@ -44,16 +69,8 @@ class BucketTransformer(BaseEstimator, TransformerMixin):
             self (object): Fitted transformer
         """
         X = X.copy()
-        if X.ndim == 1:
-            X = np.expand_dims(X, 1)
-
-        if y is not None:
-            y = y.copy()
-            if y.ndim == 1:
-                y = np.expand_dims(y, 1)
-
-        self._expand_single_entity_list(X)
-        self._check_list_size(X)
+        self._assert_1d_array(X, y)
+        X, y = self._reshape_array(X, y)
 
         self._fit(X, y)
         self.fitted = True
