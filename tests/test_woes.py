@@ -1,5 +1,6 @@
 import numpy as np
 from skorecard.preprocessing import WOETransformer
+from skorecard.preprocessing.woe import woe_1d
 import pytest
 from skorecard import datasets
 
@@ -86,3 +87,32 @@ def test_woe_values(X_y):
     )
 
     np.testing.assert_array_almost_equal(X_WOE, expected, decimal=2)
+
+
+def test_woe_on_df(df):
+    """Test WOE on real data example."""
+    X = df[["EDUCATION", "MARRIAGE"]].values
+    y = df["default"].values
+
+    X_WOE = WOETransformer().fit_transform(X, y)
+
+    exp_unique_woe_educ = np.array([-0.16, -0.15, 0.26, 1.15, 1.16, 1.2, 3.2])
+    exp_unique_woe_mar = np.array([-0.59, -0.1, 0.11, 0.52])
+
+    np.testing.assert_array_almost_equal(np.unique(X_WOE[:, 0]), exp_unique_woe_educ, decimal=2)
+    np.testing.assert_array_almost_equal(np.unique(X_WOE[:, 1]), exp_unique_woe_mar, decimal=2)
+    assert X_WOE.shape == X.shape
+    assert len(np.unique(X[:, 0])) == len(np.unique(X_WOE[:, 0]))
+    assert len(np.unique(X[:, 1])) == len(np.unique(X_WOE[:, 1]))
+
+
+def test_counts_woe(df):
+    """Assures that the counts for the WOES sum up to the number of rows in the data."""
+    X = df[["EDUCATION", "MARRIAGE"]].values
+    y = df["default"].values
+
+    _, _, c_0, c_1 = woe_1d(X[:, 0], y)
+    assert np.sum(c_0) + np.sum(c_1) == X.shape[0]
+
+    _, _, c_0, c_1 = woe_1d(X[:, 1], y)
+    assert np.sum(c_0) + np.sum(c_1) == X.shape[0]
