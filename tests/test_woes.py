@@ -1,6 +1,7 @@
 import numpy as np
 from skorecard.preprocessing import WOETransformer
 import pytest
+from skorecard import datasets
 
 
 @pytest.fixture()
@@ -22,6 +23,12 @@ def X_y_2():
     y = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1])
 
     return X, y
+
+
+@pytest.fixture()
+def df():
+    """Generate dataframe."""
+    return datasets.load_uci_credit_card(as_frame=True)
 
 
 def test_woe_transformed_dimensions(X_y):
@@ -54,5 +61,28 @@ def test_missing_bucket(X_y_2):
     # The third element of the array is 3, which is not present in class 1, hence expecting a positive infinite
     assert X_WOE[3, 0] == np.inf
 
-    # The sizt and sevet element of the array is 2, which is not present in class 0, hence expecting a positive infinite
+    # The size and sevet element of the array is 2, which is not present in class 0, hence expecting a positive infinite
     assert all(X_WOE[[6, 7], 0] == np.array([-np.inf, -np.inf]))
+
+
+def test_woe_values(X_y):
+    """Tests the value of the WOE."""
+    X, y = X_y
+
+    X_WOE = WOETransformer().fit_transform(X, y)
+
+    expected = np.array(
+        [
+            [-0.22, 0.47],
+            [-0.22, 0.88],
+            [-0.22, 0.88],
+            [-7.82, -8.52],
+            [-0.22, 0.47],
+            [-0.22, -8.52],
+            [8.29, 0.88],
+            [8.29, 0.47],
+            [-0.22, 0.88],
+        ]
+    )
+
+    np.testing.assert_array_almost_equal(X_WOE, expected, decimal=2)
