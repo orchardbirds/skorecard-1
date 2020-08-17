@@ -7,10 +7,13 @@ from .binning import (
     TreeBucketTransformer,
 )
 
+from .woe import WOETransformer
+
 __all__ = [
     "SimpleBucketTransformer",
     "AgglomerativeBucketTransformer",
     "QuantileBucketTransformer",
     "ManualBucketTransformer",
     "TreeBucketTransformer",
+    "WOETransformer",
 ]
