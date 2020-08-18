@@ -25,25 +25,25 @@ class WOETransformer(BaseEstimator, TransformerMixin):
         self.woe_dicts = list()
 
         for i in range(X.shape[1]):
-            bins, woes, counts_0, counts_1 = woe_1d(X[:, i], y, self.epsilon)
-            self.woe_dicts.append(make_dict(bins, woes))
+            bins, woe_values, counts_0, counts_1 = woe_1d(X[:, i], y, self.epsilon)
+            self.woe_dicts.append(make_dict(bins, woe_values))
 
         self.isFitted = True
         return self
 
     def transform(self, X, y=None):
-        """Apply the WOE tot the feature set X.
+        """Apply the WOE to the feature set X.
 
         Args:
             X (np.array): (binned) features
             y (np.array): target, default is None. Not used, only here for API consistency
 
-        Returns: (np.array) transformed features, mapped from bin indexes to Weight of Evidence
+        Returns: (np.array) transformed features, mapped from bin indices to Weight of Evidence
 
         """
         X_woe = -9999.0 * np.ones(shape=X.shape)
         for i in range(X.shape[1]):
-            X_woe[:, i] = map_bins_to_woe(X[:, i], self.woe_dicts[i])
+            X_woe[:, i] = _map_bins_to_woe(X[:, i], self.woe_dicts[i])
 
         return X_woe
 
@@ -54,11 +54,12 @@ def woe_1d(X, y, epsilon=0.0001):
     Args:
         X (np.array): 1d array, (binned) feature
         y (np.array): target
-        epsilon (float): epsilon,
+        epsilon (float): Amount to be added to relative counts in order to avoid division by zero in the WOE
+            calculation.
 
     Returns: (tuple of numpy.arrays)
-        - bins: indeces of unique values of X
-        - woes: calculated weight of evidence for every unique bin
+        - bins: indices of unique values of X
+        - woe_values: calculated weight of evidence for every unique bin
         - counts_0: count of entries per bin where y==0
         - counts_1: count of entries per bin where y==1
     """
@@ -77,24 +78,24 @@ def woe_1d(X, y, epsilon=0.0001):
     woe_num = (counts_0 / total_0) + epsilon
     woe_denom = (counts_1 / total_1) + epsilon
 
-    woes = np.log(woe_num / woe_denom)
+    woe_values = np.log(woe_num / woe_denom)
 
-    return bins, woes, counts_0, counts_1
+    return bins, woe_values, counts_0, counts_1
 
 
-def make_dict(bins, woes):
-    """Convert the bins and woes array to a mapping dictionary.
+def make_dict(bins, woe_values):
+    """Convert the bins and woe_values array to a mapping dictionary.
 
     Args:
-        bins (np.array): indeces of unique values of X
-        woes (np.array):  calculated weight of evidence for every unique bin
+        bins (np.array): indices of unique values of X
+        woe_values (np.array):  calculated weight of evidence for every unique bin
 
-    Returns: (dict) dictionary with keys being the bins, and the WOEs the weight-of-evidences per bins
+    Returns: (dict) dictionary with keys being the bins, and the woe_values the weight-of-evidences per bins
     """
-    return {bin_: woe for bin_, woe in zip(bins, woes)}
+    return {bin_: woe for bin_, woe in zip(bins, woe_values)}
 
 
-def map_bins_to_woe(X_bins, map_dict):
+def _map_bins_to_woe(X_bins, map_dict):
     """Map the bins to the equivalent weight of evidence, as per the map_dict.
 
     Args:
