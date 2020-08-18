@@ -5,14 +5,16 @@ from sklearn.base import BaseEstimator, TransformerMixin
 class ColumnSelector(BaseEstimator, TransformerMixin):
     """A slightly modified version of scikit lego's class.
 
-    Found here:
+    On the transform, we return X.values instead of X to be compatible with our Bucket Transformers
+
+    The original can be found here:
     https://scikit-lego.readthedocs.io/en/latest/_modules/sklego/preprocessing/pandastransformers.html#ColumnSelector
     Allows selecting specific columns from a pandas DataFrame by name. Can be useful in a sklearn Pipeline.
 
     Args:
-        columns: column name ``str`` or list of column names to be selected
+        columns (list): list of column names to be selected
 
-    .. note::
+    Note:
         Raises a ``TypeError`` if input provided is not a DataFrame
 
         Raises a ``ValueError`` if columns provided are not in the input DataFrame
@@ -53,25 +55,6 @@ class ColumnSelector(BaseEstimator, TransformerMixin):
             return X[self.columns_].values
         return X.values
 
-    def _as_list(self, val):
-        """Helper function, always returns a list of the input value, taken from scikit lego.
-
-        Args:
-            val: the input value.
-
-        Returns:
-            the input value as a list.
-        """
-        treat_single_value = str
-
-        if isinstance(val, treat_single_value):
-            return [val]
-
-        if hasattr(val, "__iter__"):
-            return list(val)
-
-        return [val]
-
     def get_feature_names(self):
         """Simply returns the columns."""
         return self.columns_
@@ -92,3 +75,23 @@ class ColumnSelector(BaseEstimator, TransformerMixin):
         """Checks if input of the Selector is of the required dtype."""
         if not isinstance(X, pd.DataFrame):
             raise TypeError("Provided variable X is not of type pandas.DataFrame")
+
+    @staticmethod
+    def _as_list(val):
+        """Helper function, always returns a list of the input value, taken from scikit lego.
+
+        Args:
+            val: the input value.
+
+        Returns:
+            the input value as a list.
+        """
+        treat_single_value = str
+
+        if isinstance(val, treat_single_value):
+            return [val]
+
+        if hasattr(val, "__iter__"):
+            return list(val)
+
+        return [val]
