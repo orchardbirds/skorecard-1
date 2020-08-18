@@ -1,5 +1,6 @@
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
+from ..utils.exceptions import DimensionalityError
 from probatus.binning import SimpleBucketer, AgglomerativeBucketer, QuantileBucketer, TreeBucketer
 
 
@@ -11,28 +12,31 @@ class BucketTransformer(BaseEstimator, TransformerMixin):
         self.fitted = False
         self.BucketDict = {}
         self.kwargs = kwargs
-        self.boundary_dict = dict()
 
-    def _check_list_size(self, X):
-        """Checks that X and the list have the same number of features. We do not use this for the Manual Transformer.
-
-        Args:
-            X (np.array): the data on which we are fitting
-        """
-        if (self.method not in ["Manual", "Tree"]) and X.shape[1] != len(self.bin_count):
-            raise ValueError(f"Length of bin_count ({len(self.bin_count)}) and shape of X ({X.shape[1]}) do not match!")
-
-    def _enforce_bin_count_as_list(self):
+    def _assert_bin_count_int(self):
         """If the bin_count is given as an int, then we turn it into a list."""
-        if type(self.bin_count) == int:
-            self.bin_count = [self.bin_count]
-        elif type(self.bin_count) == float:
-            raise AttributeError("bin_count must be int or list!")
+        if type(self.bin_count) != int:
+            raise AttributeError("bin_count must be int")
 
-    def _expand_single_entity_list(self, X):
-        """If an int is passed for bin_count, then we want to ensure this is used for every feature."""
-        if (self.method not in ["Manual", "Tree"]) and (len(self.bin_count) == 1):
-            self.bin_count = np.repeat(self.bin_count, X.shape[1])
+    def _assert_1d_array(self, X, y):
+
+        correct_X_shape = (X.ndim == 2 and X.shape[1] == 1) or X.ndim == 1
+
+        if not correct_X_shape:
+            raise DimensionalityError(f"The feature must be one-dimensional: X shape is {X.shape}")
+
+        if y is not None:
+            correct_y_shape = (y.ndim == 2 and y.shape[1] == 1) or y.ndim == 1
+
+            if not correct_y_shape:
+                raise DimensionalityError(f"The target must be one-dimensional: y shape is {y.shape}")
+            y = y.copy()
+            y = y.reshape(-1,)
+
+        X = X.copy()
+        X = X.reshape(-1,)
+
+        return X, y
 
     def fit(self, X, y=None):
         """Fits the relevant Probatus bucket onto the numerical array.
@@ -44,16 +48,7 @@ class BucketTransformer(BaseEstimator, TransformerMixin):
             self (object): Fitted transformer
         """
         X = X.copy()
-        if X.ndim == 1:
-            X = np.expand_dims(X, 1)
-
-        if y is not None:
-            y = y.copy()
-            if y.ndim == 1:
-                y = np.expand_dims(y, 1)
-
-        self._expand_single_entity_list(X)
-        self._check_list_size(X)
+        X, y = self._assert_1d_array(X, y)
 
         self._fit(X, y)
         self.fitted = True
@@ -70,16 +65,10 @@ class BucketTransformer(BaseEstimator, TransformerMixin):
             np.array of the transformed X, such that the values of X are replaced by the corresponding bucket numbers
         """
         X = X.copy()
-        if X.ndim == 1:
-            X = np.expand_dims(X, 1)
 
-        self._expand_single_entity_list(X)
-        self._check_list_size(X)
+        X = np.digitize(X, self.boundaries[1:], right=True)
 
-        for ix in self.boundary_dict.keys():
-            X[:, ix] = np.digitize(X[:, ix], self.boundary_dict[ix], right=True)
-
-        return X
+        return X.astype(int)
 
 
 class SimpleBucketTransformer(BucketTransformer):
@@ -94,7 +83,7 @@ class SimpleBucketTransformer(BucketTransformer):
         """
         super().__init__()
         self.bin_count = bin_count
-        self._enforce_bin_count_as_list()
+        self._assert_bin_count_int()
         self.method = "Simple"
 
     def _fit(self, X, y=None):
@@ -106,10 +95,9 @@ class SimpleBucketTransformer(BucketTransformer):
         Returns:
             self (object): Fitted transformer
         """
-        for i in range(X.shape[1]):
-            self.Bucketer = SimpleBucketer(bin_count=self.bin_count[i])
-            self.BucketDict[f"Feature_{i}"] = self.Bucketer.fit(X[:, i])
-            self.boundary_dict[i] = self.BucketDict[f"Feature_{i}"].boundaries
+        self.Bucketer = SimpleBucketer(bin_count=self.bin_count)
+        self.BucketDict["SimpleBucketer"] = self.Bucketer.fit(X)
+        self.boundaries = self.BucketDict["SimpleBucketer"].boundaries
 
 
 class AgglomerativeBucketTransformer(BucketTransformer):
@@ -123,7 +111,7 @@ class AgglomerativeBucketTransformer(BucketTransformer):
         """
         super().__init__()
         self.bin_count = bin_count
-        self._enforce_bin_count_as_list()
+        self._assert_bin_count_int()
         self.method = "Agglomerative"
 
     def _fit(self, X, y=None):
@@ -135,10 +123,9 @@ class AgglomerativeBucketTransformer(BucketTransformer):
         Returns:
             self (object): Fitted transformer
         """
-        for i in range(X.shape[1]):
-            self.Bucketer = AgglomerativeBucketer(bin_count=self.bin_count[i])
-            self.BucketDict[f"Feature_{i}"] = self.Bucketer.fit(X[:, i])
-            self.boundary_dict[i] = self.BucketDict[f"Feature_{i}"].boundaries
+        self.Bucketer = AgglomerativeBucketer(bin_count=self.bin_count)
+        self.BucketDict["AgglomerativeBucketer"] = self.Bucketer.fit(X)
+        self.boundaries = self.BucketDict["AgglomerativeBucketer"].boundaries
 
 
 class QuantileBucketTransformer(BucketTransformer):
@@ -152,7 +139,7 @@ class QuantileBucketTransformer(BucketTransformer):
         """
         super().__init__()
         self.bin_count = bin_count
-        self._enforce_bin_count_as_list()
+        self._assert_bin_count_int()
         self.method = "Quantile"
 
     def _fit(self, X, y=None):
@@ -164,31 +151,9 @@ class QuantileBucketTransformer(BucketTransformer):
         Returns:
             self (object): Fitted transformer
         """
-        for i in range(X.shape[1]):
-            self.Bucketer = QuantileBucketer(bin_count=self.bin_count[i])
-            self.BucketDict[f"Feature_{i}"] = self.Bucketer.fit(X[:, i])
-            self.boundary_dict[i] = self.BucketDict[f"Feature_{i}"].boundaries
-
-
-class ManualBucketTransformer(BucketTransformer):
-    """Bucket transformer implementing user-defined boundaries."""
-
-    def __init__(self, boundary_dict):
-        """Initialise the user-defined boundaries with a dictionary.
-
-        Args:
-            boundary_dict (dict): Contains the feature column number and boundaries defined for this feature.
-                                  For example, the boundary_dict {1: [0, 5, 10],
-                                                                  3: [6, 8]}
-                                  means we apply boundaries [0, 5, 10] to column 1 and boundaries [6, 8] to column 3
-        """
-        super().__init__()
-        self.boundary_dict = boundary_dict
-        self.method = "Manual"
-
-    def _fit(self, X, y=None):
-        """As the boundaries are already defined here, we do not need a fit function, and hence we leave this empty."""
-        return self
+        self.Bucketer = QuantileBucketer(bin_count=self.bin_count)
+        self.BucketDict["QuantileBucketer"] = self.Bucketer.fit(X)
+        self.boundaries = self.BucketDict["QuantileBucketer"].boundaries
 
 
 class TreeBucketTransformer(BucketTransformer):
@@ -213,9 +178,8 @@ class TreeBucketTransformer(BucketTransformer):
         Returns:
             self (object): Fitted transformer
         """
-        for i in range(X.shape[1]):
-            self.Bucketer = TreeBucketer(**self.kwargs)
-            self.BucketDict[f"Feature_{i}"] = self.Bucketer.fit(X[:, i], y)
-            self.boundary_dict[i] = self.BucketDict[f"Feature_{i}"].boundaries
+        self.Bucketer = TreeBucketer(**self.kwargs)
+        self.BucketDict["TreeBucketer"] = self.Bucketer.fit(X, y)
+        self.boundaries = self.BucketDict["TreeBucketer"].boundaries
 
         return self

@@ -37,8 +37,8 @@ def test_example_boundary_dict(df, example_boundary_dict):
     X = MBT.fit_transform(df.values)
 
     # We do not test features 0 and 1 yet as they are categoricals
-    assert len(np.unique(X[:, 2])) == len(example_boundary_dict[2])
-    assert len(np.unique(X[:, 3])) == len(example_boundary_dict[3])
+    assert len(np.unique(X[:, 2])) == len(example_boundary_dict[2]) - 1
+    assert len(np.unique(X[:, 3])) == len(example_boundary_dict[3]) - 1
 
 
 def test_only_one_feat_in_dict(df, one_feat_dictionary):
@@ -47,5 +47,5 @@ def test_only_one_feat_in_dict(df, one_feat_dictionary):
     X = MBT.fit_transform(df.values)
 
     # We do not test features 0 and 1 yet as they are categoricals
-    assert len(np.unique(X[:, 1])) == len(one_feat_dictionary[1])
-    assert len(np.unique(X[:, 2])) == len(one_feat_dictionary[2])
+    assert len(np.unique(X[:, 1])) == len(one_feat_dictionary[1]) - 1
+    assert len(np.unique(X[:, 2])) == len(one_feat_dictionary[2]) - 1
