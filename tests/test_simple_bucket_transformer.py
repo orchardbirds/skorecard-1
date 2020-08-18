@@ -24,14 +24,19 @@ def test_single_bucket(df):
 def test_bin_counts(df):
     """Test that we get the number of bins we request."""
     # Test single bin counts
-    SBT = SimpleBucketTransformer(bin_count=7)
-    SBT.fit_transform(df["LIMIT_BAL"].values)
-    assert SBT.BucketDict["Feature_0"].bin_count == 7
+    SBT = SimpleBucketTransformer(bin_count=3)
+    SBT.fit_transform(df["MARRIAGE"].values)
+    assert SBT.BucketDict["SimpleBucketer"].bin_count == 3
 
-    # Test multiple bin counts
-    SBT = SimpleBucketTransformer(bin_count=[7, 5])
-    with pytest.raises(DimensionalityError):
-        SBT.fit_transform(df[["LIMIT_BAL", "BILL_AMT1"]].values)
+    return None
+
+
+def test_list_bin_counts(df):
+    """Test that a non-int leads to problems in bin_count."""
+    with pytest.raises(AttributeError):
+        SimpleBucketTransformer(bin_count=[2])
+
+    return None
 
 
 def test_float_bin_count(df):
@@ -40,9 +45,13 @@ def test_float_bin_count(df):
         SBT = SimpleBucketTransformer(bin_count=7.3)
         SBT.fit_transform(df["LIMIT_BAL"].values)
 
+    return None
 
-def test_bucket_dict_number(df):
-    """Test that we get an exception if the wrong bucketer is raised."""
-    SBT = SimpleBucketTransformer(bin_count=[3, 3])
+
+def test_dimensionality_exception(df):
+    """Test the exception is raised if too many features are run at the same time."""
+    SBT = SimpleBucketTransformer(bin_count=2)
     with pytest.raises(DimensionalityError):
-        SBT.fit(df[["LIMIT_BAL", "BILL_AMT1"]].values)
+        SBT.fit_transform(df[["LIMIT_BAL", "MARRIAGE"]].values)
+
+    return None

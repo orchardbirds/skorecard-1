@@ -14,18 +14,36 @@ def df():
     return datasets.load_uci_credit_card(as_frame=True)
 
 
+def test_bucket_transformer_bin_count_list(df):
+    """Test the exception is raised in scikit-learn pipeline."""
+    with pytest.raises(AttributeError):
+        transformer = ColumnTransformer(
+            transformers=[
+                ("simple", SimpleBucketTransformer(bin_count=2), [1]),
+                ("agglom", AgglomerativeBucketTransformer(bin_count=4), [0]),
+                ("quantile", QuantileBucketTransformer(bin_count=[10]), [3]),
+            ],
+            remainder="passthrough",
+        )
+        transformer.fit_transform(df.values)
+
+    return None
+
+
 def test_bucket_transformer_exception(df):
     """Test the exception is raised in scikit-learn pipeline."""
-    transformer = ColumnTransformer(
-        transformers=[
-            ("simple", SimpleBucketTransformer(bin_count=2), [1]),
-            ("agglom", AgglomerativeBucketTransformer(bin_count=4), [0]),
-            ("quantile", QuantileBucketTransformer(bin_count=[10, 6]), [2, 3]),
-        ],
-        remainder="passthrough",
-    )
     with pytest.raises(DimensionalityError):
+        transformer = ColumnTransformer(
+            transformers=[
+                ("simple", SimpleBucketTransformer(bin_count=2), [1]),
+                ("agglom", AgglomerativeBucketTransformer(bin_count=4), [0]),
+                ("quantile", QuantileBucketTransformer(bin_count=10), [2, 3]),
+            ],
+            remainder="passthrough",
+        )
         transformer.fit_transform(df.values)
+
+    return None
 
 
 def test_bucket_transformer(df):
@@ -34,8 +52,8 @@ def test_bucket_transformer(df):
         transformers=[
             ("simple", SimpleBucketTransformer(bin_count=2), [1]),
             ("agglom", AgglomerativeBucketTransformer(bin_count=4), [0]),
-            ("quantile_0", QuantileBucketTransformer(bin_count=[10]), [2]),
-            ("quantile_1", QuantileBucketTransformer(bin_count=[6]), [3]),
+            ("quantile_0", QuantileBucketTransformer(bin_count=10), [2]),
+            ("quantile_1", QuantileBucketTransformer(bin_count=6), [3]),
         ],
         remainder="passthrough",
     )

@@ -23,14 +23,17 @@ def test_single_bucket(df):
 def test_bin_counts(df):
     """Test that we get the number of bins we request."""
     # Test single bin counts
-    QBT = QuantileBucketTransformer(bin_count=10)
-    QBT.fit_transform(df["BILL_AMT1"].values)
-    assert QBT.BucketDict["Feature_0"].bin_count == 10
+    QBT = QuantileBucketTransformer(bin_count=3)
+    QBT.fit_transform(df["MARRIAGE"].values)
+    assert QBT.BucketDict["QuantileBucketer"].bin_count == 3
 
-    # Test multiple bin counts
-    QBT = QuantileBucketTransformer(bin_count=[4, 3, 2, 6])
-    with pytest.raises(DimensionalityError):
-        QBT.fit_transform(df[["LIMIT_BAL", "MARRIAGE", "EDUCATION", "BILL_AMT1"]].values)
+    return None
+
+
+def test_list_bin_counts(df):
+    """Test that a non-int leads to problems in bin_count."""
+    with pytest.raises(AttributeError):
+        QuantileBucketTransformer(bin_count=[2])
 
     return None
 
@@ -44,8 +47,10 @@ def test_float_bin_count(df):
     return None
 
 
-def test_multiple_columns_raises_exception(df):
-    """Test that we get a separate Bucketer object per number of columns given."""
-    QBT = QuantileBucketTransformer(bin_count=[2, 3, 2, 3])
+def test_dimensionality_exception(df):
+    """Test the exception is raised if too many features are run at the same time."""
+    QBT = QuantileBucketTransformer(bin_count=2)
     with pytest.raises(DimensionalityError):
-        QBT.fit_transform(df[["LIMIT_BAL", "MARRIAGE", "BILL_AMT1"]].values)
+        QBT.fit_transform(df[["LIMIT_BAL", "MARRIAGE"]].values)
+
+    return None

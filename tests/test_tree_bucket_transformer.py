@@ -43,8 +43,8 @@ def test_BucketDict(df):
 
 def test_transform(df):
     """Test that the correct shape is returned."""
-    X = df[["LIMIT_BAL"]].values
-    y = df["default"]
+    X = df["LIMIT_BAL"].values
+    y = df["default"].values
     tbt = TreeBucketTransformer(
         inf_edges=True,
         max_depth=4,
@@ -55,5 +55,14 @@ def test_transform(df):
     tbt.fit(X, y)
 
     assert tbt.transform(X).shape == X.shape
+
+    return None
+
+
+def test_dimensionality_exception(df):
+    """Test the exception is raised if too many features are run at the same time."""
+    tbt = TreeBucketTransformer(bin_count=2)
+    with pytest.raises(DimensionalityError):
+        tbt.fit_transform(df[["LIMIT_BAL", "MARRIAGE"]].values)
 
     return None
