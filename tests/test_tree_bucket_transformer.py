@@ -1,5 +1,6 @@
 from skorecard import datasets
 from skorecard.preprocessing import TreeBucketTransformer
+from skorecard.utils.exceptions import DimensionalityError
 
 import pytest
 
@@ -26,7 +27,7 @@ def test_kwargs_are_saved():
 
 
 def test_BucketDict(df):
-    """Test that the correct number of bucketers are created."""
+    """Test that the exception is raised with mutiple bins of bucketers are created."""
     X = df[["LIMIT_BAL", "BILL_AMT1"]].values
     y = df["default"]
     tbt = TreeBucketTransformer(
@@ -36,19 +37,14 @@ def test_BucketDict(df):
         min_samples_leaf=20,  # Minimum number of entries in the bins
         min_impurity_decrease=0.001,
     )
-    tbt.fit(X, y)
-
-    assert len(tbt.BucketDict) == 2
-    assert tbt.BucketDict["Feature_0"].bin_count > 0
-    assert tbt.BucketDict["Feature_1"].bin_count > 0
-
-    return None
+    with pytest.raises(DimensionalityError):
+        tbt.fit(X, y)
 
 
 def test_transform(df):
     """Test that the correct shape is returned."""
-    X = df[["LIMIT_BAL", "BILL_AMT1"]].values
-    y = df["default"]
+    X = df["LIMIT_BAL"].values
+    y = df["default"].values
     tbt = TreeBucketTransformer(
         inf_edges=True,
         max_depth=4,
@@ -59,5 +55,14 @@ def test_transform(df):
     tbt.fit(X, y)
 
     assert tbt.transform(X).shape == X.shape
+
+    return None
+
+
+def test_dimensionality_exception(df):
+    """Test the exception is raised if too many features are run at the same time."""
+    tbt = TreeBucketTransformer(bin_count=2)
+    with pytest.raises(DimensionalityError):
+        tbt.fit_transform(df[["LIMIT_BAL", "MARRIAGE"]].values)
 
     return None

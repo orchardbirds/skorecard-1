@@ -1,11 +1,11 @@
 """Import required transformers."""
-from .binning import (
+from .binning1d import (
     SimpleBucketTransformer,
     AgglomerativeBucketTransformer,
     QuantileBucketTransformer,
-    ManualBucketTransformer,
     TreeBucketTransformer,
 )
+from .binning2d import ManualBucketTransformer
 
 __all__ = [
     "SimpleBucketTransformer",
