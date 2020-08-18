@@ -33,7 +33,7 @@ class ColumnSelector(BaseEstimator, TransformerMixin):
         Returns:
             ``ColumnSelector`` object.
         """
-        self.columns_ = as_list(self.columns)
+        self.columns_ = self._as_list(self.columns)
         self._check_X_for_type(X)
         self._check_column_length()
         self._check_column_names(X)
@@ -52,6 +52,25 @@ class ColumnSelector(BaseEstimator, TransformerMixin):
         if self.columns:
             return X[self.columns_].values
         return X.values
+
+    def _as_list(self, val):
+        """Helper function, always returns a list of the input value, taken from scikit lego.
+
+        Args:
+            val: the input value.
+
+        Returns:
+            the input value as a list.
+        """
+        treat_single_value = str
+
+        if isinstance(val, treat_single_value):
+            return [val]
+
+        if hasattr(val, "__iter__"):
+            return list(val)
+
+        return [val]
 
     def get_feature_names(self):
         """Simply returns the columns."""
@@ -73,23 +92,3 @@ class ColumnSelector(BaseEstimator, TransformerMixin):
         """Checks if input of the Selector is of the required dtype."""
         if not isinstance(X, pd.DataFrame):
             raise TypeError("Provided variable X is not of type pandas.DataFrame")
-
-
-def as_list(val):
-    """Helper function, always returns a list of the input value, taken from scikit lego.
-
-    Args:
-        val: the input value.
-
-    Returns:
-        the input value as a list.
-    """
-    treat_single_value = str
-
-    if isinstance(val, treat_single_value):
-        return [val]
-
-    if hasattr(val, "__iter__"):
-        return list(val)
-
-    return [val]
