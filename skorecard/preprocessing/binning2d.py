@@ -41,6 +41,6 @@ class ManualBucketTransformer(BaseEstimator, TransformerMixin):
             X = np.expand_dims(X, 1)
 
         for ix in self.boundary_dict.keys():
-            X[:, ix] = np.digitize(X[:, ix], self.boundary_dict[ix], right=True)
+            X[:, ix] = np.digitize(X[:, ix], self.boundary_dict[ix][1:], right=True)
 
         return X.astype(int)
