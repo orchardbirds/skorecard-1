@@ -16,6 +16,24 @@ classification models that output the probability of default of a customer or cu
 refers to a CDM that uses Logistic Regression as the classification algorithm.
 
 
+## Installation
+
+To install the package for use
+```shell
+pip install git+ssh://git@gitlab.ing.net:2222/RiskandPricingAdvancedAnalytics/skorecard.git
+```
+
+If you want to contribute, clone the repo locally
+```shell 
+git clone ssh://git@gitlab.ing.net:2222/RiskandPricingAdvancedAnalytics/skorecard.git
+```
+and then install it locally in your environment
+```shell
+cd skorecard
+pip3 install -e .
+```
+
+
 ## Repository structure
 
 ``` nohighlight
