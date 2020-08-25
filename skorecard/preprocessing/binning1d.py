@@ -66,6 +66,8 @@ class BucketTransformer(BaseEstimator, TransformerMixin):
         """
         X = X.copy()
 
+        if self.method == "Categorical":
+            return self._transform(X)
         X = np.digitize(X, self.boundaries[1:], right=True)
 
         return X.astype(int)
@@ -183,3 +185,123 @@ class TreeBucketTransformer(BucketTransformer):
         self.boundaries = self.BucketDict["TreeBucketer"].boundaries
 
         return self
+
+
+class CatBucketTransformer(BucketTransformer):
+    """Bucket transformer for categorical features."""
+
+    def __init__(self, threshold):
+        """Initialise Categorical Bucketer.
+
+        Args:
+            threshold (float): percentage. If the normalized value count is larger than the threshold, the category is
+            put into its own bin. All categories below the threshold get lumped together into 1 bin.
+        """
+        super().__init__()
+        self.method = "Categorical"
+        self.threshold = threshold
+
+    def _bucket_on_value_counts(self, X):
+        """Calculates the normalized value counts for each category in X and bins based on the percentages.
+
+        Args:
+            X: numpy array of the categorical column
+
+        Returns:
+            Bucketed X based on normalized value counts
+        """
+        X = X.copy()
+        X = np.array(X, dtype="object")
+
+        bucket = 0
+        unique_categories, counts = np.unique(X, return_counts=True)
+
+        # Normalize counts
+        counts = counts / X.shape[0]
+
+        # Go through every unique category and bucket everything
+        for i in range(len(unique_categories)):
+            category = unique_categories[i]
+            if counts[i] > self.threshold:
+                # We have a bucket!
+                X[X == category] = f"bucket_{bucket}"
+                bucket += 1
+            else:
+                # Not enough in this category
+                X[X == category] = "below_threshold"
+
+        # Final bucket for the small values
+        X[X == "below_threshold"] = f"bucket_{bucket}"
+
+        return X
+
+    def _calculate_default_rate(self, X, y):
+        """Calculates the default rate for the already-bucketed categorical column.
+
+        Args:
+            X: numpy array of the bucketed column, i.e. X = self._bucket_on_value_counts()
+            y: the target, used to calculate the default rate
+
+        Returns:
+            default_rates (dict): The key is the bucket, the value is the default rate.
+        """
+        default_rates = {}
+        unique_categories, counts = np.unique(X, return_counts=True)
+        ar = np.column_stack((X, y))
+
+        # Go through bucketed categories, calculate the default rate per bucket
+        for i in range(len(unique_categories)):
+            category = unique_categories[i]
+            bucket = ar[ar[:, 0] == category]
+            default_rate = bucket[bucket[:, 1] == 1].shape[0] / bucket.shape[0]
+            default_rates[category] = default_rate
+
+        return default_rates
+
+    def _bucket_on_default_rates(self, X):
+        """Buckets X based on the default rate dictionary.
+
+        Currently we use a simple (read: dumb) way of bucketing the default rates:
+        we lump everything between 0-0.05%, 0.05-0.1%, ..., 0.95-1.0% together.
+
+        Args:
+            X: Numpy array
+
+        Returns:
+            X bucketed on default rates.
+        """
+        # First we must bucket by value_counts
+        X = self._bucket_on_value_counts(X)
+        X_dr = X.copy()
+        unique_categories, counts = np.unique(X, return_counts=True)
+
+        # Convert to default rates
+        for i in range(len(unique_categories)):
+            category = unique_categories[i]
+            X_dr[X_dr == category] = self.default_rates[category]
+
+        # Bucket based on default rates
+        # todo: bin in a more clever way
+        bins = np.array(np.arange(0, 1.05, 0.05))
+        X_dr = np.digitize(X_dr, bins)
+        unique_default_bins = sorted(np.unique(X_dr))
+        for i in range(len(unique_default_bins)):
+            unique_default_bin = unique_default_bins[i]
+            X_dr[X_dr == unique_default_bin] = i
+        return X_dr
+
+    def _fit(self, X, y=None):
+        """Calculates the default rates for each bucket.
+
+        Args:
+            X: Numpy array of categorical column.
+            y: Target, used for calculating default rates.
+        """
+        X = self._bucket_on_value_counts(X)
+        self.default_rates = self._calculate_default_rate(X, y)
+
+        return self
+
+    def _transform(self, X, y=None):
+        """Transforms the categorical column to a bucket using the default rates."""
+        return self._bucket_on_default_rates(X)
