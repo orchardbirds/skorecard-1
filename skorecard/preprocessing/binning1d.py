@@ -190,16 +190,21 @@ class TreeBucketTransformer(BucketTransformer):
 class CatBucketTransformer(BucketTransformer):
     """Bucket transformer for categorical features."""
 
-    def __init__(self, threshold):
+    def __init__(self, threshold, epsilon):
         """Initialise Categorical Bucketer.
 
         Args:
             threshold (float): percentage. If the normalized value count is larger than the threshold, the category is
             put into its own bin. All categories below the threshold get lumped together into 1 bin.
+            epsilon (float): Between 0 and 1. After the categories have been bucketed according to value counts, we
+            calculate the default rate per bin. Any default rates within epsilon are bucketed together.
         """
+        if (epsilon < 0) | (epsilon > 1):
+            raise ValueError("epsilon must be between 0 and 1")
         super().__init__()
         self.method = "Categorical"
         self.threshold = threshold
+        self.epsilon = epsilon
 
     def _bucket_on_value_counts(self, X):
         """Calculates the normalized value counts for each category in X and bins based on the percentages.
@@ -213,6 +218,7 @@ class CatBucketTransformer(BucketTransformer):
         X = X.copy()
         X = np.array(X, dtype="object")
 
+        self._category_to_bucket_dict = {}
         bucket = 0
         unique_categories, counts = np.unique(X, return_counts=True)
 
@@ -224,14 +230,22 @@ class CatBucketTransformer(BucketTransformer):
             category = unique_categories[i]
             if counts[i] > self.threshold:
                 # We have a bucket!
-                X[X == category] = f"bucket_{bucket}"
+                X[X == category] = f"value_count_bucket_{bucket}"
+                self._category_to_bucket_dict[f"original_category_{category}"] = f"value_count_bucket_{bucket}"
+
                 bucket += 1
             else:
                 # Not enough in this category
                 X[X == category] = "below_threshold"
+                self._category_to_bucket_dict[f"original_category_{category}"] = "below_threshold"
 
         # Final bucket for the small values
-        X[X == "below_threshold"] = f"bucket_{bucket}"
+        X[X == "below_threshold"] = f"value_count_bucket_{bucket}"
+
+        # Final bucket for the small values in dict
+        for _, key in enumerate(self._category_to_bucket_dict):
+            if self._category_to_bucket_dict[key] == "below_threshold":
+                self._category_to_bucket_dict[key] = f"value_count_bucket_{bucket}"
 
         return X
 
@@ -258,6 +272,48 @@ class CatBucketTransformer(BucketTransformer):
 
         return default_rates
 
+    def _group_default_rates(self):
+        """Groups the default rates if they are within epsilon.
+
+        The grouping is done downwards, such that if bucket 1 and bucket 2 are within episilon, bucket 2 will change
+        its default rate.
+
+        Returns:
+            grouped_default_rates (dict): A dictionary with modified values if the default rates of the buckets are
+            within epsilon.
+        """
+        default_rates = self._default_rates.copy()
+        _grouped_default_rates = self._default_rates.copy()
+
+        for i in range(len(default_rates)):
+            for j in range(i, len(default_rates)):
+                key_a = list(default_rates.keys())[i]
+                key_b = list(_grouped_default_rates.keys())[j]
+                if key_a == key_b:
+                    continue
+                if np.abs(default_rates[key_a] - _grouped_default_rates[key_b]) <= self.epsilon:
+                    _grouped_default_rates[key_b] = _grouped_default_rates[key_a]
+
+        return _grouped_default_rates
+
+    def _create_mapping_dict(self):
+        """Creates a mapping dictionary for the user.
+
+        This enables them to see the final buckets that the original categories are mapped to.
+
+        For example:
+          {"original_category_0": 6}.
+
+        This means that the original categorical column contained a value 0, which is now mapped to bucket 6 when
+        bucketed by default rates.
+        """
+        self.mapping_dict = {}
+
+        for key in self._category_to_bucket_dict.keys():
+            self.mapping_dict[key] = self._default_rate_bins[
+                self._grouped_default_rates[self._category_to_bucket_dict[key]]
+            ]
+
     def _bucket_on_default_rates(self, X):
         """Buckets X based on the default rate dictionary.
 
@@ -275,19 +331,26 @@ class CatBucketTransformer(BucketTransformer):
         X_dr = X.copy()
         unique_categories, counts = np.unique(X, return_counts=True)
 
+        # Group default rates
+        self._grouped_default_rates = self._group_default_rates()
+
         # Convert to default rates
         for i in range(len(unique_categories)):
             category = unique_categories[i]
-            X_dr[X_dr == category] = self.default_rates[category]
+            X_dr[X_dr == category] = self._grouped_default_rates[category]
 
-        # Bucket based on default rates
-        # todo: bin in a more clever way
-        bins = np.array(np.arange(0, 1.05, 0.05))
-        X_dr = np.digitize(X_dr, bins)
+        # Sort values in order
         unique_default_bins = sorted(np.unique(X_dr))
+
+        # convert to bins on grouped default rate
+        self._default_rate_bins = {}
         for i in range(len(unique_default_bins)):
             unique_default_bin = unique_default_bins[i]
             X_dr[X_dr == unique_default_bin] = i
+            self._default_rate_bins[unique_default_bin] = i
+
+        self._create_mapping_dict()
+
         return X_dr
 
     def _fit(self, X, y=None):
@@ -298,7 +361,7 @@ class CatBucketTransformer(BucketTransformer):
             y: Target, used for calculating default rates.
         """
         X = self._bucket_on_value_counts(X)
-        self.default_rates = self._calculate_default_rate(X, y)
+        self._default_rates = self._calculate_default_rate(X, y)
 
         return self
 
