@@ -190,20 +190,30 @@ class TreeBucketTransformer(BucketTransformer):
 class CatBucketTransformer(BucketTransformer):
     """Bucket transformer for categorical features."""
 
-    def __init__(self, threshold, epsilon):
+    def __init__(self, threshold_min=0.01, threshold_max=0.2, epsilon=0.05):
         """Initialise Categorical Bucketer.
 
         Args:
-            threshold (float): percentage. If the normalized value count is larger than the threshold, the category is
-            put into its own bin. All categories below the threshold get lumped together into 1 bin.
+            threshold_min (float): percentage. If the normalized value count is smaller than the threshold, the
+            category is put into its own bin.
+            threshold_max (float): percentage. If the normalized value count is larger than the threshold, the
+            category is put into its own bin.
+            All categories between threshold_min and threshold_max get lumped together into 1 bin.
             epsilon (float): Between 0 and 1. After the categories have been bucketed according to value counts, we
             calculate the default rate per bin. Any default rates within epsilon are bucketed together.
         """
         if (epsilon < 0) | (epsilon > 1):
             raise ValueError("epsilon must be between 0 and 1")
+        if (threshold_min < 0) | (threshold_min > 1):
+            raise ValueError("threshold_min must be between 0 and 1")
+        if (threshold_max < 0) | (threshold_max > 1):
+            raise ValueError("threshold_max must be between 0 and 1")
+        if threshold_min > threshold_max:
+            raise AttributeError("threshold_min must be less than threshold_max")
         super().__init__()
         self.method = "Categorical"
-        self.threshold = threshold
+        self.threshold_min = threshold_min
+        self.threshold_max = threshold_max
         self.epsilon = epsilon
 
     def _bucket_on_value_counts(self, X):
@@ -228,7 +238,13 @@ class CatBucketTransformer(BucketTransformer):
         # Go through every unique category and bucket everything
         for i in range(len(unique_categories)):
             category = unique_categories[i]
-            if counts[i] > self.threshold:
+            if counts[i] > self.threshold_max:
+                # We have a bucket!
+                X[X == category] = f"value_count_bucket_{bucket}"
+                self._category_to_bucket_dict[f"original_category_{category}"] = f"value_count_bucket_{bucket}"
+
+                bucket += 1
+            elif counts[i] < self.threshold_min:
                 # We have a bucket!
                 X[X == category] = f"value_count_bucket_{bucket}"
                 self._category_to_bucket_dict[f"original_category_{category}"] = f"value_count_bucket_{bucket}"
@@ -236,15 +252,15 @@ class CatBucketTransformer(BucketTransformer):
                 bucket += 1
             else:
                 # Not enough in this category
-                X[X == category] = "below_threshold"
-                self._category_to_bucket_dict[f"original_category_{category}"] = "below_threshold"
+                X[X == category] = "between_thresholds"
+                self._category_to_bucket_dict[f"original_category_{category}"] = "between_thresholds"
 
         # Final bucket for the small values
-        X[X == "below_threshold"] = f"value_count_bucket_{bucket}"
+        X[X == "between_thresholds"] = f"value_count_bucket_{bucket}"
 
         # Final bucket for the small values in dict
         for _, key in enumerate(self._category_to_bucket_dict):
-            if self._category_to_bucket_dict[key] == "below_threshold":
+            if self._category_to_bucket_dict[key] == "between_thresholds":
                 self._category_to_bucket_dict[key] = f"value_count_bucket_{bucket}"
 
         return X
