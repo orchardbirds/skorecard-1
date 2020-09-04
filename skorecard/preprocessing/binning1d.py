@@ -245,12 +245,11 @@ class CatBucketTransformer(BucketTransformer):
 
                 bucket += 1
             elif counts[i] < self.threshold_min:
-                # We have a bucket!
-                X[X == category] = f"value_count_bucket_{bucket}"
-                self._category_to_bucket_dict[f"original_category_{category}"] = f"value_count_bucket_{bucket}"
-
-                bucket += 1
+                # Not enough in this category
+                X[X == category] = "between_thresholds"
+                self._category_to_bucket_dict[f"original_category_{category}"] = "between_thresholds"
             else:
+                # Todo: We might want to do something clever here, as we have threshold_min <= x <= threshold_max
                 # Not enough in this category
                 X[X == category] = "between_thresholds"
                 self._category_to_bucket_dict[f"original_category_{category}"] = "between_thresholds"
