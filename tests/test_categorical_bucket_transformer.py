@@ -58,7 +58,7 @@ def test_correct_output(df):
     cbt.fit(X, y)
     X = cbt.transform(X)
 
-    assert len(np.unique(X)) == 4
+    assert len(np.unique(X)) == 2
 
     X = df["EDUCATION"].values
     y = df["default"].values
