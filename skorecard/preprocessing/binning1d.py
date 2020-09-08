@@ -70,6 +70,17 @@ class BucketTransformer(BaseEstimator, TransformerMixin):
 
         return X.astype(int)
 
+    def predict(self, X, y=None):
+        """Applies the transform method. To be used for the grid searches.
+
+        Args:
+            X (np.array): The numerical data which will be transformed into the corresponding buckets
+
+        Returns:
+            np.array of the transformed X, such that the values of X are replaced by the corresponding bucket numbers
+        """
+        return self.transform(X, y)
+
 
 class SimpleBucketTransformer(BucketTransformer):
     """Bucket transformer implementing the Simple Bucketer in the Probatus package."""
@@ -167,6 +178,7 @@ class TreeBucketTransformer(BucketTransformer):
         """
         super().__init__(**kwargs)
         self.method = "Tree"
+        self.Bucketer = TreeBucketer(**self.kwargs)
 
     def _fit(self, X, y=None):
         """Fits the Tree Probatus bucket onto the numerical array.
@@ -178,8 +190,29 @@ class TreeBucketTransformer(BucketTransformer):
         Returns:
             self (object): Fitted transformer
         """
-        self.Bucketer = TreeBucketer(**self.kwargs)
         self.BucketDict["TreeBucketer"] = self.Bucketer.fit(X, y)
         self.boundaries = self.BucketDict["TreeBucketer"].boundaries
 
+        return self
+
+    def get_params(self, deep=True):
+        """Return the parameters of the decision tree used in the Transfromer.
+
+        Args:
+            deep (boolean), required by the API.
+
+        Returns:
+            Decision Tree Parameteres (dict)
+
+        """
+        return self.Bucketer.tree.get_params(deep=deep)
+
+    def set_params(self, **params):
+        """Set the parameteres for the decision tree.
+
+        Args:
+            **params: (dict) parameteres for the decision tree
+
+        """
+        self.Bucketer.tree.set_params(**params)
         return self
