@@ -2,8 +2,7 @@ from skorecard.preprocessing.woe import woe_1d
 from sklearn.metrics import make_scorer
 
 
-@make_scorer
-def IV_score(y_test, y_pred):
+def _IV_score(y_test, y_pred):
     """Using the unique values in y_pred, calculates the information value for the specific np.array.
 
     Args:
@@ -22,3 +21,20 @@ def IV_score(y_test, y_pred):
     iv = ((dist_0 - dist_1) * woes).sum()
 
     return iv
+
+
+@make_scorer
+def IV_scorer(y_test, y_pred):
+    """Decorated version. Makse the  IV score usable for sklearn grid search pipelines.
+
+    Using the unique values in y_pred, calculates the information value for the specific np.array.
+
+    Args:
+        y_test: (np.array), binary features, target
+        y_pred: (np.array), predictions, indices of the buckets where the IV should be computed
+
+    Returns:
+        iv (float): information value
+
+    """
+    return _IV_score(y_test, y_pred)

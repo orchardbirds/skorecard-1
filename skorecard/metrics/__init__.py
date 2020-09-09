@@ -1,4 +1,4 @@
 """Import required Metric."""
-from .metrics import IV_score
+from .metrics import IV_scorer
 
-__all__ = ["IV_score"]
+__all__ = ["IV_scorer"]
