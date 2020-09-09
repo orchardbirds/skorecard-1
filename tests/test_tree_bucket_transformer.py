@@ -61,7 +61,7 @@ def test_transform(df):
 
 def test_dimensionality_exception(df):
     """Test the exception is raised if too many features are run at the same time."""
-    tbt = TreeBucketTransformer(bin_count=2)
+    tbt = TreeBucketTransformer()
     with pytest.raises(DimensionalityError):
         tbt.fit_transform(df[["LIMIT_BAL", "MARRIAGE"]].values)
 
