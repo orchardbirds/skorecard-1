@@ -42,14 +42,13 @@ def check_1d(x):
 
 def assure_numpy_array(x, assure_1d=False):
     """
-    Returns x as numpy array. X can be a list, numpy array, pandas dataframe, pandas series
+    Returns x as numpy array. X can be a list, numpy array, pandas dataframe, pandas series.
 
     Args:
         x: list, numpy array, pandas dataframe, pandas series
         assure_1d: whether or not to assure that the input x is one-dimensional
 
     Returns: numpy array
-
     """
     if assure_1d:
         _ = check_1d(x)
@@ -68,7 +67,7 @@ def assure_numpy_array(x, assure_1d=False):
 
 def assure_pandas_df(x):
     """
-    Returns x as pandas DataFrame. X can be a list, list of lists, numpy array, pandas DataFrame or pandas Series
+    Returns x as pandas DataFrame. X can be a list, list of lists, numpy array, pandas DataFrame or pandas Series.
 
     Args:
         x (list, numpy array, pandas DataFrame, pandas Series): array to be tested
@@ -92,7 +91,7 @@ def assure_pandas_df(x):
 
 def warn_if_missing(variable, variable_name):
     """
-    Checks if for missing values: if there are notify the user
+    Checks if for missing values: if there are notify the user.
 
     Args:
         variable (pandas.DataFrame, pandas.Series or numpy.ndarray): data to be checked for missing values.
@@ -111,7 +110,7 @@ def warn_if_missing(variable, variable_name):
 
 def check_numeric_dtypes(x):
     """
-    Checks if all entries in an array are of a data type that can be interpreted as numeric (int, float or bool)
+    Checks if all entries in an array are of a data type that can be interpreted as numeric (int, float or bool).
 
     Args:
         x (np.ndarray or pd.Series, list): array to be checked
