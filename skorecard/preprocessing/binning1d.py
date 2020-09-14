@@ -1,6 +1,6 @@
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
-from ..utils.exceptions import DimensionalityError
+from ..utils import DimensionalityError, assure_numpy_array
 from probatus.binning import SimpleBucketer, AgglomerativeBucketer, QuantileBucketer, TreeBucketer
 
 
@@ -17,6 +17,8 @@ class BucketTransformer(BaseEstimator, TransformerMixin):
         """If the bin_count is given as an int, then we turn it into a list."""
         if type(self.bin_count) != int:
             raise AttributeError("bin_count must be int")
+
+
 
     def _assert_1d_array(self, X, y):
 
@@ -48,6 +50,10 @@ class BucketTransformer(BaseEstimator, TransformerMixin):
             self (object): Fitted transformer
         """
         X = X.copy()
+
+        X = assure_numpy_array(X)
+        y = assure_numpy_array(y)
+
         X, y = self._assert_1d_array(X, y)
 
         self._fit(X, y)
