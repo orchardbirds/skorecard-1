@@ -4,6 +4,7 @@ from .binning1d import (
     AgglomerativeBucketTransformer,
     QuantileBucketTransformer,
     TreeBucketTransformer,
+    CatBucketTransformer,
 )
 from .binning2d import ManualBucketTransformer
 
@@ -15,5 +16,6 @@ __all__ = [
     "QuantileBucketTransformer",
     "ManualBucketTransformer",
     "TreeBucketTransformer",
+    "CatBucketTransformer",
     "WOETransformer",
 ]
