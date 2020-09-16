@@ -2,7 +2,7 @@ from skorecard import datasets
 from skorecard.preprocessing import SimpleBucketTransformer
 from skorecard.utils.exceptions import DimensionalityError
 
-
+import numpy as np
 import pytest
 
 
@@ -55,3 +55,16 @@ def test_dimensionality_exception(df):
         SBT.fit_transform(df[["LIMIT_BAL", "MARRIAGE"]].values)
 
     return None
+
+
+def test_inifinte_edges(df):
+    """Test that infinite edges actually are infinite."""
+    SBT = SimpleBucketTransformer(bin_count=5, infinite_edges=True)
+    SBT.fit(df["LIMIT_BAL"].values)
+    assert SBT.boundaries[0] == -np.inf
+    assert SBT.boundaries[-1] == np.inf
+
+    SBT = SimpleBucketTransformer(bin_count=5, infinite_edges=False)
+    SBT.fit(df["LIMIT_BAL"].values)
+    assert SBT.boundaries[0] != -np.inf
+    assert SBT.boundaries[-1] != np.inf
