@@ -193,7 +193,6 @@ class TreeBucketTransformer(BucketTransformer):
         super().__init__(infinite_edges, **kwargs)
         self.method = "Tree"
         self.Bucketer = TreeBucketer(**self.kwargs)
-        print(self.Bucketer)
 
     def _fit(self, X, y=None):
         """Fits the Tree Probatus bucket onto the numerical array.
