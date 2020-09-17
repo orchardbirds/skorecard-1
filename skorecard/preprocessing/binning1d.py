@@ -271,7 +271,6 @@ class CatBucketTransformer(BucketTransformer):
         # find the unique values, sorted by counts
         if len(sorted_cats[sorted_counts > self.threshold_min]) > 0:
             map_dict = {val: index for index, val in enumerate(sorted_cats[sorted_counts > self.threshold_min])}
-            print(map_dict)
             # find all the counts below the threshold.
             # add them all in the latest category
             max_val = max(map_dict.values())
