@@ -1,16 +1,17 @@
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
-from ..utils.exceptions import DimensionalityError
+from ..utils import DimensionalityError, assure_numpy_array
 from probatus.binning import SimpleBucketer, AgglomerativeBucketer, QuantileBucketer, TreeBucketer
 
 
 class BucketTransformer(BaseEstimator, TransformerMixin):
     """Base class for the below Bucket transformer methodologies using the Bucketers in the Probatus package."""
 
-    def __init__(self, **kwargs):
+    def __init__(self, infinite_edges=False, **kwargs):
         """Initialise with empty bucket dictionary to which we add our Bucketer(s) in self.fit()."""
         self.fitted = False
         self.BucketDict = {}
+        self.infinite_edges = infinite_edges
         self.kwargs = kwargs
 
     def _assert_bin_count_int(self):
@@ -48,9 +49,16 @@ class BucketTransformer(BaseEstimator, TransformerMixin):
             self (object): Fitted transformer
         """
         X = X.copy()
+
+        X = assure_numpy_array(X)
+        y = assure_numpy_array(y)
+
         X, y = self._assert_1d_array(X, y)
 
         self._fit(X, y)
+        if self.infinite_edges:
+            self.boundaries[0] = -np.inf
+            self.boundaries[-1] = np.inf
         self.fitted = True
 
         return self
@@ -87,14 +95,15 @@ class BucketTransformer(BaseEstimator, TransformerMixin):
 class SimpleBucketTransformer(BucketTransformer):
     """Bucket transformer implementing the Simple Bucketer in the Probatus package."""
 
-    def __init__(self, bin_count):
+    def __init__(self, bin_count, infinite_edges=False):
         """Initialise BucketTransformer using Simple Probatus Bucketer.
 
         Args:
             bin_count (int/list): How many bins we wish to split our data into for each feature.
                               Required for each Probatus Bucket method
+            infinite_edges (boolean): flag to set the edges of the bins to infinite values.
         """
-        super().__init__()
+        super().__init__(infinite_edges=infinite_edges)
         self.bin_count = bin_count
         self._assert_bin_count_int()
         self.method = "Simple"
@@ -116,13 +125,14 @@ class SimpleBucketTransformer(BucketTransformer):
 class AgglomerativeBucketTransformer(BucketTransformer):
     """Bucket transformer implementing the Agglomerative Bucketer in the Probatus package."""
 
-    def __init__(self, bin_count):
+    def __init__(self, bin_count, infinite_edges=False):
         """Initialise BucketTransformer using Agglomerative Probatus Bucketer.
 
         Args:
             bin_count (int/list): How many bins we wish to split our data into. Required for each Probatus Bucket method
+            infinite_edges (boolean): flag to set the edges of the bins to infinite values.
         """
-        super().__init__()
+        super().__init__(infinite_edges=infinite_edges)
         self.bin_count = bin_count
         self._assert_bin_count_int()
         self.method = "Agglomerative"
@@ -144,13 +154,14 @@ class AgglomerativeBucketTransformer(BucketTransformer):
 class QuantileBucketTransformer(BucketTransformer):
     """Bucket transformer implementing the Quantile Bucketer in the Probatus package."""
 
-    def __init__(self, bin_count):
+    def __init__(self, bin_count, infinite_edges=False):
         """Initialise BucketTransformer using Quantile Probatus Bucketer.
 
         Args:
             bin_count (int/list): How many bins we wish to split our data into. Required for each Probatus Bucket method
+             infinite_edges (boolean): flag to set the edges of the bins to infinite values.
         """
-        super().__init__()
+        super().__init__(infinite_edges=infinite_edges)
         self.bin_count = bin_count
         self._assert_bin_count_int()
         self.method = "Quantile"
@@ -172,13 +183,14 @@ class QuantileBucketTransformer(BucketTransformer):
 class TreeBucketTransformer(BucketTransformer):
     """Bucket transformer implementing the Tree Bucketer in the Probatus package."""
 
-    def __init__(self, **kwargs):
+    def __init__(self, infinite_edges=False, **kwargs):
         """Initialise BucketTransformer using Tree Probatus Bucketer.
 
         Args:
+            infinite_edges (boolean): flag to set the edges of the bins to infinite values.
             **kwargs: the keyword arguments passed to the Tree Probatus Bucketer
         """
-        super().__init__(**kwargs)
+        super().__init__(infinite_edges, **kwargs)
         self.method = "Tree"
         self.Bucketer = TreeBucketer(**self.kwargs)
 
