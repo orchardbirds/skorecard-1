@@ -279,7 +279,6 @@ class CatBucketTransformer(BucketTransformer):
 
         # Normalize counts
         counts = counts / X.shape[0]
-        print(counts)
 
         # Go through every unique category and bucket everything
         for i in range(len(unique_categories)):
