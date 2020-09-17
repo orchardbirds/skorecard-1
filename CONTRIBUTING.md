@@ -71,6 +71,36 @@ pre-commit install
 
 We use [SemVer](http://semver.org/) for versioning.
 
+## Terminology
+
+- `features_bucket_mapping` Is a `dict`-like object, containing all the features and the info for bucketing
+    - keys are feature names
+    - values 
+
+```yml
+{
+    'type' : 'categorical', # or numerical
+    'missing_bucket' : None, # error, or bucket index number
+    'boundaries' : [...] # or None if categorical
+    'map' : [ ['a','b'], ['c']] # or None if numerical
+}
+```
+
+- for 1 feature, the info for bucketing
+        - numeric: boundaries (for np.digitize)
+        - categorical: map
+
+
+FeaturesBucketMapping(dict)
+    - load_yml()
+    - save_yml()
+    - print.. dict()
+
+BucketMapping
+    - featurename
+    - ...
+
+
 ## README badges
 
 Because this package has not been released on pypi yet, we cannot use shields.io. 
