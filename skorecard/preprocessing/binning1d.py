@@ -294,4 +294,7 @@ class CatBucketTransformer(BucketTransformer):
         Returns:
             np.array of the transformed X, such that the values of X are replaced by the corresponding bucket numbers
         """
+        X = assure_numpy_array(X)
+        X, y = self._assert_1d_array(X, y)
+
         return np.array([i for i in map(lambda x: self.map[x], X)])
