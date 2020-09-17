@@ -246,7 +246,8 @@ class CatBucketTransformer(BucketTransformer):
         if (threshold_min < 0) | (threshold_min > 1):
             raise ValueError("threshold_min must be between 0 and 1")
 
-        super().__init__()
+        # Inf endges must always be false for a categorical transfromer
+        super().__init__(infinite_edges=False)
         self.method = "Categorical"
         self.threshold_min = threshold_min
 
@@ -268,11 +269,15 @@ class CatBucketTransformer(BucketTransformer):
         sorted_counts = counts[ix]
 
         # find the unique values, sorted by counts
-        map_dict = {val: index for index, val in enumerate(sorted_cats[sorted_counts > self.threshold_min])}
-
-        # find all the counts below the threshold.
-        # add them all in the latest category
-        max_val = max(map_dict.values())
+        if len(sorted_cats[sorted_counts > self.threshold_min]) > 0:
+            map_dict = {val: index for index, val in enumerate(sorted_cats[sorted_counts > self.threshold_min])}
+            print(map_dict)
+            # find all the counts below the threshold.
+            # add them all in the latest category
+            max_val = max(map_dict.values())
+        else:
+            map_dict = {}
+            max_val = -1
 
         merged_bin = {i: max_val + 1 for i in sorted_cats[sorted_counts <= self.threshold_min]}
         map_dict.update(merged_bin)

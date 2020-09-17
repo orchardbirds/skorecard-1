@@ -38,6 +38,12 @@ def _test_correct_output(df):
 
     assert len(np.unique(X)) == len(np.unique(X_trans))
 
+    # when the thershold is above the maximum value, make sure its only one bucket
+    cbt = CatBucketTransformer(threshold_min=0.5)
+    cbt.fit(X, y)
+    X_ = cbt.transform(X)
+    assert np.unique(X_) == np.array([0])
+
     return None
 
 
