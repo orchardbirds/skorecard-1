@@ -1,2 +1,7 @@
 pytest==6.0.1
 pytest-cov==2.10.0
+mypy
+black
+flake8
+flake8-docstrings
+pre-commit
