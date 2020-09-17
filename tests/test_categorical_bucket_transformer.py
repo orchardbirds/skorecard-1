@@ -18,55 +18,25 @@ def test_threshold_min(df):
     return None
 
 
-def test_threshold_max(df):
-    """Test that threshold_max > 1 raises an error."""
-    with pytest.raises(ValueError):
-        CatBucketTransformer(threshold_max=1.1)
-
-    return None
-
-
-def test_bad_thresholds(df):
-    """Test that threshold_min > threshold_max raises an error."""
-    with pytest.raises(AttributeError):
-        CatBucketTransformer(threshold_min=0.5, threshold_max=0.4)
-
-    return None
-
-
-def test_epsilon_min(df):
-    """Test that epsilon < 1 raises an error."""
-    with pytest.raises(ValueError):
-        CatBucketTransformer(epsilon=-0.05)
-
-    return None
-
-
-def test_epsilon_max(df):
-    """Test that epsilon > 1 raises an error."""
-    with pytest.raises(ValueError):
-        CatBucketTransformer(epsilon=1.05)
-
-    return None
-
-
-def test_correct_output(df):
+def _test_correct_output(df):
     """Test that correct use of CatBucketTransformer returns expected results."""
     X = df["EDUCATION"].values
     y = df["default"].values
-    cbt = CatBucketTransformer(threshold_min=0.01, threshold_max=0.2, epsilon=0.05)
+    cbt = CatBucketTransformer(threshold_min=0.44)
     cbt.fit(X, y)
-    X = cbt.transform(X)
+    X_trans = cbt.transform(X)
+    assert len(np.unique(X_trans)) == 2
 
-    assert len(np.unique(X)) == 2
-
-    X = df["EDUCATION"].values
-    y = df["default"].values
-    cbt = CatBucketTransformer(threshold_min=0.00, threshold_max=1.0, epsilon=0.00)
+    cbt = CatBucketTransformer(threshold_min=0.05)
     cbt.fit(X, y)
-    X = cbt.transform(X)
+    X_trans = cbt.transform(X)
+    assert len(np.unique(X_trans)) == 4
 
-    assert len(np.unique(X)) == 1
+    cbt = CatBucketTransformer(threshold_min=0.00)
+    cbt.fit(X, y)
+    X_trans = cbt.transform(X)
+
+    assert len(np.unique(X)) == len(np.unique(X_trans))
 
     return None
 
@@ -75,10 +45,10 @@ def test_mapping_dict(df):
     """Test that the mapping dict is created correctly."""
     X = df["EDUCATION"].values
     y = df["default"].values
-    cbt = CatBucketTransformer(threshold_min=0.01, threshold_max=0.2, epsilon=0.05)
+    cbt = CatBucketTransformer(threshold_min=0.05)
     cbt.fit(X, y)
     cbt.transform(X)
 
-    assert len(cbt.mapping_dict) == len(np.unique(X))
+    assert len(cbt.map) == len(np.unique(X))
 
     return None
