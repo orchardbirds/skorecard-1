@@ -1,5 +1,6 @@
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
+from ..utils import reshape_1d_to_2d
 
 
 class WOETransformer(BaseEstimator, TransformerMixin):
@@ -24,6 +25,8 @@ class WOETransformer(BaseEstimator, TransformerMixin):
         """
         self.woe_dicts = list()
 
+        if X.ndim == 1:
+            X = reshape_1d_to_2d(X)
         for i in range(X.shape[1]):
             bins, woe_values, counts_0, counts_1 = woe_1d(X[:, i], y, self.epsilon)
             self.woe_dicts.append(make_dict(bins, woe_values))
@@ -41,6 +44,9 @@ class WOETransformer(BaseEstimator, TransformerMixin):
         Returns: (np.array) transformed features, mapped from bin indices to Weight of Evidence
 
         """
+        if X.ndim == 1:
+            X = reshape_1d_to_2d(X)
+
         X_woe = -9999.0 * np.ones(shape=X.shape)
         for i in range(X.shape[1]):
             X_woe[:, i] = _map_bins_to_woe(X[:, i], self.woe_dicts[i])

@@ -1,5 +1,7 @@
 from skorecard import datasets
 from skorecard.preprocessing import CatBucketTransformer
+from sklearn.pipeline import Pipeline, FeatureUnion
+from skorecard.pipeline import ColumnSelector
 import numpy as np
 import pytest
 
@@ -18,7 +20,7 @@ def test_threshold_min(df):
     return None
 
 
-def _test_correct_output(df):
+def test_correct_output(df):
     """Test that correct use of CatBucketTransformer returns expected results."""
     X = df["EDUCATION"].values
     y = df["default"].values
@@ -58,3 +60,23 @@ def test_mapping_dict(df):
     assert len(cbt.map) == len(np.unique(X))
 
     return None
+
+
+def _test_correct_shape_on_2d_array(df):
+    """There is a bug with the shapes after CatBucketTransformer is applied in the pipeline."""
+    # TODO: this test is failing. With the _ it does not run. Fix the bug.
+    cat_cols = ["MARRIAGE", "EDUCATION"]
+
+    X = df[cat_cols]
+
+    cat_transfomer_list = [
+        (
+            f"cat_bkt_{col}",
+            Pipeline([("selector", ColumnSelector([col])), ("bucketer", CatBucketTransformer(threshold_min=0.01))]),
+        )
+        for col in cat_cols
+    ]
+
+    transfromers = Pipeline([("bucketed_features", FeatureUnion(n_jobs=1, transformer_list=cat_transfomer_list))])
+
+    assert X.shape == transfromers.fit_transform(X, None).shape

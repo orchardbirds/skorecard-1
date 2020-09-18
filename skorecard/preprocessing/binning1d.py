@@ -271,7 +271,6 @@ class CatBucketTransformer(BucketTransformer):
         # find the unique values, sorted by counts
         if len(sorted_cats[sorted_counts > self.threshold_min]) > 0:
             map_dict = {val: index for index, val in enumerate(sorted_cats[sorted_counts > self.threshold_min])}
-            print(map_dict)
             # find all the counts below the threshold.
             # add them all in the latest category
             max_val = max(map_dict.values())
@@ -295,4 +294,8 @@ class CatBucketTransformer(BucketTransformer):
         Returns:
             np.array of the transformed X, such that the values of X are replaced by the corresponding bucket numbers
         """
+        X = X.copy()
+        X = assure_numpy_array(X)
+        X, y = self._assert_1d_array(X, y)
+
         return np.array([i for i in map(lambda x: self.map[x], X)])
