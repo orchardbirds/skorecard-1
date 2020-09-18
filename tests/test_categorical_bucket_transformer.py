@@ -18,7 +18,7 @@ def test_threshold_min(df):
     return None
 
 
-def _test_correct_output(df):
+def test_correct_output(df):
     """Test that correct use of CatBucketTransformer returns expected results."""
     X = df["EDUCATION"].values
     y = df["default"].values
