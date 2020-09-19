@@ -74,8 +74,6 @@ We use [SemVer](http://semver.org/) for versioning.
 ## Terminology
 
 - `features_bucket_mapping` Is a `dict`-like object, containing all the features and the info for bucketing
-    - keys are feature names
-    - values 
 
 ```yml
 {
@@ -86,19 +84,6 @@ We use [SemVer](http://semver.org/) for versioning.
 }
 ```
 
-- for 1 feature, the info for bucketing
-        - numeric: boundaries (for np.digitize)
-        - categorical: map
-
-
-FeaturesBucketMapping(dict)
-    - load_yml()
-    - save_yml()
-    - print.. dict()
-
-BucketMapping
-    - featurename
-    - ...
 
 
 ## README badges
