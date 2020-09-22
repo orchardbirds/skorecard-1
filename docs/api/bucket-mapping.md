@@ -1,0 +1,3 @@
+# Reference
+
+::: skorecard.preprocessing.SimpleBucketTransformer

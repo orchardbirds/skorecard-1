@@ -1,0 +1,81 @@
+site_name: skorecard
+repo_url: https://gitlab.ing.net/RiskandPricingAdvancedAnalytics/skorecard
+site_url: https://gitlab.ing.net/RiskandPricingAdvancedAnalytics/skorecard
+site_description: Build credit risk scorecard with sklearn-compatible components
+site_author: RPAA
+copyright: Copyright &copy; 2020. Build with and maintained by <a href="https://confluence.europe.intranet/display/RPAT">RPAA</a>.
+
+use_directory_urls: false
+
+plugins:
+    - search
+    - mkdocstrings:
+        watch:
+            - skorecard
+    - print-site:
+        add_full_urls: false
+        add_table_of_contents: true
+        enumerate_headings: true
+        enumerate_figures: true
+        add_cover_page: true
+
+nav:
+    - Home: 
+        - Index: index.md
+    - Guides:
+        - Getting Started: guides/getting-started.md
+    - API: 
+        - BucketMapping: api/bucket-mapping.md
+    - Examples:
+        - examples.md
+
+theme:
+    name: material
+    feature:
+        tabs: true
+    palette:
+        scheme: preference
+        primary: deep orange
+        accent: deep purple
+
+markdown_extensions:
+    - codehilite:
+        linenums: false
+        guess_lang: false
+    - attr_list
+    - def_list
+    - admonition
+    - footnotes
+    - pymdownx.details
+    - pymdownx.tabbed
+    - pymdownx.superfences
+    - pymdownx.details
+    - pymdownx.keys
+    - pymdownx.snippets
+    - pymdownx.emoji:
+        emoji_index: !!python/name:materialx.emoji.twemoji
+        emoji_generator: !!python/name:materialx.emoji.to_svg
+    - pymdownx.inlinehilite
+    - pymdownx.highlight:
+        use_pygments: true
+    - pymdownx.critic:
+        mode: view
+    - pymdownx.betterem:
+        smart_enable: all
+    - pymdownx.tasklist:
+        custom_checkbox: true
+    - pymdownx.tasklist:
+        clickable_checkbox: true
+    - pymdownx.arithmatex:
+        generic: true
+    - pymdownx.caret
+    - pymdownx.mark
+    - pymdownx.tilde
+    - pymdownx.smartsymbols
+    - toc:
+        permalink: true
+
+extra_javascript:
+    - assets/javascripts/config.js
+    - https://polyfill.io/v3/polyfill.min.js?features=es6
+    - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js

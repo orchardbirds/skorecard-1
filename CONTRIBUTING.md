@@ -71,6 +71,12 @@ pre-commit install
 
 We use [SemVer](http://semver.org/) for versioning.
 
+We use [mkdocs](https://www.mkdocs.org/) for documentation, you can view the docs locally with:
+
+```bash
+mkdocs serve
+```
+
 ## Terminology
 
 - `features_bucket_mapping` Is a `dict`-like object, containing all the features and the info for bucketing
@@ -83,7 +89,6 @@ We use [SemVer](http://semver.org/) for versioning.
     'map' : [ ['a','b'], ['c']] # or None if numerical
 }
 ```
-
 
 
 ## README badges

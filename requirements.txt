@@ -11,6 +11,9 @@ mypy>=0.770
 pyyaml>=5.3.1
 probatus>=1.1.1
 flake8-docstrings>=1.5.0
+mkdocs>=1.1
+mkdocs-material>=5.5.12
+mkdocstrings
 dash
 jupyter-dash
 dash_bootstrap_components
