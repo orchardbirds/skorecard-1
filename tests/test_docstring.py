@@ -17,6 +17,7 @@ import skorecard.preprocessing
 import skorecard.pipeline
 import skorecard.metrics
 import skorecard.bucket_mapping
+import skorecard.utils
 
 
 # List of all classes and functions we want tested
@@ -32,7 +33,11 @@ CLASSES_TO_TEST = [
     skorecard.bucket_mapping.FeaturesBucketMapping,
     skorecard.bucket_mapping.BucketMapping,
 ]
-# FUNCTIONS_TO_TEST = []
+FUNCTIONS_TO_TEST = [
+    skorecard.utils.assure_numpy_array,
+    skorecard.utils.reshape_1d_to_2d,
+    skorecard.utils.DimensionalityError,
+]
 
 
 def get_public_methods(cls_ref):
@@ -93,10 +98,11 @@ def test_class_docstrings(m):
 
 
 # Test every function in a module
-# @pytest.mark.parametrize("m", FUNCTIONS_TO_TEST)
-# def test_function_docstrings(m):
-#     """
-#     Take the docstring of every function.
-#     The test passes if the usage examples causes no errors.
-#     """
-#     handle_docstring(m.__doc__, indent=4)
+@pytest.mark.parametrize("m", FUNCTIONS_TO_TEST)
+def test_function_docstrings(m):
+    """
+    Take the docstring of every function.
+
+    The test passes if the usage examples causes no errors.
+    """
+    handle_docstring(m.__doc__, indent=4)
