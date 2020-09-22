@@ -28,10 +28,6 @@ class ManualBucketerApp(object):
     """Dash App for manual bucketing.
 
     Class that contains a Dash app
-
-    ```python
-    assert 1==0
-    ```
     """
 
     def __init__(self, X, y=None, features_bucket_mapping=None):
