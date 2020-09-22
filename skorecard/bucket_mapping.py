@@ -148,6 +148,20 @@ class BucketMapping:
         return np.digitize(x, self.map[1:], right=self.right)
 
     def _transform_cat(self, x):
+        """
+        Transforms categorical to buckets.
+
+        Example:
+            input ['a','c']
+            map [['a','b'],['c','d']]
+            output [0, 1]
+
+        Args:
+            x ([type]): [description]
+
+        Raises:
+            NotImplementedError: [description]
+        """
         raise NotImplementedError("We need to find a numpy or pandas function for this one.")
 
     def as_dict(self) -> dict:
@@ -171,6 +185,6 @@ def create_bucket_feature_mapping(df):
         bucketer = SimpleBucketer(bin_count=n_bins)
         bucketer.fit(df[col])
 
-        features_bucket_mapping.append(BucketMapping(col, "numerical", bucketer.boundaries))
+        features_bucket_mapping.append(BucketMapping(col, "numerical", bucketer.boundaries, right=True))
 
     return features_bucket_mapping

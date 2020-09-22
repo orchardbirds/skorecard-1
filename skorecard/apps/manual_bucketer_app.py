@@ -2,7 +2,8 @@
 
 - Buttons for running 1d bucket transformers
 - Sidebar so you can view report over all features https://dash-bootstrap-components.opensource.faculty.ai/examples/
-
+- datatable https://dash.plotly.com/datatable
+- plotly dark theme + dash dark theme? https://plotly.com/python/templates/
 """
 
 import copy
@@ -27,6 +28,10 @@ class ManualBucketerApp(object):
     """Dash App for manual bucketing.
 
     Class that contains a Dash app
+
+    ```python
+    assert 1==0
+    ```
     """
 
     def __init__(self, X, y=None, features_bucket_mapping=None):
