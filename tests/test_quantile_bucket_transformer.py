@@ -2,6 +2,8 @@ from skorecard import datasets
 from skorecard.preprocessing import QuantileBucketTransformer
 from skorecard.utils.exceptions import DimensionalityError
 
+import numpy as np
+
 import pytest
 
 
@@ -54,3 +56,16 @@ def test_dimensionality_exception(df):
         QBT.fit_transform(df[["LIMIT_BAL", "MARRIAGE"]].values)
 
     return None
+
+
+def test_inifinte_edges(df):
+    """Test that infinite edges actually are infinite."""
+    QBT = QuantileBucketTransformer(bin_count=5, infinite_edges=True)
+    QBT.fit(df["LIMIT_BAL"].values)
+    assert QBT.boundaries[0] == -np.inf
+    assert QBT.boundaries[-1] == np.inf
+
+    QBT = QuantileBucketTransformer(bin_count=5, infinite_edges=False)
+    QBT.fit(df["LIMIT_BAL"].values)
+    assert QBT.boundaries[0] != -np.inf
+    assert QBT.boundaries[-1] != np.inf
