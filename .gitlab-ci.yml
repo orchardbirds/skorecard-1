@@ -22,7 +22,6 @@ before_script:
 test:
   script:
     - pip install --upgrade setuptools
-    - pip install --force-reinstall --upgrade -r tests/test_requirements.txt
     - pip install ".[all]"
     - pytest --cov=skorecard/ --cov-config=.coveragerc --cov-report term-missing tests/
     - mypy --ignore-missing-imports --pretty --show-error-codes --namespace-packages -p skorecard
