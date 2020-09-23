@@ -4,11 +4,28 @@
 - Sidebar so you can view report over all features https://dash-bootstrap-components.opensource.faculty.ai/examples/
 - datatable https://dash.plotly.com/datatable
 - plotly dark theme + dash dark theme? https://plotly.com/python/templates/
+
+```python
+from skorecard import datasets
+from skorecard.apps import ManualBucketerApp
+
+X, y = datasets.load_uci_credit_card(return_X_y=True)
+
+app = ManualBucketerApp(X)
+# app.run_server(mode="external")
+# app.stop_server()
+```
 """
 
 import copy
 
-import dash_core_components as dcc
+from skorecard.utils.exceptions import NotInstalled
+
+try:
+    import dash_core_components as dcc
+except ModuleNotFoundError:
+    dcc = NotInstalled("dash_core_components", "dashboard")
+
 import dash_html_components as html
 from dash.dependencies import Input, Output
 from jupyter_dash import JupyterDash
@@ -34,7 +51,9 @@ class ManualBucketerApp(object):
         """Create new dash app.
 
         Args:
-            df (pd.DataFrame): input dataframe
+            X (pd.DataFrame): input dataframe
+            y (np.array): target array
+            features_bucket_mapping: Class with bucketing information for features
 
         Returns:
             dash: Dash app
@@ -49,17 +68,6 @@ class ManualBucketerApp(object):
             self._features_bucket_mapping = create_bucket_feature_mapping(self.X)
         else:
             self._features_bucket_mapping = copy.deepcopy(features_bucket_mapping)
-
-        # # If there is not feature mapping for a feature, let's set a sensible default
-        # for col in self.X:
-        #     if col not in self._features_bucket_mapping.keys():
-        #         if self.X[col].nunique() < 10:
-        #             bucket_mapping = self.X[col].median()
-        #         if self.X[col].nunique() < 20:
-        #             bucket_mapping = self.X[col].quantile([.25,.75]).values
-        #         if self.X[col].nunique() >= 20:
-        #             n_bins = min(10, round(self.X[col].nunique() / 5))
-        #             bucket_mapping = np.histogram(self.X[col].values, bins=n_bins)[1]
 
         #         self._features_bucket_mapping[col] = bucket_mapping
 
@@ -159,26 +167,16 @@ class ManualBucketerApp(object):
 
         This is handy when you want to stop a server running in a notebook.
 
-        More info https://community.plotly.com/t/how-to-shutdown-a-jupyterdash-app-in-external-mode/41292/3
+        [More info](https://community.plotly.com/t/how-to-shutdown-a-jupyterdash-app-in-external-mode/41292/3)
         """
         self.app._terminate_server_for_port("localhost", 8050)
 
     @property
     def features_bucket_mapping(self):
-        """Ensure we return a copy of the boundary dict.
+        """
+        Retrieve updated FeaturesBucketMapping from the app.
 
         Returns:
             dict: Boundaries per feature
         """
         return copy.deepcopy(self._features_bucket_mapping)
-
-
-if __name__ == "__main__":
-
-    # To help with interactive debugging
-    from skorecard import datasets
-
-    X, y = datasets.load_uci_credit_card(return_X_y=True)
-
-    app = ManualBucketerApp(X, y)
-    app.run_server(mode="external")

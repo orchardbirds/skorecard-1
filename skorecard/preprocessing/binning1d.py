@@ -1,3 +1,9 @@
+"""
+`skorecard` provides a collection of different Bucketer classes.
+
+You can use these classes to find a binning on any `np.ndarray` or `pd.Series` object.
+"""
+
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 from ..utils import DimensionalityError, assure_numpy_array
@@ -93,7 +99,17 @@ class BucketTransformer(BaseEstimator, TransformerMixin):
 
 
 class SimpleBucketTransformer(BucketTransformer):
-    """Bucket transformer implementing the Simple Bucketer in the Probatus package."""
+    """Bucket transformer implementing the Simple Bucketer in the Probatus package.
+
+    ```python
+    from skorecard import datasets
+    from skorecard.preprocessing import SimpleBucketTransformer
+
+    X, y = datasets.load_uci_credit_card(return_X_y=True)
+    bucketer = SimpleBucketTransformer(bin_count = 10)
+    bucketer.fit_transform(X['LIMIT_BAL'])
+    ```
+    """
 
     def __init__(self, bin_count, infinite_edges=False):
         """Initialise BucketTransformer using Simple Probatus Bucketer.
@@ -123,7 +139,17 @@ class SimpleBucketTransformer(BucketTransformer):
 
 
 class AgglomerativeBucketTransformer(BucketTransformer):
-    """Bucket transformer implementing the Agglomerative Bucketer in the Probatus package."""
+    """Bucket transformer implementing the Agglomerative Bucketer in the Probatus package.
+
+    ```python
+    from skorecard import datasets
+    from skorecard.preprocessing import AgglomerativeBucketTransformer
+
+    X, y = datasets.load_uci_credit_card(return_X_y=True)
+    bucketer = AgglomerativeBucketTransformer(bin_count = 10)
+    bucketer.fit_transform(X['LIMIT_BAL'])
+    ```
+    """
 
     def __init__(self, bin_count, infinite_edges=False):
         """Initialise BucketTransformer using Agglomerative Probatus Bucketer.
@@ -159,7 +185,7 @@ class QuantileBucketTransformer(BucketTransformer):
 
         Args:
             bin_count (int/list): How many bins we wish to split our data into. Required for each Probatus Bucket method
-             infinite_edges (boolean): flag to set the edges of the bins to infinite values.
+                infinite_edges (boolean): flag to set the edges of the bins to infinite values.
         """
         super().__init__(infinite_edges=infinite_edges)
         self.bin_count = bin_count
@@ -213,11 +239,10 @@ class TreeBucketTransformer(BucketTransformer):
         """Return the parameters of the decision tree used in the Transfromer.
 
         Args:
-            deep (boolean), required by the API.
+            deep (bool): Make a deep copy or not, required by the API.
 
         Returns:
-            Decision Tree Parameteres (dict)
-
+            (dict): Decision Tree Parameteres
         """
         return self.Bucketer.tree.get_params(deep=deep)
 
@@ -240,7 +265,7 @@ class CatBucketTransformer(BucketTransformer):
 
         Args:
             threshold_min (float): percentage. If the normalized value count is smaller than the threshold, the
-            category is put into its own bin.
+                category is put into its own bin.
 
         """
         if (threshold_min < 0) | (threshold_min > 1):

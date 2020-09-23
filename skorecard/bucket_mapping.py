@@ -106,6 +106,12 @@ class FeaturesBucketMapping:
 class BucketMapping:
     """Stores all the info to be able to bucket a feature.
 
+    ```python
+    from skorecard.bucket_mapping import BucketMapping
+    bucket = BucketMapping('feature1', 'numerical', map = [2,3,4,5])
+    bucket
+    ```
+
     Args:
         feature_name (str): Name of the feature
         # TODO
