@@ -6,8 +6,9 @@ https://calmcode.io/docs/epic.html
 
 Try it out with:
 
-> pytest tests/test_docstring.py --verbose
-
+```bash
+pytest tests/test_docstring.py --verbose
+```
 """
 
 import pytest
@@ -21,6 +22,7 @@ import skorecard.utils
 
 
 # List of all classes and functions we want tested
+MODULES_TO_TEST = [skorecard.apps.manual_bucketer_app]
 CLASSES_TO_TEST = [
     skorecard.apps.ManualBucketerApp,
     skorecard.linear_model.LogisticRegression,
@@ -75,9 +77,28 @@ def handle_docstring(doc, indent):
             exec(code_part)
 
 
-# Test every method in a list of selected classes
+@pytest.mark.parametrize("m", MODULES_TO_TEST)
+def test_module_docstrings(m):
+    """
+    Take the docstring of a given module.
+
+    The test passes if the usage examples causes no errors.
+    """
+    handle_docstring(m.__doc__, indent=0)
+
+
+@pytest.mark.parametrize("c", CLASSES_TO_TEST)
+def test_class_docstrings(c):
+    """
+    Take the docstring of a given class.
+
+    The test passes if the usage examples causes no errors.
+    """
+    handle_docstring(c.__doc__, indent=4)
+
+
 @pytest.mark.parametrize("clf_ref,meth_ref", get_test_pairs(CLASSES_TO_TEST))
-def test_skorecard_method_docstrings(clf_ref, meth_ref):
+def test_method_docstrings(clf_ref, meth_ref):
     """
     Take the docstring of every method (m) on the class (c).
 
@@ -86,23 +107,11 @@ def test_skorecard_method_docstrings(clf_ref, meth_ref):
     handle_docstring(getattr(clf_ref, meth_ref).__doc__, indent=8)
 
 
-# Test class docstrings
-@pytest.mark.parametrize("m", CLASSES_TO_TEST)
-def test_class_docstrings(m):
-    """
-    Take the docstring of every method on a given class.
-
-    The test passes if the usage examples causes no errors.
-    """
-    handle_docstring(m.__doc__, indent=4)
-
-
-# Test every function in a module
-@pytest.mark.parametrize("m", FUNCTIONS_TO_TEST)
-def test_function_docstrings(m):
+@pytest.mark.parametrize("f", FUNCTIONS_TO_TEST)
+def test_function_docstrings(f):
     """
     Take the docstring of every function.
 
     The test passes if the usage examples causes no errors.
     """
-    handle_docstring(m.__doc__, indent=4)
+    handle_docstring(f.__doc__, indent=4)
