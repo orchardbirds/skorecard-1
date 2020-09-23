@@ -21,6 +21,8 @@ before_script:
 # tags make sure correct public gitlab runner is picked
 test:
   script:
+    - export PIP_EXTRA_INDEX_URL=https://artifactory.ing.net/artifactory/api/pypi/pypipublic/simple
+    - export PIP_TRUSTED_HOST=artifactory.ing.net
     - pip install --upgrade setuptools
     - pip install ".[all]"
     - pytest --cov=skorecard/ --cov-config=.coveragerc --cov-report term-missing tests/
