@@ -17,7 +17,7 @@ dev_dep = [
     "black>=19.10b0",
     "pre-commit>=2.5.0",
     "mypy>=0.770",
-    "flake8-docstrings>=1.5.0" "pytest>=6.0.1",
+    "flake8-docstrings>=1.4.0" "pytest>=6.0.0",
     "pytest-cov>=2.10.0",
 ]
 
