@@ -6,7 +6,7 @@ with open("README.md", "r", encoding="UTF-8") as fh:
 base_packages = ["scipy>=1.5.2", "numpy>=1.19.2", "pandas>=1.1.2", "scikit-learn>=0.23.2", "probatus>=1.1.1"]
 
 dashboard_dep = [
-    "dash>=1.16.1" "jupyter-dash>=0.3.1",
+    "dash>=1.15.0" "jupyter-dash>=0.3.0",
     "dash_bootstrap_components>=0.10.6",
 ]
 
