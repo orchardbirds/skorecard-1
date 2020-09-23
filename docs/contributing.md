@@ -16,22 +16,19 @@ and commits as necessary.
 ## Repo structure
 
 ``` nohighlight
-├── data                       <- Data sources (.gitignored)
-├── notebooks                  <- Jupyter notebooks are only allowed here
-│   ├── private                <- Private notebooks (.gitignored)
-│   ├── review                 <- Notebooks temporarily here for others to review, e.g. related to a MR
-│   └── demo                   <- Notebooks to demonstrate a function, analysis, modeling, etc. for posterity
+├── notebooks                  <- Jupyter notebooks are only allowed here (will be moved to docs/ folder instead!)
 ├── skorecard                  <- All reusable source code
+├── docs                       <- Documention in markdown
 └── tests                      <- Tests for unit and functional testing
-   
 .gitignore                     <- Files for git to ignore
 .gitlab-ci.yml                 <- Setup file for CI pipeline
 .pre-commit-config.yaml        <- Setup file for pre-commit pipeline
 LICENSE                        <- License for potential open-sourcing
-main.py                        <- Main skorecard entry point
+MANIFEST.in                    <- Which non-python files to include with the built package
+mkdocs.yml                     <- Configuration file for building MkDocs documentation website
 README.md                      <- General information about the project and repo structure, how to use it, etc.
 requirements.txt               <- Python dependencies (packages & versions)
-setup.py                       <- To setup skorecard package locally via pip
+setup.py                       <- To setup skorecard package
 ```
 
 ## Coding standards
@@ -41,19 +38,12 @@ Please review [RPAA Coding Standards](https://confluence.europe.intranet/display
 
 ## Development setup
 
-We use python editable installs to develop this package:
+We use python editable installs to develop this package. We added all packages also need for development to the "all" optional dependency set. To install:
 
 ```shell
 git clone git+ssh://git@gitlab.ing.net:2222/RiskandPricingAdvancedAnalytics/skorecard.git
 cd skorecard
-pip3 install -e .
-```
-
-You'll also need to install packages required for development:
-
-```bash
-pip install -r requirements.txt
-pip install -r tests/test_requirements.txt
+pip3 install -e ".[all]"
 ```
 
 You can run the unittests with:
@@ -65,7 +55,6 @@ pytest
 We use [pre-commit](https://pre-commit.com/) to ensure code quality. To set it up:
 
 ```bash
-pip install pre-commit
 pre-commit install
 ```
 
@@ -79,22 +68,13 @@ mkdocs serve
 
 ## Terminology
 
-- `features_bucket_mapping` Is a `dict`-like object, containing all the features and the info for bucketing
-
-```yml
-{
-    'type' : 'categorical', # or numerical
-    'missing_bucket' : None, # error, or bucket index number
-    'boundaries' : [...] # or None if categorical
-    'map' : [ ['a','b'], ['c']] # or None if numerical
-}
-```
-
+- `BucketMapping` is a custom class that stores all the information needed for bucketing, including the map itself (either boundaries for binning, or a list of lists for categoricals)
+- `FeaturesBucketMapping` is simply a collection of `BucketMapping`s, and is used to store all info for bucketing transformations for a dataset.
 
 ## README badges
 
 Because this package has not been released on pypi yet, we cannot use shields.io. 
-We used [pybadges]() to generate some of the badges:
+We used [pybadges](https://github.com/google/pybadges) to generate some of the badges:
 
 ```bash
 python -m pybadges \

@@ -22,10 +22,12 @@ plugins:
 nav:
     - Home: 
         - Index: index.md
+        - Contributing: contributing.md
     - Guides:
         - Getting Started: guides/getting-started.md
     - API: 
-        - BucketMapping: api/bucket-mapping.md
+        - Bucketers: api/bucketers.md
+        - ManualBucketerApp: api/manual-bucketer-app.md
     - Examples:
         - examples.md
 

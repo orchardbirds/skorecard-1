@@ -26,7 +26,3 @@ pip3 install git+ssh://git@gitlab.ing.net:2222/RiskandPricingAdvancedAnalytics/s
 ## Documentation
 
 *Documentation website yet to be built*
-
-## Contributing
-
-Contributions are very welcome. Please check our [contributing guidelines](CONTRIBUTING.md) first.
