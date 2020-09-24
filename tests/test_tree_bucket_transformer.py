@@ -2,7 +2,6 @@ from skorecard import datasets
 from skorecard.preprocessing import TreeBucketTransformer
 from skorecard.utils.exceptions import DimensionalityError
 
-import numpy as np
 import pytest
 
 
@@ -66,28 +65,3 @@ def test_dimensionality_exception(df):
     with pytest.raises(DimensionalityError):
         tbt.fit_transform(df[["LIMIT_BAL", "MARRIAGE"]].values)
     return None
-
-
-def test_inifinte_edges(df):
-    """Test that infinite edges actually are infinite."""
-    SBT = TreeBucketTransformer(
-        max_depth=4,
-        criterion="entropy",
-        min_samples_leaf=20,  # Minimum number of entries in the bins
-        min_impurity_decrease=0.001,
-        infinite_edges=True,
-    )
-    SBT.fit(df["LIMIT_BAL"].values, df["default"].values)
-    assert SBT.boundaries[0] == -np.inf
-    assert SBT.boundaries[-1] == np.inf
-
-    SBT = TreeBucketTransformer(
-        max_depth=4,
-        criterion="entropy",
-        min_samples_leaf=20,  # Minimum number of entries in the bins
-        min_impurity_decrease=0.001,
-        infinite_edges=False,
-    )
-    SBT.fit(df["LIMIT_BAL"].values, df["default"].values)
-    assert SBT.boundaries[0] != -np.inf
-    assert SBT.boundaries[-1] != np.inf

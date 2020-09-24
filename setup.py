@@ -27,6 +27,7 @@ docs_dep = [
     "mkdocs>=1.1",
     "mkdocs-material>=5.5.12",
     "mkdocstrings>=0.13.2",
+    "mkdocs-git-revision-date-localized-plugin>=0.7.2",
 ]
 
 setup(

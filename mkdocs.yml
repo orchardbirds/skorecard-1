@@ -9,15 +9,11 @@ use_directory_urls: false
 
 plugins:
     - search
+    - git-revision-date-localized:
+        type: timeago
     - mkdocstrings:
         watch:
             - skorecard
-    - print-site:
-        add_full_urls: false
-        add_table_of_contents: true
-        enumerate_headings: true
-        enumerate_figures: true
-        add_cover_page: true
 
 nav:
     - Home: 

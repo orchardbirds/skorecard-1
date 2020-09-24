@@ -21,7 +21,7 @@ import copy
 import pandas as pd
 
 from skorecard.bucket_mapping import create_bucket_feature_mapping
-from skorecard.utils.exceptions import NotInstalled
+from skorecard.utils.exceptions import NotInstalledError
 
 # Dash + dependencies
 try:
@@ -29,27 +29,27 @@ try:
     import dash_html_components as html
     from dash.dependencies import Input, Output
 except ModuleNotFoundError:
-    dcc = NotInstalled("dash_core_components", "dashboard")
-    html = NotInstalled("dash_html_components", "dashboard")
-    Input = NotInstalled("dash", "dashboard")
-    Output = NotInstalled("dash", "dashboard")
+    dcc = NotInstalledError("dash_core_components", "dashboard")
+    html = NotInstalledError("dash_html_components", "dashboard")
+    Input = NotInstalledError("dash", "dashboard")
+    Output = NotInstalledError("dash", "dashboard")
 
 # JupyterDash
 try:
     from jupyter_dash import JupyterDash
 except ModuleNotFoundError:
-    JupyterDash = NotInstalled("jupyter-dash", "dashboard")
+    JupyterDash = NotInstalledError("jupyter-dash", "dashboard")
 
 # Dash Bootstrap
 try:
     import dash_bootstrap_components as dbc
 except ModuleNotFoundError:
-    dbc = NotInstalled("dash_bootstrap_components", "dashboard")
+    dbc = NotInstalledError("dash_bootstrap_components", "dashboard")
 
 try:
     import plotly.figure_factory as ff
 except ModuleNotFoundError:
-    ff = NotInstalled("plotly", "reporting")
+    ff = NotInstalledError("plotly", "reporting")
 
 
 # TODO make this internal to the package

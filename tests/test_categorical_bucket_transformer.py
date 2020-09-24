@@ -12,12 +12,12 @@ def df():
     return datasets.load_uci_credit_card(as_frame=True)
 
 
-def test_threshold_min(df):
+def test_threshold_min(df) -> None:
     """Test that threshold_min < 1 raises an error."""
     with pytest.raises(ValueError):
         CatBucketTransformer(threshold_min=-0.1)
-
-    return None
+    with pytest.raises(ValueError):
+        CatBucketTransformer(threshold_min=1.001)
 
 
 def test_correct_output(df):
@@ -57,7 +57,7 @@ def test_mapping_dict(df):
     cbt.fit(X, y)
     cbt.transform(X)
 
-    assert len(cbt.map) == len(np.unique(X))
+    assert len(cbt.bucket_mapping.map) == len(np.unique(X))
 
     return None
 

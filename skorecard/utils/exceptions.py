@@ -10,7 +10,19 @@ class DimensionalityError(Exception):
         self.message = message
 
 
-class NotInstalled:
+class UnknownCategoryError(Exception):
+    """Raise this when an array contains a new unseen category."""
+
+    def __init__(self, message):
+        """Raise this when array contains a new unseen category.
+
+        Args:
+            message: (str) message when exception is raised
+        """
+        self.message = message
+
+
+class NotInstalledError:
     """
     This object is used for optional dependencies.
 

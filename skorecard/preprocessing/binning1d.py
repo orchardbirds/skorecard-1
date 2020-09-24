@@ -6,18 +6,18 @@ You can use these classes to find a binning on any `np.ndarray` or `pd.Series` o
 
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
-from ..utils import DimensionalityError, assure_numpy_array
 from probatus.binning import SimpleBucketer, AgglomerativeBucketer, QuantileBucketer, TreeBucketer
+
+from skorecard.utils import DimensionalityError, assure_numpy_array
+from skorecard.bucket_mapping import BucketMapping
 
 
 class BucketTransformer(BaseEstimator, TransformerMixin):
     """Base class for the below Bucket transformer methodologies using the Bucketers in the Probatus package."""
 
-    def __init__(self, infinite_edges=False, **kwargs):
+    def __init__(self, **kwargs):
         """Initialise with empty bucket dictionary to which we add our Bucketer(s) in self.fit()."""
         self.fitted = False
-        self.BucketDict = {}
-        self.infinite_edges = infinite_edges
         self.kwargs = kwargs
 
     def _assert_bin_count_int(self):
@@ -56,15 +56,16 @@ class BucketTransformer(BaseEstimator, TransformerMixin):
         """
         X = X.copy()
 
+        try:
+            self.feature_name = X.name
+        except AttributeError:
+            self.feature_name = "unknown"
+
         X = assure_numpy_array(X)
         y = assure_numpy_array(y)
-
         X, y = self._assert_1d_array(X, y)
 
         self._fit(X, y)
-        if self.infinite_edges:
-            self.boundaries[0] = -np.inf
-            self.boundaries[-1] = np.inf
         self.fitted = True
 
         return self
@@ -78,13 +79,7 @@ class BucketTransformer(BaseEstimator, TransformerMixin):
         Returns:
             np.array of the transformed X, such that the values of X are replaced by the corresponding bucket numbers
         """
-        X = X.copy()
-
-        if self.method == "Categorical":
-            return self._transform(X)
-        X = np.digitize(X, self.boundaries[1:], right=True)
-
-        return X.astype(int)
+        return self.bucket_mapping.transform(X)
 
     def predict(self, X, y=None):
         """Applies the transform method. To be used for the grid searches.
@@ -111,15 +106,14 @@ class SimpleBucketTransformer(BucketTransformer):
     ```
     """
 
-    def __init__(self, bin_count, infinite_edges=False):
+    def __init__(self, bin_count):
         """Initialise BucketTransformer using Simple Probatus Bucketer.
 
         Args:
             bin_count (int/list): How many bins we wish to split our data into for each feature.
                               Required for each Probatus Bucket method
-            infinite_edges (boolean): flag to set the edges of the bins to infinite values.
         """
-        super().__init__(infinite_edges=infinite_edges)
+        super().__init__()
         self.bin_count = bin_count
         self._assert_bin_count_int()
         self.method = "Simple"
@@ -134,8 +128,10 @@ class SimpleBucketTransformer(BucketTransformer):
             self (object): Fitted transformer
         """
         self.Bucketer = SimpleBucketer(bin_count=self.bin_count)
-        self.BucketDict["SimpleBucketer"] = self.Bucketer.fit(X)
-        self.boundaries = self.BucketDict["SimpleBucketer"].boundaries
+        self.Bucketer.fit(X)
+        self.bucket_mapping = BucketMapping(
+            feature_name=self.feature_name, type="numerical", map=self.Bucketer.boundaries, missing_bucket=None
+        )
 
 
 class AgglomerativeBucketTransformer(BucketTransformer):
@@ -151,14 +147,13 @@ class AgglomerativeBucketTransformer(BucketTransformer):
     ```
     """
 
-    def __init__(self, bin_count, infinite_edges=False):
+    def __init__(self, bin_count):
         """Initialise BucketTransformer using Agglomerative Probatus Bucketer.
 
         Args:
             bin_count (int/list): How many bins we wish to split our data into. Required for each Probatus Bucket method
-            infinite_edges (boolean): flag to set the edges of the bins to infinite values.
         """
-        super().__init__(infinite_edges=infinite_edges)
+        super().__init__()
         self.bin_count = bin_count
         self._assert_bin_count_int()
         self.method = "Agglomerative"
@@ -173,21 +168,32 @@ class AgglomerativeBucketTransformer(BucketTransformer):
             self (object): Fitted transformer
         """
         self.Bucketer = AgglomerativeBucketer(bin_count=self.bin_count)
-        self.BucketDict["AgglomerativeBucketer"] = self.Bucketer.fit(X)
-        self.boundaries = self.BucketDict["AgglomerativeBucketer"].boundaries
+        self.Bucketer.fit(X)
+        self.bucket_mapping = BucketMapping(
+            feature_name=self.feature_name, type="numerical", map=self.Bucketer.boundaries, missing_bucket=None
+        )
 
 
 class QuantileBucketTransformer(BucketTransformer):
-    """Bucket transformer implementing the Quantile Bucketer in the Probatus package."""
+    """Bucket transformer implementing the Quantile Bucketer in the Probatus package.
 
-    def __init__(self, bin_count, infinite_edges=False):
+    ```python
+    from skorecard import datasets
+    from skorecard.preprocessing import QuantileBucketTransformer
+
+    X, y = datasets.load_uci_credit_card(return_X_y=True)
+    bucketer = QuantileBucketTransformer(bin_count = 10)
+    bucketer.fit_transform(X['LIMIT_BAL'])
+    ```
+    """
+
+    def __init__(self, bin_count):
         """Initialise BucketTransformer using Quantile Probatus Bucketer.
 
         Args:
             bin_count (int/list): How many bins we wish to split our data into. Required for each Probatus Bucket method
-                infinite_edges (boolean): flag to set the edges of the bins to infinite values.
         """
-        super().__init__(infinite_edges=infinite_edges)
+        super().__init__()
         self.bin_count = bin_count
         self._assert_bin_count_int()
         self.method = "Quantile"
@@ -202,21 +208,32 @@ class QuantileBucketTransformer(BucketTransformer):
             self (object): Fitted transformer
         """
         self.Bucketer = QuantileBucketer(bin_count=self.bin_count)
-        self.BucketDict["QuantileBucketer"] = self.Bucketer.fit(X)
-        self.boundaries = self.BucketDict["QuantileBucketer"].boundaries
+        self.Bucketer.fit(X)
+        self.bucket_mapping = BucketMapping(
+            feature_name=self.feature_name, type="numerical", map=self.Bucketer.boundaries, missing_bucket=None
+        )
 
 
 class TreeBucketTransformer(BucketTransformer):
-    """Bucket transformer implementing the Tree Bucketer in the Probatus package."""
+    """Bucket transformer implementing the Tree Bucketer in the Probatus package.
 
-    def __init__(self, infinite_edges=False, **kwargs):
+    ```python
+    from skorecard import datasets
+    from skorecard.preprocessing import TreeBucketTransformer
+
+    X, y = datasets.load_uci_credit_card(return_X_y=True)
+    bucketer = TreeBucketTransformer()
+    bucketer.fit(X['LIMIT_BAL'], y)
+    ```
+    """
+
+    def __init__(self, **kwargs):
         """Initialise BucketTransformer using Tree Probatus Bucketer.
 
         Args:
-            infinite_edges (boolean): flag to set the edges of the bins to infinite values.
             **kwargs: the keyword arguments passed to the Tree Probatus Bucketer
         """
-        super().__init__(infinite_edges, **kwargs)
+        super().__init__(**kwargs)
         self.method = "Tree"
         self.Bucketer = TreeBucketer(**self.kwargs)
 
@@ -230,8 +247,10 @@ class TreeBucketTransformer(BucketTransformer):
         Returns:
             self (object): Fitted transformer
         """
-        self.BucketDict["TreeBucketer"] = self.Bucketer.fit(X, y)
-        self.boundaries = self.BucketDict["TreeBucketer"].boundaries
+        self.Bucketer.fit(X, y)
+        self.bucket_mapping = BucketMapping(
+            feature_name=self.feature_name, type="numerical", map=self.Bucketer.boundaries, missing_bucket=None
+        )
 
         return self
 
@@ -258,7 +277,17 @@ class TreeBucketTransformer(BucketTransformer):
 
 
 class CatBucketTransformer(BucketTransformer):
-    """Bucket transformer for categorical features."""
+    """Bucket transformer for categorical features.
+
+    ```python
+    from skorecard import datasets
+    from skorecard.preprocessing import CatBucketTransformer
+
+    X, y = datasets.load_uci_credit_card(return_X_y=True)
+    bucketer = CatBucketTransformer()
+    bucketer.fit_transform(X['EDUCATION'])
+    ```
+    """
 
     def __init__(self, threshold_min=0.01):
         """Initialise Categorical Bucketer.
@@ -268,11 +297,10 @@ class CatBucketTransformer(BucketTransformer):
                 category is put into its own bin.
 
         """
-        if (threshold_min < 0) | (threshold_min > 1):
+        if not (0 <= threshold_min <= 1):
             raise ValueError("threshold_min must be between 0 and 1")
 
-        # Inf endges must always be false for a categorical transfromer
-        super().__init__(infinite_edges=False)
+        super().__init__()
         self.method = "Categorical"
         self.threshold_min = threshold_min
 
@@ -306,7 +334,9 @@ class CatBucketTransformer(BucketTransformer):
         merged_bin = {i: max_val + 1 for i in sorted_cats[sorted_counts <= self.threshold_min]}
         map_dict.update(merged_bin)
 
-        self.map = map_dict
+        self.bucket_mapping = BucketMapping(
+            feature_name=self.feature_name, type="categorical", map=map_dict, missing_bucket=None
+        )
 
         return self
 
@@ -323,4 +353,4 @@ class CatBucketTransformer(BucketTransformer):
         X = assure_numpy_array(X)
         X, y = self._assert_1d_array(X, y)
 
-        return np.array([i for i in map(lambda x: self.map[x], X)])
+        return self.bucket_mapping.transform(X)
