@@ -298,4 +298,4 @@ class CatBucketTransformer(BucketTransformer):
         X = assure_numpy_array(X)
         X, y = self._assert_1d_array(X, y)
 
-        return np.array([i for i in map(lambda x: self.map[x], X)])
+        return np.array([i for i in map(lambda x: self.map[x], X)]).reshape(X.shape[0], 1)
