@@ -210,7 +210,7 @@ class TreeBucketTransformer(BucketTransformer):
         return self
 
     def get_params(self, deep=True):
-        """Return the parameters of the decision tree used in the Transfromer.
+        """Return the parameters of the decision tree used in the Transformer.
 
         Args:
             deep (boolean), required by the API.
@@ -225,7 +225,7 @@ class TreeBucketTransformer(BucketTransformer):
         """Set the parameteres for the decision tree.
 
         Args:
-            **params: (dict) parameteres for the decision tree
+            **params: (dict) parameters for the decision tree
 
         """
         self.Bucketer.tree.set_params(**params)
@@ -246,7 +246,7 @@ class CatBucketTransformer(BucketTransformer):
         if (threshold_min < 0) | (threshold_min > 1):
             raise ValueError("threshold_min must be between 0 and 1")
 
-        # Inf endges must always be false for a categorical transfromer
+        # Inf edges must always be false for a categorical transformer
         super().__init__(infinite_edges=False)
         self.method = "Categorical"
         self.threshold_min = threshold_min
