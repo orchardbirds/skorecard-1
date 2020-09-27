@@ -255,7 +255,7 @@ class TreeBucketTransformer(BucketTransformer):
         return self
 
     def get_params(self, deep=True):
-        """Return the parameters of the decision tree used in the Transfromer.
+        """Return the parameters of the decision tree used in the Transformer.
 
         Args:
             deep (bool): Make a deep copy or not, required by the API.
@@ -269,7 +269,7 @@ class TreeBucketTransformer(BucketTransformer):
         """Set the parameteres for the decision tree.
 
         Args:
-            **params: (dict) parameteres for the decision tree
+            **params: (dict) parameters for the decision tree
 
         """
         self.Bucketer.tree.set_params(**params)

@@ -106,7 +106,9 @@ class BucketMapping:
                         f"Value {k} is a new, unseen category. Consider setting 'missing_bucket'."
                     )
 
-        return np.array(new)
+        X = np.array(new)
+        return X
+        # return X.reshape(X.shape[0], 1)
 
     def as_dict(self) -> dict:
         """Return data in class as a dict.
