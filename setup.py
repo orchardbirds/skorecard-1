@@ -3,7 +3,13 @@ from setuptools import setup, find_packages
 with open("README.md", "r", encoding="UTF-8") as fh:
     long_description = fh.read()
 
-base_packages = ["scipy>=1.5.2", "numpy>=1.19.2", "pandas>=1.1.2", "scikit-learn>=0.23.2", "probatus>=1.1.1"]
+base_packages = [
+    "scipy>=1.5.2",
+    "numpy>=1.19.2",
+    "pandas>=1.1.2",
+    "scikit-learn>=0.23.2",
+    "probatus>=1.1.1",
+]
 
 dashboard_dep = [
     "dash>=1.15.0",

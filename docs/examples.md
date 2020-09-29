@@ -13,9 +13,20 @@ pipe = Pipeline(
 )
 pipe.fit(X, y)
 
+# Grid searching
+# TODO: Write a Bucketer class that also takes a bucketer classname as input
+# Then you can search over n_bins and bucketers.
+
+# Optimizing bucketing pipeline
+# Per feature, you can have different n_bins, and transformers
+# Write a for loop that does exhaustive search (univariately per feature using x and y).
+# use tqdm, implement a budget?, it should return a best_pipeline.
+# also parameter on which to optimize for. AUC? WoE? IV?
 
 # Manual tweaking (optional)
+# TODO, write this manual feature mapping
 features_bucket_mapping = get_feature_mapping(pipe)
+
 print(features_bucket_mapping)
 features_bucket_mapping.save_to_yml('buckets.yml')
 
@@ -31,7 +42,9 @@ report(X, y, features_bucket_mapping) # HTML report? plot? excel output? pandas 
 features_bucket_mapping = FeatureBucketMapping('buckets.yml')
 
 pipe = Pipeline(
-    <preproc>,
+    PandasDFTransformer(
+        <preproc>,
+    ),
     ManualBucketTransformer(features_bucket_mapping), # EITHER THIS. when usiung manual
     bucketing_pipeline(), # OR THIS. when defined yourself
     <model>

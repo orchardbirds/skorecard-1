@@ -1,10 +1,3 @@
-::: skorecard.preprocessing.binning1d
-    selection:
-        members:
-            - SimpleBucketTransformer
-            - AgglomerativeBucketTransformer
-            - QuantileBucketTransformer
-            - TreeBucketTransformer
-            - CatBucketTransformer
+::: skorecard.bucketers.bucketers
     rendering:
         show_root_heading: false

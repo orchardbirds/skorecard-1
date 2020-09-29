@@ -3,9 +3,9 @@
 import dataclasses
 from dataclasses import dataclass, field
 from typing import List, Union, Dict, Optional
+
 import pandas as pd
 import numpy as np
-
 from probatus.binning import SimpleBucketer
 
 from skorecard.utils import UnknownCategoryError
@@ -34,6 +34,7 @@ class BucketMapping:
         feature_name (str): Name of the feature
         type (str): Type of feature, one of ['categorical','numerical']
         map (list or dict): The info needed to create the buckets (boundaries or cats)
+        missing_bucket (int): Which bucket to place any missing values
         right (bool): parameter to np.digitize, used when map='numerical'.
     """
 
@@ -71,8 +72,19 @@ class BucketMapping:
             return self._transform_cat(x)
 
     def _transform_num(self, x):
-        # Uses infinite edges to ensure transformation
-        # also works on data outside seen range
+        """
+        Apply binning using a boundaries map.
+
+        Note:
+        - We use infinite edges to ensure transformation also works on data outside seen range.
+        - np.digitize assigns an extra label for missing values
+
+        ```python
+        bins = np.array([-np.inf, 1, np.inf])
+        x = np.array([-1,0,.5, 1, 1.5, 2,10, np.nan, 0])
+        np.digitize(x, bins)
+        ```
+        """
         bins = np.hstack(((-np.inf), self.map[1:], (np.inf)))
         buckets = np.digitize(x, bins, right=self.right)
         return buckets.astype(int)
@@ -82,33 +94,34 @@ class BucketMapping:
         Transforms categorical to buckets.
 
         Example:
-            input ['a','c']
-            map [['a','b'],['c','d']]
-            output [0, 1]
+            x: ['a','c','a']
+            map: {'a': 0, 'b': 1, 'c': 2}
+            output: [0, 2, 0]
 
         Args:
-            x ([type]): [description]
+            x (pd.Series or np.array): Input vector
 
-        Raises:
-            NotImplementedError: [description]
         """
         assert isinstance(self.map, dict)
+        if isinstance(x, np.ndarray):
+            x = pd.Series(x)
 
-        new = []
-        for k in x:
-            try:
-                new.append(self.map[k])
-            except KeyError:
-                if self.missing_bucket:
-                    new.append(self.missing_bucket)
-                else:
-                    raise UnknownCategoryError(
-                        f"Value {k} is a new, unseen category. Consider setting 'missing_bucket'."
-                    )
+        if self.missing_bucket is not None:
+            mapping = MissingDict(self.map)
+            mapping.set_missing_value(self.missing_bucket)
+        else:
+            mapping = self.map
 
-        X = np.array(new)
-        return X
-        # return X.reshape(X.shape[0], 1)
+        x = x.map(mapping)
+
+        if not self.missing_bucket:
+            if x.hasnans:
+                raise UnknownCategoryError(
+                    f"Feature {self.feature_name} has a new, unseen category that causes NaNs.",
+                    "Consider setting 'missing_bucket'.",
+                )
+
+        return x
 
     def as_dict(self) -> dict:
         """Return data in class as a dict.
@@ -258,3 +271,31 @@ def create_bucket_feature_mapping(df):
         features_bucket_mapping.append(BucketMapping(col, "numerical", bucketer.boundaries, right=True))
 
     return features_bucket_mapping
+
+
+class MissingDict(dict):
+    """Deal with missing values in a dict map.
+
+    Because Pandas .map() uses the __missing__ method
+    https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Series.map.html
+
+    Example usage:
+
+    ```python
+    s = pd.Series(['cat', 'dog', np.nan, 'rabbit'])
+    a = {'cat': 'kitten', 'dog': 'puppy'}
+    s.map(a)
+    a = missingdict(a)
+    a.set_missing_value("bye")
+    s.map(a)
+    ```
+    """
+
+    def set_missing_value(self, value):
+        """Setter for a missing value."""
+        self.missing_value = value
+
+    def __missing__(self, key):
+        """Adds a default for missing values."""
+        assert self.missing_value is not None, "Use .set_missing_value(key) first"
+        return self.missing_value

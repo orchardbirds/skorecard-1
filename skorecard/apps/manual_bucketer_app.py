@@ -109,7 +109,9 @@ class ManualBucketerApp(object):
                     [
                         dcc.Graph(id="distr-graph"),
                         dcc.RangeSlider(
-                            id="range-slider", allowCross=True, tooltip={"always_visible": True, "placement": "topLeft"}
+                            id="range-slider",
+                            allowCross=True,
+                            tooltip={"always_visible": True, "placement": "topLeft"},
                         ),
                     ]
                 ),
@@ -145,7 +147,9 @@ class ManualBucketerApp(object):
         def update_bucket_mapping(value, col):
             return f"Boundaries for `{col}`: `{value}`"
 
-        @app.callback(Output("distr-graph", "figure"), [Input("input_column", "value"), Input("range-slider", "value")])
+        @app.callback(
+            Output("distr-graph", "figure"), [Input("input_column", "value"), Input("range-slider", "value")],
+        )
         def plot_dist(col, boundaries):
 
             # Determine a nice bin size for histogram

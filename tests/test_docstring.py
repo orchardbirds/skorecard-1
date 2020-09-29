@@ -14,7 +14,7 @@ pytest tests/test_docstring.py --verbose
 import pytest
 import skorecard.apps
 import skorecard.linear_model
-import skorecard.preprocessing
+import skorecard.bucketers
 import skorecard.pipeline
 import skorecard.metrics
 import skorecard.bucket_mapping
@@ -27,11 +27,13 @@ CLASSES_TO_TEST = [
     skorecard.apps.ManualBucketerApp,
     skorecard.linear_model.LogisticRegression,
     skorecard.pipeline.ColumnSelector,
-    skorecard.preprocessing.SimpleBucketTransformer,
-    skorecard.preprocessing.AgglomerativeBucketTransformer,
-    skorecard.preprocessing.QuantileBucketTransformer,
-    skorecard.preprocessing.TreeBucketTransformer,
-    skorecard.preprocessing.CatBucketTransformer,
+    skorecard.bucketers.EqualWidthBucketer,
+    skorecard.bucketers.AgglomerativeClusteringBucketer,
+    skorecard.bucketers.EqualFrequencyBucketer,
+    skorecard.bucketers.DecisionTreeBucketer,
+    skorecard.bucketers.OrdinalCategoricalBucketer,
+    skorecard.bucketers.UserInputBucketer,
+    skorecard.bucketers.WoEBucketer,
     skorecard.bucket_mapping.FeaturesBucketMapping,
     skorecard.bucket_mapping.BucketMapping,
 ]
