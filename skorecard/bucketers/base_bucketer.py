@@ -18,10 +18,12 @@ class BaseBucketer(BaseEstimator, TransformerMixin):
 
     @staticmethod
     def _check_contains_na(X, variables):
-        if X[variables].isnull().values.any():
-            raise ValueError(
-                "Some of the variables to transform contain missing values. Consider using an imputer first."
-            )
+
+        has_missings = X[variables].isnull().any()
+        vars_missing = has_missings[has_missings].index.tolist()
+
+        if vars_missing:
+            raise ValueError(f"The variables {vars_missing} contain missing values. Consider using an imputer first.")
 
     @staticmethod
     def _check_variables(X, variables):
