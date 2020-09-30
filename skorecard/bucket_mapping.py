@@ -116,10 +116,9 @@ class BucketMapping:
 
         if not self.missing_bucket:
             if x.hasnans:
-                raise UnknownCategoryError(
-                    f"Feature {self.feature_name} has a new, unseen category that causes NaNs.",
-                    "Consider setting 'missing_bucket'.",
-                )
+                msg = f"Feature {self.feature_name} has a new, unseen category that causes NaNs."
+                msg += "Consider setting 'missing_bucket'."
+                raise UnknownCategoryError(msg)
 
         return x
 

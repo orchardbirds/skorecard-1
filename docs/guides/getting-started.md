@@ -71,6 +71,30 @@ These bucketers are [scikit-learn](http://scikit-learn.org/) compatible, which m
     f"AUC = {roc_auc_score(y, pipeline.predict_proba(X)[:,1]):.4f}"
     ```
 
+### Bucketing categorical vs numerical features
+
+`skorecard   offers different bucketers for numerical and categorical features.
+TODO: link to api.
+
+You can use a util function to attempt to auto-detect column types:
+
+```python
+from skorecard import datasets
+from skorecard.bucketers import EqualWidthBucketer, OrdinalCategoricalBucketer
+from skorecard.utils import detect_types
+from sklearn.pipeline import make_pipeline
+
+X, y = datasets.load_uci_credit_card(return_X_y=True)
+
+num_cols, cat_cols = detect_types(X)
+
+bucket_pipeline = make_pipeline(
+    EqualWidthBucketer(bins=5, variables=num_cols),
+    OrdinalCategoricalBucketer(variables=cat_cols)
+)
+bucket_pipeline.fit_transform(X)
+```
+
 ### Making manual changes to the buckets
 
 You'll often want to incorporate business logic as well.
