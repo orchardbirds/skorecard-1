@@ -71,6 +71,13 @@ These bucketers are [scikit-learn](http://scikit-learn.org/) compatible, which m
     f"AUC = {roc_auc_score(y, pipeline.predict_proba(X)[:,1]):.4f}"
     ```
 
+=== "With FeatureUnion"
+
+    ```python
+    # TODO!
+    ```
+
+
 ### Bucketing categorical vs numerical features
 
 `skorecard   offers different bucketers for numerical and categorical features.
@@ -97,34 +104,41 @@ bucket_pipeline.fit_transform(X)
 
 ### Making manual changes to the buckets
 
-You'll often want to incorporate business logic as well.
+You'll often want to incorporate business logic as well. To change the buckets, you'll first need to extract the values from the pipeline. `skorecard` offers the [get_features_bucket_mapping](api/pipeline.md) function to do this:
 
 ```python
-# Getting the boundaries, TODO
-def get_bin_dicts(pipe):
+from skorecard.pipeline import get_features_bucket_mapping
 
-    feature_bucket_mapping = {}
-
-    for trx in pipe.steps:
-        for key, value in trx[1].binner_dict_.items():
-           feature_bucket_mapping[key] = value
-
-    return feature_bucket_mapping
-
-features_bucket_mapping = get_bin_dicts(pipe)
-
-app = ManualBucketerApp(X, features_bucket_mapping)
-# app.run_server(mode="external")
-# app.stop_server()
+features_bucket_mapping = get_features_bucket_mapping(pipe)
 ```
+
+Next up, you'll want to start a webapp to make changes interactively.
+Recommended to this inside a notebooks.
+
+```python
+app = ManualBucketerApp(X, features_bucket_mapping)
+app.run_server(mode="external")
+app.stop_server()
+
+# Access the updated features bucket mapping
+app.features_bucket_mapping
+```
+
+### Using bucket mapping 
 
 Once you have boundaries you like, you save save them as a yml and use them later
 
 ```python
+# TODO: demo how to load from a file?
+
 # Using the boundaries on new data
 transformer = UserInputBucketer(
     binning_dict=features_bucket_mapping, return_object=False, return_boundaries=False)
 transformer.fit_transform(df) # returns df
 ```
 
-https://feature-engine.readthedocs.io/en/latest/discretisers/index.html
+### Using `skorecard` with other packages
+
+There are other packages that offer nice transformers for bucketing or modelling. Some recommendations:
+
+- [feature-engine](https://feature-engine.readthedocs.io/en/latest/discretisers/index.html)
