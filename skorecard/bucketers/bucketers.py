@@ -247,8 +247,7 @@ class OrdinalCategoricalBucketer(BaseBucketer):
 
         for var in self.variables:
 
-            # Normalized counts
-            normalized_counts = X[var].value_counts() / X.shape[0]
+            normalized_counts = X[var].value_counts(normalize=True)
 
             # Determine the order of unique values
             if y is not None:

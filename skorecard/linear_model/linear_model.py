@@ -35,7 +35,7 @@ class LogisticRegression(lm.LogisticRegression):
         Returns:
             self, Fitted estimator.
         """
-        lr = super().fit(X, y, sample_weight=sample_weight, *kwargs)
+        lr = super().fit(X, y, sample_weight=sample_weight, **kwargs)
 
         predProbs = self.predict_proba(X)
 
