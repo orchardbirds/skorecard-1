@@ -23,7 +23,11 @@ nav:
         - Getting Started: guides/getting-started.md
     - API: 
         - Bucketers: api/bucketers.md
-        - ManualBucketerApp: api/manual-bucketer-app.md
+        - ManualBucketerApp: api/apps.md
+        - Datasets: api/datasets.md
+        - Pipeline: api/pipeline.md
+        - Bucket Mapping: api/bucket_mapping.md
+        - linear_model: api/linear_model.md
     - Examples:
         - examples.md
 
@@ -41,6 +45,7 @@ markdown_extensions:
         linenums: false
         guess_lang: false
     - attr_list
+    - abbr
     - def_list
     - admonition
     - footnotes
