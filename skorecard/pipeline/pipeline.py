@@ -5,6 +5,35 @@ from sklearn.pipeline import Pipeline
 from sklearn.utils.validation import check_is_fitted
 
 
+class KeepPandas:
+    """Keep pandas dataframe in a sklearn pipeline.
+    
+    ```python
+    import pytest
+    from skorecard.pipeline import KeepPandas
+    from skorecard import datasets
+    from skorecard.bucketers import EqualWidthBucketer
+    
+    from sklearn.pipeline import make_pipeline
+    from sklearn.preprocessing import StandardScaler
+    
+    X, y = datasets.load_uci_credit_card(return_X_y=True)
+    
+    bucket_pipeline = make_pipeline(
+        StandardScaler(),
+        EqualWidthBucketer(bins=5, variables=['LIMIT_BAL', 'BILL_AMT1']),
+    )
+    # Doesn't work, input should be a pandas dataframe.
+    with pytest.raises(TypeError):
+        bucket_pipeline.fit(X, y)
+    
+    
+    ```
+    """
+
+    pass
+
+
 def get_features_bucket_mapping(pipe: Pipeline) -> FeaturesBucketMapping:
     """Get feature bucket mapping from a sklearn pipeline object.
 
