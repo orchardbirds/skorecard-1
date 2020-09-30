@@ -21,13 +21,13 @@ before_script:
 # tags make sure correct public gitlab runner is picked
 test:
   script:
+    - export PIP_EXTRA_INDEX_URL=https://artifactory.ing.net/artifactory/api/pypi/pypipublic/simple
+    - export PIP_TRUSTED_HOST=artifactory.ing.net
     - pip install --upgrade setuptools
-    - pip install --force-reinstall --upgrade -r tests/test_requirements.txt
-    - pip install .
+    - pip install ".[all]"
     - pytest --cov=skorecard/ --cov-config=.coveragerc --cov-report term-missing tests/
-    - pip install -r requirements.txt
     - mypy --ignore-missing-imports --pretty --show-error-codes --namespace-packages -p skorecard
-    - flake8 --max-line-length=120 --docstring-convention=google --ignore=D100,D104 skorecard
+    - flake8 --max-line-length=120 --docstring-convention=google --ignore=D100,D104,D212,D200,E203 skorecard
   tags:
     - dare
     - python

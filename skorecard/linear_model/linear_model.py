@@ -16,7 +16,7 @@ class LogisticRegression(lm.LogisticRegression):
     - p_value_coef_: estimated p-value for the coefficients
     """
 
-    def fit(self, X, y, sample_weight=None):
+    def fit(self, X, y, sample_weight=None, **kwargs):
         """Overwritten function for the fit method of the sklearn Logistic Regression.
 
         In addition to the standard fit by sklearn, this function will compute the covariance of the coefficients.
@@ -35,7 +35,7 @@ class LogisticRegression(lm.LogisticRegression):
         Returns:
             self, Fitted estimator.
         """
-        lr = super().fit(X, y, sample_weight=sample_weight)
+        lr = super().fit(X, y, sample_weight=sample_weight, **kwargs)
 
         predProbs = self.predict_proba(X)
 
