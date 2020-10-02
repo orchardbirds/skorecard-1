@@ -7,6 +7,7 @@ from .bucketers import (
     AgglomerativeClusteringBucketer,
     DecisionTreeBucketer,
     OrdinalCategoricalBucketer,
+    FrequencyCategoricalBucketer,
     UserInputBucketer,
     WoEBucketer,
 )
