@@ -12,7 +12,7 @@ class KeepPandas(BaseEstimator, TransformerMixin):
     """Keep pandas dataframe in a sklearn pipeline.
    
     This is a helper class to turn sklearn transformations back to pandas.
-    
+
     !!! warning
         You should only use `KeepPandas()` when you know for sure `sklearn`
         did not change the order of your columns.
@@ -26,26 +26,16 @@ class KeepPandas(BaseEstimator, TransformerMixin):
     from sklearn.preprocessing import StandardScaler
     
     X, y = datasets.load_uci_credit_card(return_X_y=True)
-    
-    bucket_pipeline = make_pipeline(
-        StandardScaler(),
-        EqualWidthBucketer(bins=5, variables=['LIMIT_BAL', 'BILL_AMT1']),
-    )
-    # Doesn't work, input should be a pandas dataframe.
-    with pytest.raises(TypeError):
-        bucket_pipeline.fit(X, y)
-    
-    # Let's wrap the output in KeepPandas,
-    # which reapplies the column names and transforms X back to a df
+
     bucket_pipeline = make_pipeline(
         KeepPandas(StandardScaler()),
         EqualWidthBucketer(bins=5, variables=['LIMIT_BAL', 'BILL_AMT1']),
     )
-    bucket_pipeline.fit(X, y)
+    bucket_pipeline.fit_transform(X, y)
     ```
     """
 
-    def __init__(self, transformer, *args, **kwargs):
+    def __init__(self, transformer):
         """Initialize."""
         self.transformer = transformer
 
