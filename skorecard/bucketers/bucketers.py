@@ -191,7 +191,7 @@ class OrdinalCategoricalBucketer(BaseBucketer):
     The OrdinalCategoricalEncoder() replaces categories by ordinal numbers.
 
     Example (0, 1, 2, 3, etc). The numbers are assigned ordered based on the mean of the target
-    per category, or assigned in order of frequency when y is not.
+    per category, or assigned in order of frequency, when sort_by_target is False.
 
     Ordered ordinal encoding: for the variable colour, if the mean of the target
     for blue, red and grey is 0.5, 0.8 and 0.1 respectively, blue is replaced by 2,
@@ -214,7 +214,7 @@ class OrdinalCategoricalBucketer(BaseBucketer):
     ```
     """
 
-    def __init__(self, tol=0.05, max_n_categories=None, variables=[]):
+    def __init__(self, tol=0.05, max_n_categories=None, variables=[], sort_by_target=False):
         """Init the class.
 
         Args:
@@ -224,6 +224,8 @@ class OrdinalCategoricalBucketer(BaseBucketer):
                 If None, all categories with frequency above the tolerance (tol) will be
                 considered.
             variables (list): The features to bucket. Uses all features if not defined.
+            sort_by_target (boolean): if True, the output of the bucket will be  ordered based on the mean
+                of the target per category, otherwise it is ordered by the frequency
         """
         assert isinstance(variables, list)
 
@@ -237,6 +239,7 @@ class OrdinalCategoricalBucketer(BaseBucketer):
         self.tol = tol
         self.max_n_categories = max_n_categories
         self.variables = variables
+        self.sort_by_target = sort_by_target
 
     def fit(self, X, y=None):
         """Init the class."""
@@ -250,7 +253,7 @@ class OrdinalCategoricalBucketer(BaseBucketer):
             normalized_counts = X[var].value_counts(normalize=True)
 
             # Determine the order of unique values
-            if y is not None:
+            if self.sort_by_target:
                 X["target"] = y
                 cats = X.groupby([var])["target"].mean().sort_values(ascending=True).index
                 normalized_counts = normalized_counts[cats]
