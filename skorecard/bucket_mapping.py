@@ -112,13 +112,6 @@ class BucketMapping:
         else:
             mapping = self.map
 
-        # Check if new values appear
-        # If yes, now always assign them to the last bucket in the list
-        unseen_values = set(x.values).difference(set(mapping.keys()))
-        if len(unseen_values)>0:
-            max_val = max(mapping.values())
-            for val in unseen_values:
-                mapping[val] = max_val
         x = x.map(mapping)
 
         if not self.missing_bucket:
