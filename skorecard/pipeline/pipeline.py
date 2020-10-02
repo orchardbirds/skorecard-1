@@ -1,15 +1,23 @@
-from skorecard.bucket_mapping import FeaturesBucketMapping
+import logging
+
 import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.pipeline import Pipeline
 from sklearn.utils.validation import check_is_fitted
 
+from skorecard.bucket_mapping import FeaturesBucketMapping
 
-class KeepPandas:
+
+class KeepPandas(BaseEstimator, TransformerMixin):
     """Keep pandas dataframe in a sklearn pipeline.
+   
+    This is a helper class to turn sklearn transformations back to pandas.
     
+    !!! warning
+        You should only use `KeepPandas()` when you know for sure `sklearn`
+        did not change the order of your columns.
+
     ```python
-    import pytest
     from skorecard.pipeline import KeepPandas
     from skorecard import datasets
     from skorecard.bucketers import EqualWidthBucketer
@@ -27,11 +35,54 @@ class KeepPandas:
     with pytest.raises(TypeError):
         bucket_pipeline.fit(X, y)
     
-    
+    # Let's wrap the output in KeepPandas,
+    # which reapplies the column names and transforms X back to a df
+    bucket_pipeline = make_pipeline(
+        KeepPandas(StandardScaler()),
+        EqualWidthBucketer(bins=5, variables=['LIMIT_BAL', 'BILL_AMT1']),
+    )
+    bucket_pipeline.fit(X, y)
     ```
     """
 
-    pass
+    def __init__(self, transformer, *args, **kwargs):
+        """Initialize."""
+        self.transformer = transformer
+
+        # Warn if there is a chance order of columns are changed
+        if isinstance(transformer, Pipeline):
+            for step in _get_all_steps(transformer):
+                self._check_for_column_transformer(step)
+        else:
+            self._check_for_column_transformer(transformer)
+
+    def __repr__(self):
+        """String representation."""
+        return self.transformer.__repr__()
+
+    def _check_for_column_transformer(self, obj):
+        msg = "sklearn.compose.ColumnTransformer can change the order of columns"
+        msg += ", be very careful when using with KeepPandas()"
+        if type(obj).__name__ == "ColumnTransformer":
+            logging.warning(msg)
+
+    def fit(self, X, y=None, *args, **kwargs):
+        """Fit estimator."""
+        assert isinstance(X, pd.DataFrame)
+        self.columns_ = list(X.columns)
+        self.transformer.fit(X, y, *args, **kwargs)
+        return self
+
+    def transform(self, X, *args, **kwargs):
+        """Transform X."""
+        check_is_fitted(self)
+        new_X = self.transformer.transform(X, *args, **kwargs)
+        return pd.DataFrame(new_X, columns=self.columns_)
+
+    def get_feature_names(self):
+        """Return estimator feature names."""
+        check_is_fitted(self)
+        return self.columns_
 
 
 def get_features_bucket_mapping(pipe: Pipeline) -> FeaturesBucketMapping:

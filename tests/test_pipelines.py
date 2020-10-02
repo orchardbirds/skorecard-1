@@ -7,10 +7,12 @@ import pandas as pd
 
 from sklearn.pipeline import make_pipeline
 from sklearn.exceptions import NotFittedError
+from sklearn.preprocessing import StandardScaler
+from sklearn.compose import ColumnTransformer
 
 from skorecard import datasets
 from skorecard.bucketers import EqualWidthBucketer, EqualFrequencyBucketer, OrdinalCategoricalBucketer
-from skorecard.pipeline import get_features_bucket_mapping
+from skorecard.pipeline import get_features_bucket_mapping, KeepPandas
 from skorecard.bucket_mapping import BucketMapping
 
 
@@ -18,6 +20,48 @@ from skorecard.bucket_mapping import BucketMapping
 def df():
     """Generate dataframe."""
     return datasets.load_uci_credit_card(as_frame=True)
+
+
+@pytest.mark.filterwarnings("ignore:sklearn.")
+def test_keep_pandas(df, caplog):
+    """Tests the KeepPandas() class."""
+    y = df["default"].values
+    X = df.drop(columns=["default"])
+
+    bucket_pipeline = make_pipeline(StandardScaler(), EqualWidthBucketer(bins=5, variables=["LIMIT_BAL", "BILL_AMT1"]),)
+    # Doesn't work, input should be a pandas dataframe.
+    with pytest.raises(TypeError):
+        bucket_pipeline.fit(X, y)
+
+    bucket_pipeline = make_pipeline(
+        KeepPandas(StandardScaler()), EqualWidthBucketer(bins=5, variables=["LIMIT_BAL", "BILL_AMT1"]),
+    )
+
+    with pytest.raises(NotFittedError):
+        bucket_pipeline.transform(X)
+
+    bucket_pipeline.fit(X, y)
+    assert type(bucket_pipeline.transform(X)) == pd.DataFrame
+
+    bucket_pipeline = ColumnTransformer(
+        [
+            ("categorical_preprocessing", OrdinalCategoricalBucketer(), ["EDUCATION", "MARRIAGE"]),
+            ("numerical_preprocessing", EqualWidthBucketer(bins=5), ["LIMIT_BAL", "BILL_AMT1"]),
+        ],
+        remainder="passthrough",
+    )
+
+    # Make sure warning is raised
+    caplog.clear()
+    KeepPandas(make_pipeline(bucket_pipeline))
+    assert "sklearn.compose.ColumnTransformer can change" in caplog.text
+
+    # Make sure warning is raised
+    caplog.clear()
+    KeepPandas(bucket_pipeline)
+    assert "sklearn.compose.ColumnTransformer can change" in caplog.text
+
+    assert type(KeepPandas(bucket_pipeline).fit_transform(X)) == pd.DataFrame
 
 
 def test_get_features_bucket_mapping(df):
