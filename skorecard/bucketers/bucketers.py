@@ -191,7 +191,7 @@ class OrdinalCategoricalBucketer(BaseBucketer):
     The OrdinalCategoricalEncoder() replaces categories by ordinal numbers.
 
     Example (0, 1, 2, 3, etc). The numbers are assigned ordered based on the mean of the target
-    per category, or assigned in order of frequency when y is not.
+    per category, or assigned in order of frequency, when sort_by_target is False.
 
     Ordered ordinal encoding: for the variable colour, if the mean of the target
     for blue, red and grey is 0.5, 0.8 and 0.1 respectively, blue is replaced by 2,
@@ -214,7 +214,7 @@ class OrdinalCategoricalBucketer(BaseBucketer):
     ```
     """
 
-    def __init__(self, tol=0.05, max_n_categories=None, variables=[]):
+    def __init__(self, tol=0.05, max_n_categories=None, variables=[], encoding_method="frequency"):
         """Init the class.
 
         Args:
@@ -224,6 +224,11 @@ class OrdinalCategoricalBucketer(BaseBucketer):
                 If None, all categories with frequency above the tolerance (tol) will be
                 considered.
             variables (list): The features to bucket. Uses all features if not defined.
+            encoding_method (string): encoding method.
+                - "frequency" (default): orders the buckets based on the frequency of observations in the bucket.
+                    The lower the number of the bucket the most frequent are the observations in that bucket.
+                - "ordered": orders the buckets based on the average class 1 rate in the bucket.
+                    The lower the number of the bucket the lower the fraction of class 1 in that bucket.
         """
         assert isinstance(variables, list)
 
@@ -237,6 +242,7 @@ class OrdinalCategoricalBucketer(BaseBucketer):
         self.tol = tol
         self.max_n_categories = max_n_categories
         self.variables = variables
+        self.encoding_method = encoding_method
 
     def fit(self, X, y=None):
         """Init the class."""
@@ -247,13 +253,23 @@ class OrdinalCategoricalBucketer(BaseBucketer):
 
         for var in self.variables:
 
-            normalized_counts = X[var].value_counts(normalize=True)
-
+            normalized_counts = None
             # Determine the order of unique values
-            if y is not None:
+            if self.encoding_method=='ordered':
+                if y is None:
+                    raise ValueError("To use encoding_method=='ordered', y cannot be None.")
                 X["target"] = y
+                normalized_counts = X[var].value_counts(normalize=True)
                 cats = X.groupby([var])["target"].mean().sort_values(ascending=True).index
                 normalized_counts = normalized_counts[cats]
+
+            elif self.encoding_method=='frequency':
+                normalized_counts = X[var].value_counts(normalize=True)
+            else:
+
+                raise NotImplementedError(f"encoding_method='{self.encoding_method}' not supported. "
+                                          f"Currently implemented options"
+                                          f" are 'ordered' or 'frequency' (see doc strings)")
 
             # Limit number of categories if set.
             normalized_counts = normalized_counts[: self.max_n_categories]

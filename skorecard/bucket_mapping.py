@@ -85,7 +85,7 @@ class BucketMapping:
         np.digitize(x, bins)
         ```
         """
-        bins = np.hstack(((-np.inf), self.map[1:], (np.inf)))
+        bins = np.hstack(((-np.inf), self.map[1:-1], (np.inf)))
         buckets = np.digitize(x, bins, right=self.right)
         return buckets.astype(int)
 
