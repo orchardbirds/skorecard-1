@@ -9,7 +9,9 @@ from sklearn.pipeline import make_pipeline
 from sklearn.exceptions import NotFittedError
 
 from skorecard import datasets
-from skorecard.bucketers import EqualWidthBucketer, EqualFrequencyBucketer
+from skorecard.bucketers import EqualWidthBucketer, EqualFrequencyBucketer, OrdinalCategoricalBucketer
+from skorecard.pipeline import get_features_bucket_mapping
+from skorecard.bucket_mapping import BucketMapping
 
 
 @pytest.fixture()
@@ -18,8 +20,27 @@ def df():
     return datasets.load_uci_credit_card(as_frame=True)
 
 
+def test_get_features_bucket_mapping(df):
+    """Test retrieving info from sklearn pipeline."""
+    y = df["default"].values
+    X = df.drop(columns=["default"])
+
+    nested_pipeline = make_pipeline(
+        make_pipeline(EqualWidthBucketer(bins=5, variables=["LIMIT_BAL", "BILL_AMT1"])),
+        OrdinalCategoricalBucketer(variables=["EDUCATION", "MARRIAGE"]),
+    )
+
+    with pytest.raises(NotFittedError):
+        get_features_bucket_mapping(nested_pipeline)
+
+    nested_pipeline.fit(X, y)
+    bm = get_features_bucket_mapping(nested_pipeline)
+    assert bm.get("EDUCATION") == BucketMapping(
+        feature_name="EDUCATION", type="categorical", map={1: 1, 3: 2, 2: 3}, missing_bucket=0, right=True
+    )
+
+
 # TODO: write tests with different kinds of sklearn pipelines
-# - nested
 # - ColumnTransformer and ColumnSelector usage
 
 
