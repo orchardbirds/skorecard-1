@@ -228,7 +228,7 @@ class OrdinalCategoricalBucketer(BaseBucketer):
                 - "frequency" (default): orders the buckets based on the frequency of observations in the bucket.
                     The lower the number of the bucket the most frequent are the observations in that bucket.
                 - "ordered": orders the buckets based on the average class 1 rate in the bucket.
-                    The lower the number of the bucket the higher the presence of class 1 in that bucket.
+                    The lower the number of the bucket the lower the fraction of class 1 in that bucket.
         """
         assert isinstance(variables, list)
 
@@ -267,8 +267,9 @@ class OrdinalCategoricalBucketer(BaseBucketer):
                 normalized_counts = X[var].value_counts(normalize=True)
             else:
 
-                raise NotImplementedError(f"{self.encoding_method} not supported. Currently implemented options"
-                                          f"are 'ordered or frequency (see doc strings)")
+                raise NotImplementedError(f"encoding_method='{self.encoding_method}' not supported. "
+                                          f"Currently implemented options"
+                                          f" are 'ordered' or 'frequency' (see doc strings)")
 
             # Limit number of categories if set.
             normalized_counts = normalized_counts[: self.max_n_categories]
