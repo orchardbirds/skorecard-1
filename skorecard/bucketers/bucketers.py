@@ -256,6 +256,8 @@ class OrdinalCategoricalBucketer(BaseBucketer):
             normalized_counts = None
             # Determine the order of unique values
             if self.encoding_method=='ordered':
+                if y is None:
+                    raise ValueError("To use encoding_method=='ordered', y cannot be None.")
                 X["target"] = y
                 normalized_counts = X[var].value_counts(normalize=True)
                 cats = X.groupby([var])["target"].mean().sort_values(ascending=True).index
