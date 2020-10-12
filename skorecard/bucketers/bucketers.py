@@ -13,6 +13,10 @@ from skorecard.bucket_mapping import BucketMapping, FeaturesBucketMapping
 
 class EqualWidthBucketer(BaseBucketer):
     """Bucket transformer that creates equally spaced bins using numpy.histogram function.
+   
+    This bucketer:
+    - is unsupervised: it does not consider the target value when fitting the buckets.
+    - ignores missing values and passes them through.
 
     ```python
     from skorecard import datasets
@@ -53,6 +57,10 @@ class EqualWidthBucketer(BaseBucketer):
 class AgglomerativeClusteringBucketer(BaseBucketer):
     """Bucket transformer that creates bins using sklearn.AgglomerativeClustering.
 
+    This bucketer:
+    - is unsupervised: it does not consider the target value when fitting the buckets.
+    - ignores missing values and passes them through.
+    
     ```python
     from skorecard import datasets
     from skorecard.bucketers import AgglomerativeClusteringBucketer
@@ -92,6 +100,10 @@ class AgglomerativeClusteringBucketer(BaseBucketer):
 class EqualFrequencyBucketer(BaseBucketer):
     """Bucket transformer that creates bins with equal number of elements.
 
+    This bucketer:
+    - is unsupervised: it does not consider the target value when fitting the buckets.
+    - ignores missing values and passes them through.
+    
     ```python
     from skorecard import datasets
     from skorecard.bucketers import EqualFrequencyBucketer
@@ -130,6 +142,10 @@ class EqualFrequencyBucketer(BaseBucketer):
 
 class DecisionTreeBucketer(BaseBucketer):
     """Bucket transformer that creates bins by training a decision tree.
+
+    This bucketer:
+    - is supervised: it uses the target value when fitting the buckets.
+    - ignores missing values and passes them through.
 
     ```python
     from skorecard import datasets
@@ -198,9 +214,14 @@ class OrdinalCategoricalBucketer(BaseBucketer):
     red by 3 and grey by 1. If new data contains unknown labels (f.e. yellow),
     they will be replaced by 0.
 
-    Credits: Code & ideas adapted from
-    - feature_engine.categorical_encoders.OrdinalCategoricalEncoder
-    - feature_engine.categorical_encoders.RareLabelCategoricalEncoder
+    This bucketer:
+    
+    - is unsupervised when `encoding_method=='frequency'`: it does not consider
+        the target value when fitting the buckets.
+    - is supervised when `encoding_method=='ordered'`: it uses
+        the target value when fitting the buckets.
+    - ignores missing values and passes them through.
+    - sets unknown new categories to the category 'other'
 
     ```python
     from skorecard import datasets
@@ -212,6 +233,12 @@ class OrdinalCategoricalBucketer(BaseBucketer):
     bucketer = OrdinalCategoricalBucketer(max_n_categories=2, variables=['EDUCATION'])
     bucketer.fit_transform(X, y)
     ```
+    
+    Credits: Code & ideas adapted from:
+    
+    - feature_engine.categorical_encoders.OrdinalCategoricalEncoder
+    - feature_engine.categorical_encoders.RareLabelCategoricalEncoder
+    
     """
 
     def __init__(self, tol=0.05, max_n_categories=None, variables=[], encoding_method="frequency"):
@@ -255,7 +282,7 @@ class OrdinalCategoricalBucketer(BaseBucketer):
 
             normalized_counts = None
             # Determine the order of unique values
-            if self.encoding_method=='ordered':
+            if self.encoding_method == "ordered":
                 if y is None:
                     raise ValueError("To use encoding_method=='ordered', y cannot be None.")
                 X["target"] = y
@@ -263,13 +290,15 @@ class OrdinalCategoricalBucketer(BaseBucketer):
                 cats = X.groupby([var])["target"].mean().sort_values(ascending=True).index
                 normalized_counts = normalized_counts[cats]
 
-            elif self.encoding_method=='frequency':
+            elif self.encoding_method == "frequency":
                 normalized_counts = X[var].value_counts(normalize=True)
             else:
 
-                raise NotImplementedError(f"encoding_method='{self.encoding_method}' not supported. "
-                                          f"Currently implemented options"
-                                          f" are 'ordered' or 'frequency' (see doc strings)")
+                raise NotImplementedError(
+                    f"encoding_method='{self.encoding_method}' not supported. "
+                    f"Currently implemented options"
+                    f" are 'ordered' or 'frequency' (see doc strings)"
+                )
 
             # Limit number of categories if set.
             normalized_counts = normalized_counts[: self.max_n_categories]
@@ -281,9 +310,7 @@ class OrdinalCategoricalBucketer(BaseBucketer):
             # Note we start at 1, to be able to encode missings as 0.
             mapping = dict(zip(normalized_counts.index, range(1, len(normalized_counts) + 1)))
 
-            self.features_bucket_mapping_[var] = BucketMapping(
-                feature_name=var, type="categorical", map=mapping, missing_bucket=0
-            )
+            self.features_bucket_mapping_[var] = BucketMapping(feature_name=var, type="categorical", map=mapping)
 
         return self
 
@@ -294,6 +321,10 @@ class OrdinalCategoricalBucketer(BaseBucketer):
 
 class UserInputBucketer(BaseBucketer):
     """Bucket transformer implementing user-defined boundaries.
+
+    This bucketer:
+    - is not fitted, as it depends on user defined input
+    - ignores missing values and passes them through.
 
     ```python
     from skorecard import datasets
