@@ -28,6 +28,7 @@ CLASSES_TO_TEST = [
     skorecard.linear_model.LogisticRegression,
     skorecard.pipeline.ColumnSelector,
     skorecard.pipeline.KeepPandas,
+    skorecard.bucketers.OptimalBucketer,
     skorecard.bucketers.EqualWidthBucketer,
     skorecard.bucketers.AgglomerativeClusteringBucketer,
     skorecard.bucketers.EqualFrequencyBucketer,

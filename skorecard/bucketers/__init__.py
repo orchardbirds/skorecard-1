@@ -2,6 +2,7 @@
 
 
 from .bucketers import (
+    OptimalBucketer,
     EqualWidthBucketer,
     EqualFrequencyBucketer,
     AgglomerativeClusteringBucketer,
@@ -12,6 +13,7 @@ from .bucketers import (
 )
 
 __all__ = [
+    "OptimalBucketer",
     "EqualWidthBucketer",
     "AgglomerativeClusteringBucketer",
     "EqualFrequencyBucketer",

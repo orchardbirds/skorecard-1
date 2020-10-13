@@ -9,7 +9,7 @@ base_packages = [
     "pandas>=1.1.2",
     "scikit-learn>=0.23.2",
     "probatus>=1.1.1",
-    "dataclasses>=0.7"
+    "dataclasses>=0.7",
 ]
 
 dashboard_dep = [
@@ -36,9 +36,9 @@ docs_dep = [
     "mkdocs-git-revision-date-localized-plugin>=0.7.2",
 ]
 
-utils_dep = [
-    "dabl>=0.1.8",
-]
+# Packages that are not a set together
+# We recommend users to just install that package when it is used
+utils_dep = ["dabl>=0.1.8", "optbinning>=0.8.0"]
 
 setup(
     name="skorecard",
