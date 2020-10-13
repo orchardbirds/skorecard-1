@@ -45,7 +45,7 @@ def test_correct_output(df):
     cbt = OrdinalCategoricalBucketer(tol=0.5, variables=["EDUCATION"])
     cbt.fit(X, y)
     X_trans = cbt.transform(X)
-    assert X_trans["EDUCATION"].unique() == np.array(["other"])
+    assert X_trans["EDUCATION"].unique() == np.array([-1])
 
 
 def test_mapping_dict(df):

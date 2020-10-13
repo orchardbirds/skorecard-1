@@ -104,7 +104,7 @@ class BucketMapping:
             x = pd.Series(x)
 
         mapping = MissingDict(self.map)
-        mapping.set_missing_value("other")
+        mapping.set_missing_value(-1)  # This was 'other' but you cannot mix integers and strings
 
         new = x.map(mapping)
 

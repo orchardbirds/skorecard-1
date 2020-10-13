@@ -82,6 +82,7 @@ def get_features_bucket_mapping(pipe: Pipeline) -> FeaturesBucketMapping:
     from skorecard import datasets
     from skorecard.bucketers import EqualWidthBucketer, OrdinalCategoricalBucketer
     from skorecard.pipeline import get_features_bucket_mapping
+
     from sklearn.pipeline import Pipeline, make_pipeline
     from sklearn.preprocessing import OneHotEncoder
     from sklearn.metrics import roc_auc_score

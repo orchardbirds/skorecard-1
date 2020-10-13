@@ -54,11 +54,7 @@ def test_optimal_binning_categorical(df):
     assert len(X_trans["EDUCATION"].unique()) == 4
 
     assert obt.features_bucket_mapping_.get("EDUCATION") == BucketMapping(
-        feature_name="EDUCATION",
-        type="categorical",
-        map={1: 0, 3: 1, 2: 2, 5: 3, 4: 3, 6: 3, 0: 3},
-        missing_bucket=None,
-        right=False,
+        feature_name="EDUCATION", type="categorical", map={1: 0, 3: 1, 2: 2, 5: 3, 4: 3, 6: 3, 0: 3}, right=False,
     )
 
     optb = OptimalBinning(
