@@ -1,20 +1,4 @@
 import pandas as pd
-import seaborn as sns
-
-
-def bar_plot(df):
-    """Creates a barplot showing the percentage per bucket on the left-axis.
-
-    The default rate per bucket is plotted and measured using the right-axis.
-    This function is intended to be used after the create_report function below.
-
-    Args:
-        df (pandas DataFrame): Reporting df
-
-    """
-    ax1 = sns.barplot(x="BUCKET", y="PERCENTAGE_IN_BUCKET", data=df)
-    ax2 = ax1.twinx()
-    sns.lineplot(data=df["DEFAULT_RATE"], marker="o", sort=False, ax=ax2)
 
 
 def create_report(X, y, column, bucketer):
@@ -63,7 +47,5 @@ def create_report(X, y, column, bucketer):
 
     # Merge aggregations
     df = df.merge(tmp, how="left", on="BUCKET")
-
-    bar_plot(df)
 
     return df
