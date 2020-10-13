@@ -255,7 +255,7 @@ class OrdinalCategoricalBucketer(BaseBucketer):
 
             normalized_counts = None
             # Determine the order of unique values
-            if self.encoding_method=='ordered':
+            if self.encoding_method == "ordered":
                 if y is None:
                     raise ValueError("To use encoding_method=='ordered', y cannot be None.")
                 X["target"] = y
@@ -263,13 +263,15 @@ class OrdinalCategoricalBucketer(BaseBucketer):
                 cats = X.groupby([var])["target"].mean().sort_values(ascending=True).index
                 normalized_counts = normalized_counts[cats]
 
-            elif self.encoding_method=='frequency':
+            elif self.encoding_method == "frequency":
                 normalized_counts = X[var].value_counts(normalize=True)
             else:
 
-                raise NotImplementedError(f"encoding_method='{self.encoding_method}' not supported. "
-                                          f"Currently implemented options"
-                                          f" are 'ordered' or 'frequency' (see doc strings)")
+                raise NotImplementedError(
+                    f"encoding_method='{self.encoding_method}' not supported. "
+                    f"Currently implemented options"
+                    f" are 'ordered' or 'frequency' (see doc strings)"
+                )
 
             # Limit number of categories if set.
             normalized_counts = normalized_counts[: self.max_n_categories]
