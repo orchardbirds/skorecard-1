@@ -45,7 +45,7 @@ class BaseBucketer(BaseEstimator, TransformerMixin):
         for feature in self.variables:
             self.bucketer.fit(X[feature].values, y)
             self.features_bucket_mapping_[feature] = BucketMapping(
-                feature_name=feature, type="numerical", map=self.bucketer.boundaries, missing_bucket=None,
+                feature_name=feature, type="numerical", map=self.bucketer.boundaries
             )
 
         return self
