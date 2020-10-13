@@ -64,9 +64,9 @@ class OptimalBucketer(BaseBucketer):
                 solver="cp",
                 monotonic_trend="auto_asc_desc",
                 min_prebin_size=0.02,
+                max_n_prebins=100,
                 min_bin_size=0.05,
                 max_n_bins=10,
-                max_n_prebins=100,
                 cat_cutoff=0.05,
                 time_limit=25,
                 **kwargs,
@@ -96,6 +96,9 @@ class OptimalBucketer(BaseBucketer):
                         splits[value] = bucket_nr
             else:
                 splits = binner.splits
+                # add infinite edges. for details see
+                # See skorecard.bucket_mapping.BucketMapping.transform()
+                splits = np.hstack(((-np.inf), splits, (np.inf)))
 
             # Note that optbinning transform uses right=False
             # https://github.com/guillermo-navas-palencia/optbinning/blob/396b9bed97581094167c9eb4744c2fd1fb5c7408/optbinning/binning/transformations.py#L126-L132

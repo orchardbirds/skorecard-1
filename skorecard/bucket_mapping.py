@@ -69,6 +69,7 @@ class BucketMapping:
 
         Note:
         - We use infinite edges to ensure transformation also works on data outside seen range.
+        - resulting bins are 1-indexed (because nothing is lower than -np.inf)
 
         ```python
         import numpy as np
@@ -78,6 +79,12 @@ class BucketMapping:
         np.where(np.isnan(x), np.nan, new)
         ```
         """
+        # We overwrite the first and the last values of the map
+        # because we used pd.qcut and np.histogram to 'fit' the boundaries
+        # and those methods return the min and max as well.
+        # if a bucketer does not return a min/max explicitly,
+        # you should first manually add -inf and +inf to the map
+        # otherwise, this transform will screw up.
         bins = np.hstack(((-np.inf), self.map[1:-1], (np.inf)))
         buckets = np.digitize(x, bins, right=self.right)
         buckets = buckets.astype(int)
