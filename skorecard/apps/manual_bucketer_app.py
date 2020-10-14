@@ -17,22 +17,24 @@ X, y = datasets.load_uci_credit_card(return_X_y=True)
 ```
 """
 
-import copy
 import pandas as pd
 from sklearn.pipeline import Pipeline
 
 from skorecard.utils.exceptions import NotInstalledError
+from skorecard.reporting import plot_bins
 
 # Dash + dependencies
 try:
     import dash_core_components as dcc
     import dash_html_components as html
     from dash.dependencies import Input, Output
+    import dash_table
 except ModuleNotFoundError:
     dcc = NotInstalledError("dash_core_components", "dashboard")
     html = NotInstalledError("dash_html_components", "dashboard")
     Input = NotInstalledError("dash", "dashboard")
     Output = NotInstalledError("dash", "dashboard")
+    dash_table = NotInstalledError("dash_table", "dashboard")
 
 # JupyterDash
 try:
@@ -46,10 +48,10 @@ try:
 except ModuleNotFoundError:
     dbc = NotInstalledError("dash_bootstrap_components", "dashboard")
 
-try:
-    import plotly.figure_factory as ff
-except ModuleNotFoundError:
-    ff = NotInstalledError("plotly", "reporting")
+# try:
+#     import plotly.figure_factory as ff
+# except ModuleNotFoundError:
+#     ff = NotInstalledError("plotly", "reporting")
 
 
 # TODO make this internal to the package
@@ -63,7 +65,7 @@ class ManualBucketerApp(object):
     Class that contains a Dash app
     """
 
-    def __init__(self, pipeline: Pipeline, X_prebucketed, X: pd.DataFrame, y, index_bucket_pipeline: int):
+    def __init__(self, pipeline: Pipeline, X: pd.DataFrame, X_prebucketed: pd.DataFrame, y, index_bucket_pipeline: int):
         """Create new dash app.
 
         Args:
@@ -76,12 +78,28 @@ class ManualBucketerApp(object):
         """
         assert isinstance(X, pd.DataFrame), "X must be pd.DataFrame"
 
+        self.pipeline = pipeline
         self.X = X
         self.y = y
         self.X_prebucketed = X_prebucketed
+        self.index_bucket_pipeline = index_bucket_pipeline
 
-        app = JupyterDash(__name__, external_stylesheets=external_stylesheets)
+        self._features_bucket_mapping = self.pipeline[index_bucket_pipeline].pipeline.features_bucket_mapping_
+
+        app = JupyterDash(__name__)  # , external_stylesheets=external_stylesheets)
         self.app = app
+
+        def get_prebucket_table(col):
+            vals = pd.DataFrame(self.X_prebucketed[col].value_counts()).sort_index()
+            vals["bucket"] = vals.index
+            vals["new_bucket"] = vals.index
+            return vals
+
+        def get_bucket_table(col):
+            df = self.pipeline.transform(self.X)
+            vals = pd.DataFrame(df[col].value_counts()).sort_index()
+            vals["bucket"] = vals.index
+            return vals
 
         # Add the layout
         app.layout = html.Div(
@@ -101,70 +119,75 @@ class ManualBucketerApp(object):
                 html.Div(
                     [
                         dcc.Graph(id="distr-graph"),
-                        dcc.RangeSlider(
-                            id="range-slider",
-                            allowCross=True,
-                            tooltip={"always_visible": True, "placement": "topLeft"},
+                        # dcc.RangeSlider(
+                        #     id="range-slider",
+                        #     allowCross=True,
+                        #     tooltip={"always_visible": True, "placement": "topLeft"},
+                        # ),
+                        html.P(children="pre-bucketing table"),
+                        dash_table.DataTable(
+                            id="prebucket_table",
+                            columns=[{"name": i, "id": i} for i in get_prebucket_table(self.X_prebucketed.columns[0])],
+                            data=get_prebucket_table(self.X_prebucketed.columns[0]).to_dict("records"),
+                            editable=True,
+                        ),
+                        html.P(children="bucketing table"),
+                        dash_table.DataTable(
+                            id="bucket_table",
+                            columns=[{"name": i, "id": i} for i in get_bucket_table(self.X.columns[0])],
+                            data=get_bucket_table(self.X.columns[0]).to_dict("records"),
                         ),
                     ]
                 ),
             ]
         )
 
+        # @app.callback(
+        #     [
+        #         Output("range-slider", "min"),
+        #         Output("range-slider", "max"),
+        #         Output("range-slider", "value"),
+        #         Output("range-slider", "marks"),
+        #     ],
+        #     [Input("input_column", "value")],
+        # )
+        # def change_col_update_slider(col):
+        #     col_min = round(self.X_prebucketed[col].min(), 2)
+        #     col_max = round(self.X_prebucketed[col].max(), 2)
+
+        #     bucket_mapping = self._features_bucket_mapping.get(col)
+        #     mark_edges = [round(x, 2) for x in bucket_mapping.map]
+
+        #     marks = {}
+        #     for b in mark_edges:
+        #         marks[b] = {"label": str(b)}
+
+        #     return col_min, col_max, mark_edges, marks
+
+        # @app.callback(
+        #     Output("output-container-range-slider", "children"),
+        #     [Input("range-slider", "value"), Input("input_column", "value")],
+        # )
+        # def update_bucket_mapping(value, col):
+        #     return f"Boundaries for `{col}`: `{value}`"
+
         @app.callback(
-            [
-                Output("range-slider", "min"),
-                Output("range-slider", "max"),
-                Output("range-slider", "value"),
-                Output("range-slider", "marks"),
-            ],
-            [Input("input_column", "value")],
+            Output("distr-graph", "figure"), [Input("input_column", "value")],
         )
-        def change_col_update_slider(col):
-            col_min = round(self.X_prebucketed[col].min(), 2)
-            col_max = round(self.X_prebucketed[col].max(), 2)
+        def plot_dist(col):
 
-            bucket_mapping = self._features_bucket_mapping.get(col)
-            mark_edges = [round(x, 2) for x in bucket_mapping.map]
-
-            marks = {}
-            for b in mark_edges:
-                marks[b] = {"label": str(b)}
-
-            return col_min, col_max, mark_edges, marks
-
-        @app.callback(
-            Output("output-container-range-slider", "children"),
-            [Input("range-slider", "value"), Input("input_column", "value")],
-        )
-        def update_bucket_mapping(value, col):
-            return f"Boundaries for `{col}`: `{value}`"
-
-        @app.callback(
-            Output("distr-graph", "figure"), [Input("input_column", "value"), Input("range-slider", "value")],
-        )
-        def plot_dist(col, boundaries):
-
-            # Determine a nice bin size for histogram
-            def get_bin_size(df, col, bins=100):
-                num_range = df[col].max() - df[col].min()
-                return round(num_range / bins)
-
-            bin_size = get_bin_size(self.X, col)
-
-            fig = ff.create_distplot([self.X[col]], [col], bin_size=bin_size)
-
+            fig = plot_bins(self.X_prebucketed, col)
             fig.update_layout(transition_duration=50)
             fig.update_layout(showlegend=False)
             fig.update_layout(xaxis_title=col)
-            fig.update_yaxes(showticklabels=False)
+            # fig.update_yaxes(showticklabels=False)
 
             # Add boundary cuts as vertical lines
-            if boundaries:
-                shapes = []
-                for b in boundaries:
-                    shapes.append(dict(type="line", yref="paper", y0=0, y1=1, xref="x", x0=b, x1=b))
-                fig.update_layout(shapes=shapes)
+            # if boundaries:
+            #     shapes = []
+            #     for b in boundaries:
+            #         shapes.append(dict(type="line", yref="paper", y0=0, y1=1, xref="x", x0=b, x1=b))
+            #     fig.update_layout(shapes=shapes)
 
             return fig
 
@@ -183,13 +206,3 @@ class ManualBucketerApp(object):
         [More info](https://community.plotly.com/t/how-to-shutdown-a-jupyterdash-app-in-external-mode/41292/3)
         """
         self.app._terminate_server_for_port("localhost", 8050)
-
-    @property
-    def features_bucket_mapping(self):
-        """
-        Retrieve updated FeaturesBucketMapping from the app.
-
-        Returns:
-            dict: Boundaries per feature
-        """
-        return copy.deepcopy(self._features_bucket_mapping)
