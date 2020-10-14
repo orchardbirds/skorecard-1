@@ -48,15 +48,20 @@ class OptimalBucketer(BaseBucketer):
     ```
     """
 
-    def __init__(self, variables=[], variables_type="numerical", **kwargs) -> None:
+    def __init__(self, variables=[], variables_type="numerical", max_n_bins=10, min_bin_size=0.05, **kwargs) -> None:
         """Initialize Optimal Bucketer.
         
         Args:
             variables: List of variables to bucket.
             variables_type: Type of the variables
+            min_bin_size: Minimum fraction of observations in a bucket.
+            max_n_bins: Maximum numbers of bins to return.
+            kwargs: Other parameters passed to optbinning.OptimalBinning
         """
         self.variables = variables
         self.variables_type = variables_type
+        self.max_n_bins = max_n_bins
+        self.min_bin_size = min_bin_size
         assert variables_type in ["numerical", "categorical"]
 
         self.binners = {
@@ -67,8 +72,8 @@ class OptimalBucketer(BaseBucketer):
                 monotonic_trend="auto_asc_desc",
                 min_prebin_size=0.02,
                 max_n_prebins=100,
-                min_bin_size=0.05,
-                max_n_bins=10,
+                min_bin_size=self.min_bin_size,
+                max_n_bins=self.max_n_bins,
                 cat_cutoff=0.05,
                 time_limit=25,
                 **kwargs,
@@ -267,21 +272,26 @@ class DecisionTreeBucketer(BaseBucketer):
     ```
     """
 
-    def __init__(self, variables=[], max_bins=100, min_bin_size=0.05, **kwargs) -> None:
+    def __init__(self, variables=[], max_n_bins=100, min_bin_size=0.05, **kwargs) -> None:
         """Init the class.
 
         Args:
             variables (list): The features to bucket. Uses all features if not defined.
             min_bin_size: Minimum fraction of observations in a bucket. Passed directly to min_samples_leaf.
-            max_bins: Maximum numbers of bins to return. Passed directly to max_leaf_nodes.
+            max_n_bins: Maximum numbers of bins to return. Passed directly to max_leaf_nodes.
+            kwargs: Other parameters passed to DecisionTreeClassifier
         """
         assert isinstance(variables, list)
 
         self.variables = variables
         self.kwargs = kwargs
+        self.max_n_bins = max_n_bins
+        self.min_bin_size = min_bin_size
 
         self.binners = {
-            var: DecisionTreeClassifier(max_leaf_nodes=max_bins, min_samples_leaf=min_bin_size, **self.kwargs)
+            var: DecisionTreeClassifier(
+                max_leaf_nodes=self.max_n_bins, min_samples_leaf=self.min_bin_size, **self.kwargs
+            )
             for var in self.variables
         }
 
