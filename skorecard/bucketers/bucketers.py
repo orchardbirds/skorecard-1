@@ -112,6 +112,10 @@ class OptimalBucketer(BaseBucketer):
 
 class EqualWidthBucketer(BaseBucketer):
     """Bucket transformer that creates equally spaced bins using numpy.histogram function.
+   
+    This bucketer:
+    - is unsupervised: it does not consider the target value when fitting the buckets.
+    - ignores missing values and passes them through.
 
     ```python
     from skorecard import datasets
@@ -152,6 +156,10 @@ class EqualWidthBucketer(BaseBucketer):
 class AgglomerativeClusteringBucketer(BaseBucketer):
     """Bucket transformer that creates bins using sklearn.AgglomerativeClustering.
 
+    This bucketer:
+    - is unsupervised: it does not consider the target value when fitting the buckets.
+    - ignores missing values and passes them through.
+    
     ```python
     from skorecard import datasets
     from skorecard.bucketers import AgglomerativeClusteringBucketer
@@ -191,6 +199,10 @@ class AgglomerativeClusteringBucketer(BaseBucketer):
 class EqualFrequencyBucketer(BaseBucketer):
     """Bucket transformer that creates bins with equal number of elements.
 
+    This bucketer:
+    - is unsupervised: it does not consider the target value when fitting the buckets.
+    - ignores missing values and passes them through.
+    
     ```python
     from skorecard import datasets
     from skorecard.bucketers import EqualFrequencyBucketer
@@ -229,6 +241,10 @@ class EqualFrequencyBucketer(BaseBucketer):
 
 class DecisionTreeBucketer(BaseBucketer):
     """Bucket transformer that creates bins by training a decision tree.
+
+    This bucketer:
+    - is supervised: it uses the target value when fitting the buckets.
+    - ignores missing values and passes them through.
 
     ```python
     from skorecard import datasets
@@ -297,9 +313,14 @@ class OrdinalCategoricalBucketer(BaseBucketer):
     red by 3 and grey by 1. If new data contains unknown labels (f.e. yellow),
     they will be replaced by 0.
 
-    Credits: Code & ideas adapted from
-    - feature_engine.categorical_encoders.OrdinalCategoricalEncoder
-    - feature_engine.categorical_encoders.RareLabelCategoricalEncoder
+    This bucketer:
+    
+    - is unsupervised when `encoding_method=='frequency'`: it does not consider
+        the target value when fitting the buckets.
+    - is supervised when `encoding_method=='ordered'`: it uses
+        the target value when fitting the buckets.
+    - ignores missing values and passes them through.
+    - sets unknown new categories to the category 'other'
 
     ```python
     from skorecard import datasets
@@ -311,6 +332,12 @@ class OrdinalCategoricalBucketer(BaseBucketer):
     bucketer = OrdinalCategoricalBucketer(max_n_categories=2, variables=['EDUCATION'])
     bucketer.fit_transform(X, y)
     ```
+    
+    Credits: Code & ideas adapted from:
+    
+    - feature_engine.categorical_encoders.OrdinalCategoricalEncoder
+    - feature_engine.categorical_encoders.RareLabelCategoricalEncoder
+    
     """
 
     def __init__(self, tol=0.05, max_n_categories=None, variables=[], encoding_method="frequency"):
@@ -382,9 +409,7 @@ class OrdinalCategoricalBucketer(BaseBucketer):
             # Note we start at 1, to be able to encode missings as 0.
             mapping = dict(zip(normalized_counts.index, range(1, len(normalized_counts) + 1)))
 
-            self.features_bucket_mapping_[var] = BucketMapping(
-                feature_name=var, type="categorical", map=mapping, missing_bucket=0
-            )
+            self.features_bucket_mapping_[var] = BucketMapping(feature_name=var, type="categorical", map=mapping)
 
         return self
 
@@ -395,6 +420,10 @@ class OrdinalCategoricalBucketer(BaseBucketer):
 
 class UserInputBucketer(BaseBucketer):
     """Bucket transformer implementing user-defined boundaries.
+
+    This bucketer:
+    - is not fitted, as it depends on user defined input
+    - ignores missing values and passes them through.
 
     ```python
     from skorecard import datasets
