@@ -4,12 +4,14 @@ from probatus.binning import (
     SimpleBucketer,
     AgglomerativeBucketer,
     QuantileBucketer,
-    TreeBucketer,
 )
 
 from .base_bucketer import BaseBucketer
 from skorecard.bucket_mapping import BucketMapping, FeaturesBucketMapping
 from skorecard.utils import NotInstalledError
+
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.tree import _tree
 
 try:
     from optbinning import OptimalBinning
@@ -249,33 +251,62 @@ class DecisionTreeBucketer(BaseBucketer):
     - is supervised: it uses the target value when fitting the buckets.
     - ignores missing values and passes them through.
 
+    It uses
+    [sklearn.tree.DecisionTreeClassifier](https://scikit-learn.org/stable/modules/generated/sklearn.tree.DecisionTreeClassifier.html)
+    to find the splits.
+
     ```python
     from skorecard import datasets
     from skorecard.bucketers import DecisionTreeBucketer
-
     X, y = datasets.load_uci_credit_card(return_X_y=True)
+
     dt_bucketer = DecisionTreeBucketer(variables=['LIMIT_BAL'])
-    dt_bucketer.fit_transform(X, y)
+    dt_bucketer.fit(X, y)
+    
     dt_bucketer.fit_transform(X, y)['LIMIT_BAL'].value_counts()
     ```
     """
 
-    def __init__(self, variables=[], **kwargs):
+    def __init__(self, variables=[], max_bins=100, min_bin_size=0.05, **kwargs) -> None:
         """Init the class.
 
         Args:
             variables (list): The features to bucket. Uses all features if not defined.
+            min_bin_size: Minimum fraction of observations in a bucket. Passed directly to min_samples_leaf.
+            max_bins: Maximum numbers of bins to return. Passed directly to max_leaf_nodes.
         """
         assert isinstance(variables, list)
 
         self.variables = variables
         self.kwargs = kwargs
 
-        self.bucketer = TreeBucketer(**self.kwargs)
+        self.binners = {
+            var: DecisionTreeClassifier(max_leaf_nodes=max_bins, min_samples_leaf=min_bin_size, **self.kwargs)
+            for var in self.variables
+        }
 
     def fit(self, X, y):
         """Fit X,y."""
-        super().fit(X, y)
+        X = self._is_dataframe(X)
+        self.variables = self._check_variables(X, self.variables)
+
+        self.features_bucket_mapping_ = {}
+
+        for feature in self.variables:
+            binner = self.binners.get(feature)
+            binner.fit(X[feature].values.reshape(-1, 1), y)
+
+            # Extract fitted boundaries
+            splits = np.unique(binner.tree_.threshold[binner.tree_.feature != _tree.TREE_UNDEFINED])
+
+            # add infinite edges. for details see
+            # See skorecard.bucket_mapping.BucketMapping.transform()
+            splits = np.hstack(((-np.inf), splits, (np.inf)))
+
+            self.features_bucket_mapping_[feature] = BucketMapping(
+                feature_name=feature, type="numerical", map=splits, right=False
+            )
+
         return self
 
     def transform(self, X):
@@ -291,7 +322,8 @@ class DecisionTreeBucketer(BaseBucketer):
         Returns:
             (dict): Decision Tree Parameters
         """
-        return self.bucketer.tree.get_params(deep=deep)
+        raise NotImplementedError("not implemented yet. we have a tree per feature")
+        # return self.bucketer.tree.get_params(deep=deep)
 
     def set_params(self, **params):
         """Set the parameteres for the decision tree.
@@ -300,8 +332,9 @@ class DecisionTreeBucketer(BaseBucketer):
             **params: (dict) parameters for the decision tree
 
         """
-        self.bucketer.tree.set_params(**params)
-        return self
+        raise NotImplementedError("not implemented yet. we have a tree per feature")
+        # self.bucketer.tree.set_params(**params)
+        # return self
 
 
 class OrdinalCategoricalBucketer(BaseBucketer):
