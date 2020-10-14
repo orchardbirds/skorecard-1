@@ -11,7 +11,7 @@ from skorecard.apps import ManualBucketerApp
 
 X, y = datasets.load_uci_credit_card(return_X_y=True)
 
-app = ManualBucketerApp(X)
+#app = ManualBucketerApp(X)
 # app.run_server(mode="external")
 # app.stop_server()
 ```
@@ -19,6 +19,7 @@ app = ManualBucketerApp(X)
 
 import copy
 import pandas as pd
+from sklearn.pipeline import Pipeline
 
 from skorecard.utils.exceptions import NotInstalledError
 
@@ -62,7 +63,7 @@ class ManualBucketerApp(object):
     Class that contains a Dash app
     """
 
-    def __init__(self, X, y=None, features_bucket_mapping=None):
+    def __init__(self, pipeline: Pipeline, X_prebucketed, X: pd.DataFrame, y, index_bucket_pipeline: int):
         """Create new dash app.
 
         Args:
@@ -77,16 +78,7 @@ class ManualBucketerApp(object):
 
         self.X = X
         self.y = y
-
-        if features_bucket_mapping is None:
-            # Create a basic feature mapping to get started with binning
-            # self._features_bucket_mapping = create_bucket_feature_mapping(self.X)
-            # TODO
-            pass
-        else:
-            self._features_bucket_mapping = copy.deepcopy(features_bucket_mapping)
-
-        #         self._features_bucket_mapping[col] = bucket_mapping
+        self.X_prebucketed = X_prebucketed
 
         app = JupyterDash(__name__, external_stylesheets=external_stylesheets)
         self.app = app
@@ -99,7 +91,7 @@ class ManualBucketerApp(object):
                     [
                         dcc.Dropdown(
                             id="input_column",
-                            options=[{"label": o, "value": o} for o in self.X.columns],
+                            options=[{"label": o, "value": o} for o in self.X_prebucketed.columns],
                             value=self.X.columns[0],
                         ),
                     ],
@@ -129,8 +121,8 @@ class ManualBucketerApp(object):
             [Input("input_column", "value")],
         )
         def change_col_update_slider(col):
-            col_min = round(self.X[col].min(), 2)
-            col_max = round(self.X[col].max(), 2)
+            col_min = round(self.X_prebucketed[col].min(), 2)
+            col_max = round(self.X_prebucketed[col].max(), 2)
 
             bucket_mapping = self._features_bucket_mapping.get(col)
             mark_edges = [round(x, 2) for x in bucket_mapping.map]

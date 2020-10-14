@@ -4,12 +4,14 @@ from probatus.binning import (
     SimpleBucketer,
     AgglomerativeBucketer,
     QuantileBucketer,
-    TreeBucketer,
 )
 
 from .base_bucketer import BaseBucketer
 from skorecard.bucket_mapping import BucketMapping, FeaturesBucketMapping
 from skorecard.utils import NotInstalledError
+
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.tree import _tree
 
 try:
     from optbinning import OptimalBinning
@@ -46,15 +48,20 @@ class OptimalBucketer(BaseBucketer):
     ```
     """
 
-    def __init__(self, variables=[], variables_type="numerical", **kwargs) -> None:
+    def __init__(self, variables=[], variables_type="numerical", max_n_bins=10, min_bin_size=0.05, **kwargs) -> None:
         """Initialize Optimal Bucketer.
         
         Args:
             variables: List of variables to bucket.
             variables_type: Type of the variables
+            min_bin_size: Minimum fraction of observations in a bucket.
+            max_n_bins: Maximum numbers of bins to return.
+            kwargs: Other parameters passed to optbinning.OptimalBinning
         """
         self.variables = variables
         self.variables_type = variables_type
+        self.max_n_bins = max_n_bins
+        self.min_bin_size = min_bin_size
         assert variables_type in ["numerical", "categorical"]
 
         self.binners = {
@@ -64,9 +71,9 @@ class OptimalBucketer(BaseBucketer):
                 solver="cp",
                 monotonic_trend="auto_asc_desc",
                 min_prebin_size=0.02,
-                min_bin_size=0.05,
-                max_n_bins=10,
                 max_n_prebins=100,
+                min_bin_size=self.min_bin_size,
+                max_n_bins=self.max_n_bins,
                 cat_cutoff=0.05,
                 time_limit=25,
                 **kwargs,
@@ -96,6 +103,9 @@ class OptimalBucketer(BaseBucketer):
                         splits[value] = bucket_nr
             else:
                 splits = binner.splits
+                # add infinite edges. for details see
+                # See skorecard.bucket_mapping.BucketMapping.transform()
+                splits = np.hstack(((-np.inf), splits, (np.inf)))
 
             # Note that optbinning transform uses right=False
             # https://github.com/guillermo-navas-palencia/optbinning/blob/396b9bed97581094167c9eb4744c2fd1fb5c7408/optbinning/binning/transformations.py#L126-L132
@@ -246,59 +256,95 @@ class DecisionTreeBucketer(BaseBucketer):
     - is supervised: it uses the target value when fitting the buckets.
     - ignores missing values and passes them through.
 
+    It uses
+    [sklearn.tree.DecisionTreeClassifier](https://scikit-learn.org/stable/modules/generated/sklearn.tree.DecisionTreeClassifier.html)
+    to find the splits.
+
     ```python
     from skorecard import datasets
     from skorecard.bucketers import DecisionTreeBucketer
-
     X, y = datasets.load_uci_credit_card(return_X_y=True)
+
     dt_bucketer = DecisionTreeBucketer(variables=['LIMIT_BAL'])
-    dt_bucketer.fit_transform(X, y)
+    dt_bucketer.fit(X, y)
+    
     dt_bucketer.fit_transform(X, y)['LIMIT_BAL'].value_counts()
     ```
     """
 
-    def __init__(self, variables=[], **kwargs):
+    def __init__(self, variables=[], max_n_bins=100, min_bin_size=0.05, **kwargs) -> None:
         """Init the class.
 
         Args:
             variables (list): The features to bucket. Uses all features if not defined.
+            min_bin_size: Minimum fraction of observations in a bucket. Passed directly to min_samples_leaf.
+            max_n_bins: Maximum numbers of bins to return. Passed directly to max_leaf_nodes.
+            kwargs: Other parameters passed to DecisionTreeClassifier
         """
         assert isinstance(variables, list)
 
         self.variables = variables
         self.kwargs = kwargs
+        self.max_n_bins = max_n_bins
+        self.min_bin_size = min_bin_size
 
-        self.bucketer = TreeBucketer(**self.kwargs)
+        self.binners = {
+            var: DecisionTreeClassifier(
+                max_leaf_nodes=self.max_n_bins, min_samples_leaf=self.min_bin_size, random_state=42, **self.kwargs
+            )
+            for var in self.variables
+        }
 
     def fit(self, X, y):
         """Fit X,y."""
-        super().fit(X, y)
+        X = self._is_dataframe(X)
+        self.variables = self._check_variables(X, self.variables)
+
+        self.features_bucket_mapping_ = {}
+
+        for feature in self.variables:
+            binner = self.binners.get(feature)
+            binner.fit(X[feature].values.reshape(-1, 1), y)
+
+            # Extract fitted boundaries
+            splits = np.unique(binner.tree_.threshold[binner.tree_.feature != _tree.TREE_UNDEFINED])
+
+            # add infinite edges. for details see
+            # See skorecard.bucket_mapping.BucketMapping.transform()
+            splits = np.hstack(((-np.inf), splits, (np.inf)))
+
+            self.features_bucket_mapping_[feature] = BucketMapping(
+                feature_name=feature, type="numerical", map=splits, right=False
+            )
+
         return self
 
     def transform(self, X):
         """Transform X."""
         return super().transform(X)
 
-    def get_params(self, deep=True):
-        """Return the parameters of the decision tree used in the Transformer.
+    # def get_params(self, deep=True):
+    #     """Return the parameters of the decision tree used in the Transformer.
 
-        Args:
-            deep (bool): Make a deep copy or not, required by the API.
+    #     Args:
+    #         deep (bool): Make a deep copy or not, required by the API.
 
-        Returns:
-            (dict): Decision Tree Parameters
-        """
-        return self.bucketer.tree.get_params(deep=deep)
+    #     Returns:
+    #         (dict): Decision Tree Parameters
+    #     """
+    #     raise NotImplementedError("not implemented yet. we have a tree per feature")
+    #     # return self.bucketer.tree.get_params(deep=deep)
 
-    def set_params(self, **params):
-        """Set the parameteres for the decision tree.
+    # def set_params(self, **params):
+    #     """Set the parameteres for the decision tree.
 
-        Args:
-            **params: (dict) parameters for the decision tree
+    #     Args:
+    #         **params: (dict) parameters for the decision tree
 
-        """
-        self.bucketer.tree.set_params(**params)
-        return self
+    #     """
+    #     raise NotImplementedError("not implemented yet. we have a tree per feature")
+    #     # self.bucketer.tree.set_params(**params)
+    #     # return self
 
 
 class OrdinalCategoricalBucketer(BaseBucketer):
@@ -439,23 +485,25 @@ class UserInputBucketer(BaseBucketer):
     new_X = ui_bucketer.fit_transform(X)
     assert len(new_X['LIMIT_BAL'].unique()) == 3
     ```
+    
+    TODO: the __repr__ method does not show the full mapping dict..
     """
 
-    def __init__(self, features_bucket_mapping, variables=[]):
+    def __init__(self, features_bucket_mapping: dict, variables: list = []) -> None:
         """Initialise the user-defined boundaries with a dictionary.
 
         Args:
             features_bucket_mapping (dict): Contains the feature name and boundaries defined for this feature.
                 Either dict or FeaturesBucketMapping
-            variables (list): The features to bucket. Uses all features if not defined.
+            variables (list): The features to bucket. Uses all features in features_bucket_mapping if not defined.
         """
         # Check user defined input for bucketing. If a dict is specified, will auto convert
         if not isinstance(features_bucket_mapping, FeaturesBucketMapping):
             if not isinstance(features_bucket_mapping, dict):
                 raise TypeError("'features_bucket_mapping' must be a dict or FeaturesBucketMapping instance")
-            features_bucket_mapping = FeaturesBucketMapping(features_bucket_mapping)
-
-        self.features_bucket_mapping_ = features_bucket_mapping
+            self.features_bucket_mapping_ = FeaturesBucketMapping(features_bucket_mapping)
+        else:
+            self.features_bucket_mapping_ = features_bucket_mapping
 
         # If user did not specify any variables,
         # use all the variables defined in the features_bucket_mapping

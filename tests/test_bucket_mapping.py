@@ -26,24 +26,26 @@ def test_bucket_mapping_numerical():
 
 def test_bucket_mapping_categorical():
     """Tests categorical transforms."""
+    other_category_encoding = -1  # was 'other', but you cannot mix strings and integers.
+
     # Empty map
     x = ["car", "motorcycle", "boat", "truck", "truck"]
     bucket = BucketMapping("feature1", "categorical", map={})
-    assert bucket.transform(x).equals(pd.Series(["other"] * 5))
+    assert bucket.transform(x).equals(pd.Series([other_category_encoding] * 5))
 
     # Empty map with NA's
     x = ["car", "motorcycle", "boat", "truck", "truck", np.nan]
     bucket = BucketMapping("feature1", "categorical", map={})
-    assert bucket.transform(x).equals(pd.Series(["other"] * 5 + [np.nan]))
+    assert bucket.transform(x).equals(pd.Series([other_category_encoding] * 5 + [np.nan]))
 
     # Limited map
     x = ["car", "motorcycle", "boat", "truck", "truck"]
     bucket = BucketMapping("feature1", "categorical", map={"car": 0, "truck": 0})
-    reference = pd.Series([0, "other", "other", 0, 0])
+    reference = pd.Series([0, other_category_encoding, other_category_encoding, 0, 0])
     assert bucket.transform(x).equals(reference)
 
     # Limited map with NA's
     x = ["car", "motorcycle", "boat", "truck", "truck", np.nan]
     bucket = BucketMapping("feature1", "categorical", map={"car": 0, "truck": 0})
-    reference = pd.Series([0, "other", "other", 0, 0, np.nan])
+    reference = pd.Series([0, other_category_encoding, other_category_encoding, 0, 0, np.nan])
     assert bucket.transform(x).equals(reference)

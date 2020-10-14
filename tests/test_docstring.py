@@ -42,6 +42,7 @@ CLASSES_TO_TEST = [
 FUNCTIONS_TO_TEST = [
     skorecard.utils.reshape_1d_to_2d,
     skorecard.utils.DimensionalityError,
+    skorecard.pipeline.get_features_bucket_mapping,
 ]
 
 
