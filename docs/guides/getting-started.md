@@ -80,7 +80,7 @@ These bucketers are [scikit-learn](http://scikit-learn.org/) compatible, which m
 
 ### Bucketing categorical vs numerical features
 
-`skorecard   offers different bucketers for numerical and categorical features.
+`skorecard offers different bucketers for numerical and categorical features.
 TODO: link to api.
 
 You can use a util function to attempt to auto-detect column types:
@@ -113,7 +113,7 @@ features_bucket_mapping = get_features_bucket_mapping(pipe)
 ```
 
 Next up, you'll want to start a webapp to make changes interactively.
-Recommended to this inside a notebooks.
+We recommended to do this inside a notebook.
 
 ```python
 app = ManualBucketerApp(X, features_bucket_mapping)
@@ -126,7 +126,7 @@ app.features_bucket_mapping
 
 ### Using bucket mapping 
 
-Once you have boundaries you like, you save save them as a yml and use them later
+Once you have the boundaries you like, you save save them as a yml file and use them later.
 
 ```python
 # TODO: demo how to load from a file?
