@@ -11,8 +11,14 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.compose import ColumnTransformer
 
 from skorecard import datasets
-from skorecard.bucketers import EqualWidthBucketer, EqualFrequencyBucketer, OrdinalCategoricalBucketer
-from skorecard.pipeline import get_features_bucket_mapping, KeepPandas
+from skorecard.bucketers import (
+    EqualWidthBucketer,
+    EqualFrequencyBucketer,
+    OrdinalCategoricalBucketer,
+    DecisionTreeBucketer,
+    OptimalBucketer,
+)
+from skorecard.pipeline import get_features_bucket_mapping, KeepPandas, BucketingPipeline
 from skorecard.bucket_mapping import BucketMapping
 
 
@@ -62,6 +68,34 @@ def test_keep_pandas(df, caplog):
     assert "sklearn.compose.ColumnTransformer can change" in caplog.text
 
     assert type(KeepPandas(bucket_pipeline).fit_transform(X)) == pd.DataFrame
+
+
+def test_bucketing_pipeline(df):
+    """Test the class."""
+    y = df["default"].values
+    X = df.drop(columns=["default"])
+
+    num_cols = ["LIMIT_BAL", "BILL_AMT1"]
+    cat_cols = ["EDUCATION", "MARRIAGE"]
+
+    prebucket_pipeline = make_pipeline(DecisionTreeBucketer(variables=num_cols, max_n_bins=100, min_bin_size=0.05))
+
+    bucket_pipeline = BucketingPipeline(
+        make_pipeline(
+            OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
+            OptimalBucketer(variables=cat_cols, max_n_bins=10, min_bin_size=0.05),
+        )
+    )
+
+    pipe = make_pipeline(prebucket_pipeline, bucket_pipeline)
+    pipe.fit(X, y)
+    # Make sure we can fit it twice
+    pipe.fit(X, y)
+
+    assert bucket_pipeline.pipeline.features_bucket_mapping_
+    # make sure sure transforms work.
+    pipe.transform(X)
+    pipe.fit_transform(X, y)
 
 
 def test_get_features_bucket_mapping(df):

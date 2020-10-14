@@ -290,7 +290,7 @@ class DecisionTreeBucketer(BaseBucketer):
 
         self.binners = {
             var: DecisionTreeClassifier(
-                max_leaf_nodes=self.max_n_bins, min_samples_leaf=self.min_bin_size, **self.kwargs
+                max_leaf_nodes=self.max_n_bins, min_samples_leaf=self.min_bin_size, random_state=42, **self.kwargs
             )
             for var in self.variables
         }
@@ -323,28 +323,28 @@ class DecisionTreeBucketer(BaseBucketer):
         """Transform X."""
         return super().transform(X)
 
-    def get_params(self, deep=True):
-        """Return the parameters of the decision tree used in the Transformer.
+    # def get_params(self, deep=True):
+    #     """Return the parameters of the decision tree used in the Transformer.
 
-        Args:
-            deep (bool): Make a deep copy or not, required by the API.
+    #     Args:
+    #         deep (bool): Make a deep copy or not, required by the API.
 
-        Returns:
-            (dict): Decision Tree Parameters
-        """
-        raise NotImplementedError("not implemented yet. we have a tree per feature")
-        # return self.bucketer.tree.get_params(deep=deep)
+    #     Returns:
+    #         (dict): Decision Tree Parameters
+    #     """
+    #     raise NotImplementedError("not implemented yet. we have a tree per feature")
+    #     # return self.bucketer.tree.get_params(deep=deep)
 
-    def set_params(self, **params):
-        """Set the parameteres for the decision tree.
+    # def set_params(self, **params):
+    #     """Set the parameteres for the decision tree.
 
-        Args:
-            **params: (dict) parameters for the decision tree
+    #     Args:
+    #         **params: (dict) parameters for the decision tree
 
-        """
-        raise NotImplementedError("not implemented yet. we have a tree per feature")
-        # self.bucketer.tree.set_params(**params)
-        # return self
+    #     """
+    #     raise NotImplementedError("not implemented yet. we have a tree per feature")
+    #     # self.bucketer.tree.set_params(**params)
+    #     # return self
 
 
 class OrdinalCategoricalBucketer(BaseBucketer):
@@ -485,23 +485,25 @@ class UserInputBucketer(BaseBucketer):
     new_X = ui_bucketer.fit_transform(X)
     assert len(new_X['LIMIT_BAL'].unique()) == 3
     ```
+    
+    TODO: the __repr__ method does not show the full mapping dict..
     """
 
-    def __init__(self, features_bucket_mapping, variables=[]):
+    def __init__(self, features_bucket_mapping: dict, variables: list = []) -> None:
         """Initialise the user-defined boundaries with a dictionary.
 
         Args:
             features_bucket_mapping (dict): Contains the feature name and boundaries defined for this feature.
                 Either dict or FeaturesBucketMapping
-            variables (list): The features to bucket. Uses all features if not defined.
+            variables (list): The features to bucket. Uses all features in features_bucket_mapping if not defined.
         """
         # Check user defined input for bucketing. If a dict is specified, will auto convert
         if not isinstance(features_bucket_mapping, FeaturesBucketMapping):
             if not isinstance(features_bucket_mapping, dict):
                 raise TypeError("'features_bucket_mapping' must be a dict or FeaturesBucketMapping instance")
-            features_bucket_mapping = FeaturesBucketMapping(features_bucket_mapping)
-
-        self.features_bucket_mapping_ = features_bucket_mapping
+            self.features_bucket_mapping_ = FeaturesBucketMapping(features_bucket_mapping)
+        else:
+            self.features_bucket_mapping_ = features_bucket_mapping
 
         # If user did not specify any variables,
         # use all the variables defined in the features_bucket_mapping

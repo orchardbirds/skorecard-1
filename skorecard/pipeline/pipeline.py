@@ -1,11 +1,14 @@
 import logging
 
 import pandas as pd
+import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.exceptions import NotFittedError
 from sklearn.pipeline import Pipeline
 from sklearn.utils.validation import check_is_fitted
 
 from skorecard.bucket_mapping import FeaturesBucketMapping
+from skorecard.bucketers import UserInputBucketer
 
 
 class KeepPandas(BaseEstimator, TransformerMixin):
@@ -75,6 +78,126 @@ class KeepPandas(BaseEstimator, TransformerMixin):
         return self.columns_
 
 
+class BucketingPipeline(BaseEstimator, TransformerMixin):
+    """Class that wraps sklearn.pipeline.Pipeline.
+    
+    This pipeline will take all fitted bucket_mapping boundaries
+    and save them in a UserInputBucketer to be used on transform.
+    
+    This allows you to access and manually change the bucketing, inside a pipeline.
+    """
+
+    def __init__(self, pipeline):
+        """Init stuff."""
+        assert isinstance(pipeline, Pipeline)
+        self.pipeline = pipeline
+
+        # Identifier, to make it easy to find this pipeline step in any nested pipeline structure
+        self.name = "bucketing_pipeline"
+
+    def fit(self, X, y=None):
+        """Fit stuff."""
+        # The pipeline might be fitted multiple times
+        if isinstance(self.pipeline, UserInputBucketer):
+            return self
+
+        self.pipeline.fit(X, y)
+
+        # Save the reference to feature_bucket_mapping_ instance
+        # This way, we can easily change the mapping for a feature manually
+        features_bucket_mapping = get_features_bucket_mapping(self.pipeline)
+
+        # Overwrite the pipeline
+        # This is the real 'trick'
+        # as it allows us to use the potentially tweaked feature_bucket_mapping_
+        self.pipeline = UserInputBucketer(features_bucket_mapping)
+        # self.features_bucket_mapping_ = self.pipeline.features_bucket_mapping_
+
+        return self
+
+    def transform(self, X):
+        """Transform stuff."""
+        return self.pipeline.transform(X)
+
+
+def tweak_buckets(pipe: Pipeline, X: pd.DataFrame, y: np.ndarray) -> Pipeline:
+    """Tweak the bucket manually.
+    
+    ```python
+    from skorecard import datasets
+    from skorecard.bucketers import DecisionTreeBucketer, OptimalBucketer
+    from skorecard.pipeline import BucketingPipeline
+    from sklearn.pipeline import make_pipeline
+    
+    df = datasets.load_uci_credit_card(as_frame=True)
+    X = df.drop(columns=["default"])
+    y = df["default"]
+
+    num_cols = ["LIMIT_BAL", "BILL_AMT1"]
+    cat_cols = ["EDUCATION", "MARRIAGE"]
+
+    prebucket_pipeline = make_pipeline(DecisionTreeBucketer(variables=num_cols, max_n_bins=100, min_bin_size=0.05))
+
+    bucket_pipeline = BucketingPipeline(make_pipeline(
+        OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
+        OptimalBucketer(variables=cat_cols, max_n_bins=10, min_bin_size=0.05),
+    ))
+
+    pipe = make_pipeline(prebucket_pipeline, bucket_pipeline)
+    
+    pipe.fit(X, y)
+    # updated_pipe = tweak_buckets(pipe, X, y)
+    ```
+    """
+    # Find the bucketing pipeline step
+    bucket_pipes = [s for s in pipe.steps if getattr(s[1], "name", "") == "bucketing_pipeline"]
+
+    # Find the bucketing pipeline step
+    if len(bucket_pipes) == 0:
+        msg = """
+        Did not find a bucketing pipeline step. Identity the bucketing pipeline step
+        using skorecard.pipeline.BucketingPipeline. Example:
+        
+        ```python
+        from skorecard.pipeline import set_as_bucketing_step
+        bucket_pipeline = BucketingPipeline(make_pipeline(
+            OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
+            OptimalBucketer(variables=cat_cols, max_n_bins=10, min_bin_size=0.05),
+        ))
+        ```
+        """
+        raise AssertionError(msg)
+    if len(bucket_pipes) > 1:
+        msg = """
+        You need to identity only the bucketing step. You can combine multiple bucketing steps
+        using sklearn.pipeline.make_pipeline(). Example:
+        
+        ```python
+        bucket_pipeline = BucketingPipeline(make_pipeline(
+            OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
+            OptimalBucketer(variables=cat_cols, max_n_bins=10, min_bin_size=0.05),
+        ))
+        ```
+        """
+
+    index_bucket_pipeline = pipe.steps.index(bucket_pipes[0])
+
+    # Get the prebucketed, prepared features.
+    try:
+        X_prebucketed = Pipeline(pipe.steps[:index_bucket_pipeline]).transform(X)
+    except NotFittedError:
+        pipe.fit(X, y)
+        X_prebucketed = Pipeline(pipe.steps[:index_bucket_pipeline]).transform(X)
+
+    assert isinstance(X_prebucketed, pd.DataFrame)
+
+    # app = ManualBucketerApp(pipe, X, X_prebucketed, y, index_bucket_pipeline)
+
+    # pipe[index_bucket_pipeline].pipeline.features_bucket_mapping_ = <from our app>
+    # bucketed_X = pipe.transform(X)
+    # binning_table(bucketed_X, y)
+
+
 def get_features_bucket_mapping(pipe: Pipeline) -> FeaturesBucketMapping:
     """Get feature bucket mapping from a sklearn pipeline object.
 
@@ -111,7 +234,7 @@ def get_features_bucket_mapping(pipe: Pipeline) -> FeaturesBucketMapping:
     Returns:
         FeaturesBucketMapping: skorecard class with the bucket info
     """
-    assert isinstance(pipe, Pipeline)
+    assert isinstance(pipe, BaseEstimator)
 
     features_bucket_mapping = {}
     for step in _get_all_steps(pipe):
@@ -119,6 +242,9 @@ def get_features_bucket_mapping(pipe: Pipeline) -> FeaturesBucketMapping:
         if hasattr(step, "features_bucket_mapping_"):
             features_bucket_mapping.update(step.features_bucket_mapping_)
 
+    assert (
+        len(features_bucket_mapping) > 0
+    ), "pipeline does not have any fitted skorecard bucketer. Update the pipeline or fit(X,y) first"
     return FeaturesBucketMapping(features_bucket_mapping)
 
 

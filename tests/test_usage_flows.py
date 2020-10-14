@@ -1,19 +1,11 @@
 from skorecard import datasets
 from skorecard.bucketers import DecisionTreeBucketer, OptimalBucketer
-
-import pytest
-
 from sklearn.pipeline import make_pipeline
 
 
-@pytest.fixture()
-def df():
-    """Generate dataframe."""
-    return datasets.load_uci_credit_card(as_frame=True)
-
-
-def test_full_pipeline(df):
+def test_full_pipeline():
     """Tests some complete pipelines."""
+    df = datasets.load_uci_credit_card(as_frame=True)
     X = df.drop(columns=["default"])
     y = df["default"]
 
