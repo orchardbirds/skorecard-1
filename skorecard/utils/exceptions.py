@@ -34,7 +34,7 @@ class NotInstalledError:
     Example usage:
 
     ```python
-    from skorecard.utils.exceptions import NotInstalled
+    from skorecard.utils import NotInstalledError
 
     try:
         import dash_core_components as dcc
@@ -45,18 +45,25 @@ class NotInstalledError:
     ```
 
     Note that installing optional dependencies in a package are defined in setup.py.
-
     """
 
-    def __init__(self, tool, dep):
+    def __init__(self, tool, dep=None):
         """Initialize error with missing package and reference to conditional install package.
+        
+        Args:
+            tool (str): The name of the pypi package that is missing
+            dep (str): The name of the extra_imports set (defined in setup.py) where the package is present. (optional)
         """
         self.tool = tool
         self.dep = dep
 
         msg = f"In order to use {self.tool} you'll need to install via;\n\n"
-        msg += f"pip install skorecard[{self.dep}]\n\n"
-        msg += "See installation guide here: <TODO, link to our hosted docs>"
+        if self.dep is None:
+            msg += f"pip install {self.tool}\n\n"
+        else:
+            msg += f"pip install skorecard[{self.dep}]\n\n"
+
+        msg += "See skorecard installation guide here: <TODO, link to our hosted docs>"
         self.msg = msg
 
     def __getattr__(self, *args, **kwargs):

@@ -1,5 +1,135 @@
+import logging
+
 import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.pipeline import Pipeline
+from sklearn.utils.validation import check_is_fitted
+
+from skorecard.bucket_mapping import FeaturesBucketMapping
+
+
+class KeepPandas(BaseEstimator, TransformerMixin):
+    """Keep pandas dataframe in a sklearn pipeline.
+   
+    This is a helper class to turn sklearn transformations back to pandas.
+
+    !!! warning
+        You should only use `KeepPandas()` when you know for sure `sklearn`
+        did not change the order of your columns.
+
+    ```python
+    from skorecard.pipeline import KeepPandas
+    from skorecard import datasets
+    from skorecard.bucketers import EqualWidthBucketer
+    
+    from sklearn.pipeline import make_pipeline
+    from sklearn.preprocessing import StandardScaler
+    
+    X, y = datasets.load_uci_credit_card(return_X_y=True)
+
+    bucket_pipeline = make_pipeline(
+        KeepPandas(StandardScaler()),
+        EqualWidthBucketer(bins=5, variables=['LIMIT_BAL', 'BILL_AMT1']),
+    )
+    bucket_pipeline.fit_transform(X, y)
+    ```
+    """
+
+    def __init__(self, transformer):
+        """Initialize."""
+        self.transformer = transformer
+
+        # Warn if there is a chance order of columns are changed
+        if isinstance(transformer, Pipeline):
+            for step in _get_all_steps(transformer):
+                self._check_for_column_transformer(step)
+        else:
+            self._check_for_column_transformer(transformer)
+
+    def __repr__(self):
+        """String representation."""
+        return self.transformer.__repr__()
+
+    def _check_for_column_transformer(self, obj):
+        msg = "sklearn.compose.ColumnTransformer can change the order of columns"
+        msg += ", be very careful when using with KeepPandas()"
+        if type(obj).__name__ == "ColumnTransformer":
+            logging.warning(msg)
+
+    def fit(self, X, y=None, *args, **kwargs):
+        """Fit estimator."""
+        assert isinstance(X, pd.DataFrame)
+        self.columns_ = list(X.columns)
+        self.transformer.fit(X, y, *args, **kwargs)
+        return self
+
+    def transform(self, X, *args, **kwargs):
+        """Transform X."""
+        check_is_fitted(self)
+        new_X = self.transformer.transform(X, *args, **kwargs)
+        return pd.DataFrame(new_X, columns=self.columns_)
+
+    def get_feature_names(self):
+        """Return estimator feature names."""
+        check_is_fitted(self)
+        return self.columns_
+
+
+def get_features_bucket_mapping(pipe: Pipeline) -> FeaturesBucketMapping:
+    """Get feature bucket mapping from a sklearn pipeline object.
+
+    ```python
+    from skorecard import datasets
+    from skorecard.bucketers import EqualWidthBucketer, OrdinalCategoricalBucketer
+    from skorecard.pipeline import get_features_bucket_mapping
+    from sklearn.pipeline import Pipeline, make_pipeline
+    from sklearn.preprocessing import OneHotEncoder
+    from sklearn.metrics import roc_auc_score
+    from sklearn.linear_model import LogisticRegression
+
+    X, y = datasets.load_uci_credit_card(return_X_y=True)
+
+    bucket_pipeline = make_pipeline(
+        EqualWidthBucketer(bins=5, variables=['LIMIT_BAL', 'BILL_AMT1']),
+        OrdinalCategoricalBucketer(variables=['EDUCATION', 'MARRIAGE'])
+    )
+
+    pipe = Pipeline([
+        ('bucketing', bucket_pipeline),
+        ('one-hot-encoding', OneHotEncoder()),
+        ('lr', LogisticRegression())
+    ])
+    
+    pipe.fit(X, y)
+    features_bucket_mapping = get_features_bucket_mapping(pipe)
+    ```
+    
+    Args:
+        pipe (Pipeline): fitted scikitlearn pipeline with bucketing transformers
+
+    Returns:
+        FeaturesBucketMapping: skorecard class with the bucket info
+    """
+    assert isinstance(pipe, Pipeline)
+
+    features_bucket_mapping = {}
+    for step in _get_all_steps(pipe):
+        check_is_fitted(step)
+        if hasattr(step, "features_bucket_mapping_"):
+            features_bucket_mapping.update(step.features_bucket_mapping_)
+
+    return FeaturesBucketMapping(features_bucket_mapping)
+
+
+def _get_all_steps(pipeline):
+    steps = []
+    for named_step in pipeline.steps:
+        step = named_step[1]
+        if hasattr(step, "steps"):
+            steps += _get_all_steps(step)
+        else:
+            steps.append(step)
+    return steps
 
 
 class ColumnSelector(BaseEstimator, TransformerMixin):

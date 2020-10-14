@@ -27,6 +27,8 @@ CLASSES_TO_TEST = [
     skorecard.apps.ManualBucketerApp,
     skorecard.linear_model.LogisticRegression,
     skorecard.pipeline.ColumnSelector,
+    skorecard.pipeline.KeepPandas,
+    skorecard.bucketers.OptimalBucketer,
     skorecard.bucketers.EqualWidthBucketer,
     skorecard.bucketers.AgglomerativeClusteringBucketer,
     skorecard.bucketers.EqualFrequencyBucketer,
@@ -38,7 +40,6 @@ CLASSES_TO_TEST = [
     skorecard.bucket_mapping.BucketMapping,
 ]
 FUNCTIONS_TO_TEST = [
-    skorecard.utils.assure_numpy_array,
     skorecard.utils.reshape_1d_to_2d,
     skorecard.utils.DimensionalityError,
 ]

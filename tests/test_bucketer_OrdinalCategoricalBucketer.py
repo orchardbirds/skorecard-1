@@ -45,7 +45,7 @@ def test_correct_output(df):
     cbt = OrdinalCategoricalBucketer(tol=0.5, variables=["EDUCATION"])
     cbt.fit(X, y)
     X_trans = cbt.transform(X)
-    assert X_trans["EDUCATION"].unique() == np.array([0])
+    assert X_trans["EDUCATION"].unique() == np.array(["other"])
 
 
 def test_mapping_dict(df):
@@ -56,3 +56,19 @@ def test_mapping_dict(df):
     cbt.fit(X, y)
     bucket_map = cbt.features_bucket_mapping_.get("EDUCATION")
     assert len(bucket_map.map) == len(np.unique(X["EDUCATION"]))
+
+
+def test_encoding_method(df):
+    """Test the encoding method."""
+    X = df[["EDUCATION", "default"]]
+    y = df["default"]
+
+    ocb = OrdinalCategoricalBucketer(tol=0.03, variables=["EDUCATION"], encoding_method="frequency")
+    ocb.fit(X, y)
+
+    assert ocb.features_bucket_mapping_["EDUCATION"].map == {2: 1, 1: 2, 3: 3}
+
+    ocb = OrdinalCategoricalBucketer(tol=0.03, variables=["EDUCATION"], encoding_method="ordered")
+    ocb.fit(X, y)
+
+    assert ocb.features_bucket_mapping_["EDUCATION"].map == {1: 1, 3: 2, 2: 3}

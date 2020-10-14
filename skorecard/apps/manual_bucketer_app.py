@@ -20,7 +20,6 @@ app = ManualBucketerApp(X)
 import copy
 import pandas as pd
 
-from skorecard.bucket_mapping import create_bucket_feature_mapping
 from skorecard.utils.exceptions import NotInstalledError
 
 # Dash + dependencies
@@ -81,7 +80,9 @@ class ManualBucketerApp(object):
 
         if features_bucket_mapping is None:
             # Create a basic feature mapping to get started with binning
-            self._features_bucket_mapping = create_bucket_feature_mapping(self.X)
+            # self._features_bucket_mapping = create_bucket_feature_mapping(self.X)
+            # TODO
+            pass
         else:
             self._features_bucket_mapping = copy.deepcopy(features_bucket_mapping)
 

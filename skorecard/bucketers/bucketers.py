@@ -9,10 +9,113 @@ from probatus.binning import (
 
 from .base_bucketer import BaseBucketer
 from skorecard.bucket_mapping import BucketMapping, FeaturesBucketMapping
+from skorecard.utils import NotInstalledError
+
+try:
+    from optbinning import OptimalBinning
+except ModuleNotFoundError:
+    OptimalBinning = NotInstalledError("optbinning")
+
+
+class OptimalBucketer(BaseBucketer):
+    """Find Optimal Buckets.
+    
+    Bucket transformer that uses the [optbinning](http://gnpalencia.org/optbinning) package to find optimal buckets.
+    This bucketers basically wraps optbinning.OptimalBinning to be consistent with skorecard.
+
+    This bucketer uses pre-binning to bucket a feature into max 100 bins. It then uses a constrained programming solver
+    to merge buckets, taking into accounts constraints 1) monotonicity in bad rate, 2) at least 5% of records per bin.
+    
+    This bucketer:
+    
+    - Is supervised: is uses the target variable to find good buckets
+    - Supports both numerical and categorical features
+    
+    TODO: We probably want more control over pre-binning.
+    We can write a lower-level ConstrainedProgrammingBucketer that wraps optbinning's `cp` solver.
+    
+    Example:
+    
+    ```python
+    from skorecard import datasets
+    from skorecard.bucketers import OptimalBucketer
+
+    X, y = datasets.load_uci_credit_card(return_X_y=True)
+    bucketer = OptimalBucketer(variables = ['LIMIT_BAL'])
+    bucketer.fit_transform(X, y)
+    ```
+    """
+
+    def __init__(self, variables=[], variables_type="numerical", **kwargs) -> None:
+        """Initialize Optimal Bucketer.
+        
+        Args:
+            variables: List of variables to bucket.
+            variables_type: Type of the variables
+        """
+        self.variables = variables
+        self.variables_type = variables_type
+        assert variables_type in ["numerical", "categorical"]
+
+        self.binners = {
+            var: OptimalBinning(
+                name=var,
+                dtype=self.variables_type,
+                solver="cp",
+                monotonic_trend="auto_asc_desc",
+                min_prebin_size=0.02,
+                min_bin_size=0.05,
+                max_n_bins=10,
+                max_n_prebins=100,
+                cat_cutoff=0.05,
+                time_limit=25,
+                **kwargs,
+            )
+            for var in self.variables
+        }
+
+    def fit(self, X, y):
+        """Fit X, y."""
+        X = self._is_dataframe(X)
+        self.variables = self._check_variables(X, self.variables)
+        if isinstance(y, pd.Series):
+            y = y.values
+
+        self.features_bucket_mapping_ = {}
+
+        for feature in self.variables:
+            binner = self.binners.get(feature)
+
+            binner.fit(X[feature].values, y)
+
+            # Extract fitted boundaries
+            if self.variables_type == "categorical":
+                splits = {}
+                for bucket_nr, values in enumerate(binner.splits):
+                    for value in values:
+                        splits[value] = bucket_nr
+            else:
+                splits = binner.splits
+
+            # Note that optbinning transform uses right=False
+            # https://github.com/guillermo-navas-palencia/optbinning/blob/396b9bed97581094167c9eb4744c2fd1fb5c7408/optbinning/binning/transformations.py#L126-L132
+            self.features_bucket_mapping_[feature] = BucketMapping(
+                feature_name=feature, type=self.variables_type, map=splits, right=False
+            )
+
+        return self
+
+    def transform(self, X):
+        """Transform X."""
+        return super().transform(X)
 
 
 class EqualWidthBucketer(BaseBucketer):
     """Bucket transformer that creates equally spaced bins using numpy.histogram function.
+   
+    This bucketer:
+    - is unsupervised: it does not consider the target value when fitting the buckets.
+    - ignores missing values and passes them through.
 
     ```python
     from skorecard import datasets
@@ -53,6 +156,10 @@ class EqualWidthBucketer(BaseBucketer):
 class AgglomerativeClusteringBucketer(BaseBucketer):
     """Bucket transformer that creates bins using sklearn.AgglomerativeClustering.
 
+    This bucketer:
+    - is unsupervised: it does not consider the target value when fitting the buckets.
+    - ignores missing values and passes them through.
+    
     ```python
     from skorecard import datasets
     from skorecard.bucketers import AgglomerativeClusteringBucketer
@@ -92,6 +199,10 @@ class AgglomerativeClusteringBucketer(BaseBucketer):
 class EqualFrequencyBucketer(BaseBucketer):
     """Bucket transformer that creates bins with equal number of elements.
 
+    This bucketer:
+    - is unsupervised: it does not consider the target value when fitting the buckets.
+    - ignores missing values and passes them through.
+    
     ```python
     from skorecard import datasets
     from skorecard.bucketers import EqualFrequencyBucketer
@@ -130,6 +241,10 @@ class EqualFrequencyBucketer(BaseBucketer):
 
 class DecisionTreeBucketer(BaseBucketer):
     """Bucket transformer that creates bins by training a decision tree.
+
+    This bucketer:
+    - is supervised: it uses the target value when fitting the buckets.
+    - ignores missing values and passes them through.
 
     ```python
     from skorecard import datasets
@@ -191,16 +306,21 @@ class OrdinalCategoricalBucketer(BaseBucketer):
     The OrdinalCategoricalEncoder() replaces categories by ordinal numbers.
 
     Example (0, 1, 2, 3, etc). The numbers are assigned ordered based on the mean of the target
-    per category, or assigned in order of frequency when y is not.
+    per category, or assigned in order of frequency, when sort_by_target is False.
 
     Ordered ordinal encoding: for the variable colour, if the mean of the target
     for blue, red and grey is 0.5, 0.8 and 0.1 respectively, blue is replaced by 2,
     red by 3 and grey by 1. If new data contains unknown labels (f.e. yellow),
     they will be replaced by 0.
 
-    Credits: Code & ideas adapted from
-    - feature_engine.categorical_encoders.OrdinalCategoricalEncoder
-    - feature_engine.categorical_encoders.RareLabelCategoricalEncoder
+    This bucketer:
+    
+    - is unsupervised when `encoding_method=='frequency'`: it does not consider
+        the target value when fitting the buckets.
+    - is supervised when `encoding_method=='ordered'`: it uses
+        the target value when fitting the buckets.
+    - ignores missing values and passes them through.
+    - sets unknown new categories to the category 'other'
 
     ```python
     from skorecard import datasets
@@ -212,9 +332,15 @@ class OrdinalCategoricalBucketer(BaseBucketer):
     bucketer = OrdinalCategoricalBucketer(max_n_categories=2, variables=['EDUCATION'])
     bucketer.fit_transform(X, y)
     ```
+    
+    Credits: Code & ideas adapted from:
+    
+    - feature_engine.categorical_encoders.OrdinalCategoricalEncoder
+    - feature_engine.categorical_encoders.RareLabelCategoricalEncoder
+    
     """
 
-    def __init__(self, tol=0.05, max_n_categories=None, variables=[]):
+    def __init__(self, tol=0.05, max_n_categories=None, variables=[], encoding_method="frequency"):
         """Init the class.
 
         Args:
@@ -224,6 +350,11 @@ class OrdinalCategoricalBucketer(BaseBucketer):
                 If None, all categories with frequency above the tolerance (tol) will be
                 considered.
             variables (list): The features to bucket. Uses all features if not defined.
+            encoding_method (string): encoding method.
+                - "frequency" (default): orders the buckets based on the frequency of observations in the bucket.
+                    The lower the number of the bucket the most frequent are the observations in that bucket.
+                - "ordered": orders the buckets based on the average class 1 rate in the bucket.
+                    The lower the number of the bucket the lower the fraction of class 1 in that bucket.
         """
         assert isinstance(variables, list)
 
@@ -237,6 +368,7 @@ class OrdinalCategoricalBucketer(BaseBucketer):
         self.tol = tol
         self.max_n_categories = max_n_categories
         self.variables = variables
+        self.encoding_method = encoding_method
 
     def fit(self, X, y=None):
         """Init the class."""
@@ -247,13 +379,25 @@ class OrdinalCategoricalBucketer(BaseBucketer):
 
         for var in self.variables:
 
-            normalized_counts = X[var].value_counts(normalize=True)
-
+            normalized_counts = None
             # Determine the order of unique values
-            if y is not None:
+            if self.encoding_method == "ordered":
+                if y is None:
+                    raise ValueError("To use encoding_method=='ordered', y cannot be None.")
                 X["target"] = y
+                normalized_counts = X[var].value_counts(normalize=True)
                 cats = X.groupby([var])["target"].mean().sort_values(ascending=True).index
                 normalized_counts = normalized_counts[cats]
+
+            elif self.encoding_method == "frequency":
+                normalized_counts = X[var].value_counts(normalize=True)
+            else:
+
+                raise NotImplementedError(
+                    f"encoding_method='{self.encoding_method}' not supported. "
+                    f"Currently implemented options"
+                    f" are 'ordered' or 'frequency' (see doc strings)"
+                )
 
             # Limit number of categories if set.
             normalized_counts = normalized_counts[: self.max_n_categories]
@@ -265,9 +409,7 @@ class OrdinalCategoricalBucketer(BaseBucketer):
             # Note we start at 1, to be able to encode missings as 0.
             mapping = dict(zip(normalized_counts.index, range(1, len(normalized_counts) + 1)))
 
-            self.features_bucket_mapping_[var] = BucketMapping(
-                feature_name=var, type="categorical", map=mapping, missing_bucket=0
-            )
+            self.features_bucket_mapping_[var] = BucketMapping(feature_name=var, type="categorical", map=mapping)
 
         return self
 
@@ -278,6 +420,10 @@ class OrdinalCategoricalBucketer(BaseBucketer):
 
 class UserInputBucketer(BaseBucketer):
     """Bucket transformer implementing user-defined boundaries.
+
+    This bucketer:
+    - is not fitted, as it depends on user defined input
+    - ignores missing values and passes them through.
 
     ```python
     from skorecard import datasets

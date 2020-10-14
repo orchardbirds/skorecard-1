@@ -2,13 +2,10 @@
 """
 import dataclasses
 from dataclasses import dataclass, field
-from typing import List, Union, Dict, Optional
+from typing import List, Union, Dict
 
 import pandas as pd
 import numpy as np
-from probatus.binning import SimpleBucketer
-
-from skorecard.utils import UnknownCategoryError
 
 
 @dataclass
@@ -34,14 +31,12 @@ class BucketMapping:
         feature_name (str): Name of the feature
         type (str): Type of feature, one of ['categorical','numerical']
         map (list or dict): The info needed to create the buckets (boundaries or cats)
-        missing_bucket (int): Which bucket to place any missing values
         right (bool): parameter to np.digitize, used when map='numerical'.
     """
 
     feature_name: str
     type: str
     map: Union[Dict, List] = field(default_factory=lambda: [])
-    missing_bucket: Optional[int] = None
     right: bool = True
 
     def __post_init__(self) -> None:
@@ -51,9 +46,6 @@ class BucketMapping:
             None: nothing
         """
         assert self.type in ["numerical", "categorical"]
-        # TODO add more assertions here,
-        # unique, increasing order, etc
-        # missing_bucket index must not be greater than lenght of map
 
     def transform(self, x):
         """Applies bucketing to and array.
@@ -77,17 +69,20 @@ class BucketMapping:
 
         Note:
         - We use infinite edges to ensure transformation also works on data outside seen range.
-        - np.digitize assigns an extra label for missing values
 
         ```python
+        import numpy as np
         bins = np.array([-np.inf, 1, np.inf])
         x = np.array([-1,0,.5, 1, 1.5, 2,10, np.nan, 0])
-        np.digitize(x, bins)
+        new = np.digitize(x, bins)
+        np.where(np.isnan(x), np.nan, new)
         ```
         """
-        bins = np.hstack(((-np.inf), self.map[1:], (np.inf)))
+        bins = np.hstack(((-np.inf), self.map[1:-1], (np.inf)))
         buckets = np.digitize(x, bins, right=self.right)
-        return buckets.astype(int)
+        buckets = buckets.astype(int)
+        buckets = np.where(np.isnan(x), np.nan, buckets)
+        return buckets
 
     def _transform_cat(self, x):
         """
@@ -105,23 +100,22 @@ class BucketMapping:
         assert isinstance(self.map, dict)
         if isinstance(x, np.ndarray):
             x = pd.Series(x)
+        if isinstance(x, list):
+            x = pd.Series(x)
 
-        if self.missing_bucket is not None:
-            mapping = MissingDict(self.map)
-            mapping.set_missing_value(self.missing_bucket)
-        else:
-            mapping = self.map
+        mapping = MissingDict(self.map)
+        mapping.set_missing_value("other")
 
-        x = x.map(mapping)
+        new = x.map(mapping)
 
-        if not self.missing_bucket:
-            if x.hasnans:
-                raise UnknownCategoryError(
-                    f"Feature {self.feature_name} has a new, unseen category that causes NaNs.",
-                    "Consider setting 'missing_bucket'.",
-                )
+        # Put back NA's
+        new = new.where(~x.isna(), np.nan)
 
-        return x
+        # if x.hasnans:
+        #     msg = f"Feature {self.feature_name} has a new, unseen category that causes NaNs."
+        #     raise UnknownCategoryError(msg)
+
+        return new
 
     def as_dict(self) -> dict:
         """Return data in class as a dict.
@@ -151,12 +145,10 @@ class FeaturesBucketMapping:
         'feature1': {'feature_name': 'feature1',
             'type': 'numerical',
             'map': [2, 3, 4, 5],
-            'missing_bucket': None,
             'right': True},
         'feature2': {'feature_name': 'feature2',
             'type': 'numerical',
             'map': [5, 6, 7, 8],
-            'missing_bucket': None,
             'right': True}
     }
 
@@ -252,25 +244,6 @@ class FeaturesBucketMapping:
             dict: Data in class
         """
         return {k: dataclasses.asdict(v) for k, v in self.maps.items()}
-
-
-def create_bucket_feature_mapping(df):
-    """Simple bucketing on all columns in a DF.
-
-    # TODO: move to binning2d.py. implement wth fit transform
-
-    For some sensible defaults
-    """
-    features_bucket_mapping = FeaturesBucketMapping()
-
-    for col in df.columns:
-        n_bins = min(10, round(df[col].nunique() / 5))
-        bucketer = SimpleBucketer(bin_count=n_bins)
-        bucketer.fit(df[col])
-
-        features_bucket_mapping.append(BucketMapping(col, "numerical", bucketer.boundaries, right=True))
-
-    return features_bucket_mapping
 
 
 class MissingDict(dict):

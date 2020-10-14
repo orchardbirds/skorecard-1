@@ -9,6 +9,7 @@ base_packages = [
     "pandas>=1.1.2",
     "scikit-learn>=0.23.2",
     "probatus>=1.1.1",
+    "dataclasses>=0.7",
 ]
 
 dashboard_dep = [
@@ -28,13 +29,16 @@ dev_dep = [
     "pytest-cov>=2.10.0",
 ]
 
-
 docs_dep = [
     "mkdocs>=1.1",
     "mkdocs-material>=5.5.12",
     "mkdocstrings>=0.13.2",
     "mkdocs-git-revision-date-localized-plugin>=0.7.2",
 ]
+
+# Packages that are not a set together
+# We recommend users to just install that package when it is used
+utils_dep = ["dabl>=0.1.8", "optbinning>=0.8.0"]
 
 setup(
     name="skorecard",
@@ -62,7 +66,7 @@ setup(
         "base": base_packages,
         "dashboard": dashboard_dep,
         "reporting": reporting_dep,
-        "all": base_packages + dashboard_dep + reporting_dep + dev_dep + docs_dep,
+        "all": base_packages + dashboard_dep + reporting_dep + dev_dep + docs_dep + utils_dep,
     },
     url="https://gitlab.ing.net/RiskandPricingAdvancedAnalytics/skorecard",
     packages=find_packages(".", exclude=["tests", "notebooks", "docs"]),
