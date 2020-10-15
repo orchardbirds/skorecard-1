@@ -1,10 +1,8 @@
+import warnings
 import numpy as np
 import pandas as pd
-from probatus.binning import (
-    SimpleBucketer,
-    AgglomerativeBucketer,
-    QuantileBucketer,
-)
+from probatus.binning import AgglomerativeBucketer
+from probatus.utils import ApproximationWarning
 
 from .base_bucketer import BaseBucketer
 from skorecard.bucket_mapping import BucketMapping, FeaturesBucketMapping
@@ -103,9 +101,6 @@ class OptimalBucketer(BaseBucketer):
                         splits[value] = bucket_nr
             else:
                 splits = binner.splits
-                # add infinite edges. for details see
-                # See skorecard.bucket_mapping.BucketMapping.transform()
-                splits = np.hstack(((-np.inf), splits, (np.inf)))
 
             # Note that optbinning transform uses right=False
             # https://github.com/guillermo-navas-palencia/optbinning/blob/396b9bed97581094167c9eb4744c2fd1fb5c7408/optbinning/binning/transformations.py#L126-L132
@@ -151,11 +146,27 @@ class EqualWidthBucketer(BaseBucketer):
         self.variables = variables
         self.bins = bins
 
-        self.bucketer = SimpleBucketer(bin_count=self.bins)
-
     def fit(self, X, y=None):
         """Fit X, y."""
-        super().fit(X, y=None)  # Set y to None, as this bucketer doesn't use it
+        X = self._is_dataframe(X)
+        self.variables = self._check_variables(X, self.variables)
+
+        self.features_bucket_mapping_ = {}
+
+        for feature in self.variables:
+
+            _, boundaries = np.histogram(X[feature].values, bins=self.bins)
+
+            # np.histogram returns the min & max values of the fits
+            # On transform, we use np.digitize, which means new data that is outside of this range
+            # will be assigned to their own buckets.
+            # To solve, we simply remove the min and max boundaries
+            boundaries = boundaries[1:-1]
+
+            self.features_bucket_mapping_[feature] = BucketMapping(
+                feature_name=feature, type="numerical", map=boundaries, right=True
+            )
+
         return self
 
     def transform(self, X):
@@ -194,11 +205,27 @@ class AgglomerativeClusteringBucketer(BaseBucketer):
         self.variables = variables
         self.bins = bins
 
-        self.bucketer = AgglomerativeBucketer(bin_count=self.bins)
-
     def fit(self, X, y=None):
         """Fit X, y."""
-        super().fit(X, y=None)  # Set y to None, as this bucketer doesn't use it
+        X = self._is_dataframe(X)
+        self.variables = self._check_variables(X, self.variables)
+
+        self.features_bucket_mapping_ = {}
+
+        for feature in self.variables:
+            ab = AgglomerativeBucketer(bin_count=self.bins)
+            ab.fit(X[feature].values, y=None)
+
+            # AgglomerativeBucketer returns the min & max values of the fits
+            # On transform, we use np.digitize, which means new data that is outside of this range
+            # will be assigned to their own buckets.
+            # To solve, we remove the min and max boundaries
+            boundaries = ab.boundaries[1:-1]
+
+            self.features_bucket_mapping_[feature] = BucketMapping(
+                feature_name=feature, type="numerical", map=boundaries, right=True
+            )
+
         return self
 
     def transform(self, X):
@@ -237,11 +264,42 @@ class EqualFrequencyBucketer(BaseBucketer):
         self.variables = variables
         self.bins = bins
 
-        self.bucketer = QuantileBucketer(bin_count=self.bins)
-
     def fit(self, X, y=None):
-        """Fit X, y."""
-        super().fit(X, y=None)  # Set y to None, as this bucketer doesn't use it
+        """Fit X, y.
+        
+        Uses pd.qcut()
+        https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.qcut.html
+        
+        """
+        X = self._is_dataframe(X)
+        self.variables = self._check_variables(X, self.variables)
+
+        self.features_bucket_mapping_ = {}
+
+        for feature in self.variables:
+
+            try:
+                _, boundaries = pd.qcut(X[feature], q=self.bins, retbins=True, duplicates="raise")
+            except ValueError:
+                # If there are too many duplicate values (assume a lot of filled missings)
+                # this crashes - the exception drops them.
+                # This means that it will return approximate quantile bins
+                _, boundaries = pd.qcut(X[feature], q=self.bins, retbins=True, duplicates="drop")
+                warnings.warn(ApproximationWarning("Approximated quantiles - too many unique values"))
+
+            # pd.qcut returns the min & max values of the fits
+            # On transform, we use np.digitize, which means new data that is outside of this range
+            # will be assigned to their own buckets.
+            # To solve, we simply remove the min and max boundaries
+            boundaries = boundaries[1:-1]
+
+            self.features_bucket_mapping_[feature] = BucketMapping(
+                feature_name=feature,
+                type="numerical",
+                map=boundaries,
+                right=True,  # pd.qcut returns bins includiing right edge: (edge, edge]
+            )
+
         return self
 
     def transform(self, X):
@@ -308,10 +366,6 @@ class DecisionTreeBucketer(BaseBucketer):
 
             # Extract fitted boundaries
             splits = np.unique(binner.tree_.threshold[binner.tree_.feature != _tree.TREE_UNDEFINED])
-
-            # add infinite edges. for details see
-            # See skorecard.bucket_mapping.BucketMapping.transform()
-            splits = np.hstack(((-np.inf), splits, (np.inf)))
 
             self.features_bucket_mapping_[feature] = BucketMapping(
                 feature_name=feature, type="numerical", map=splits, right=False

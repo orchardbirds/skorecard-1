@@ -46,9 +46,9 @@ def test_optimal_binning_numerical(df):
     df2 = obt.transform(pd.DataFrame([[0, 0], [30_000, 30_000]], columns=["LIMIT_BAL", "BILL_AMT1"]))
     assert df1["LIMIT_BAL"].equals(df2["LIMIT_BAL"])
 
-    # Note our bins are 1-indexed
-    # This unit test is there to detect if we ever change that behaviour
-    assert all(obt.features_bucket_mapping_.get("LIMIT_BAL").transform([0, 30_000]) == np.array([1, 2]))
+    # Note our bins were 1-indexed in the past
+    # This unit test is there to make sure our bins are zero-indexed
+    assert all(obt.features_bucket_mapping_.get("LIMIT_BAL").transform([0, 30_000]) == np.array([0, 1]))
 
     # optb.binning_table.build()
     # optb.splits
