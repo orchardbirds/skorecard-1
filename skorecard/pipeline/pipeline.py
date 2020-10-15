@@ -9,6 +9,7 @@ from sklearn.utils.validation import check_is_fitted
 
 from skorecard.bucket_mapping import FeaturesBucketMapping
 from skorecard.bucketers import UserInputBucketer
+from skorecard.apps import ManualBucketerApp
 
 
 class KeepPandas(BaseEstimator, TransformerMixin):
@@ -126,7 +127,7 @@ def tweak_buckets(pipe: Pipeline, X: pd.DataFrame, y: np.ndarray) -> Pipeline:
     ```python
     from skorecard import datasets
     from skorecard.bucketers import DecisionTreeBucketer, OptimalBucketer
-    from skorecard.pipeline import BucketingPipeline
+    from skorecard.pipeline import BucketingPipeline, tweak_buckets
     from sklearn.pipeline import make_pipeline
     
     df = datasets.load_uci_credit_card(as_frame=True)
@@ -146,7 +147,7 @@ def tweak_buckets(pipe: Pipeline, X: pd.DataFrame, y: np.ndarray) -> Pipeline:
     pipe = make_pipeline(prebucket_pipeline, bucket_pipeline)
     
     pipe.fit(X, y)
-    # updated_pipe = tweak_buckets(pipe, X, y)
+    tweak_buckets(pipe, X, y)
     ```
     """
     # Find the bucketing pipeline step
@@ -191,8 +192,16 @@ def tweak_buckets(pipe: Pipeline, X: pd.DataFrame, y: np.ndarray) -> Pipeline:
 
     assert isinstance(X_prebucketed, pd.DataFrame)
 
-    # app = ManualBucketerApp(pipe, X, X_prebucketed, y, index_bucket_pipeline)
+    # Prebucketed features should have at most 100 unique values.
+    # otherwise app prebinning table is too big.
+    for feature in X_prebucketed.columns:
+        if len(X_prebucketed[feature].unique()) > 100:
+            raise AssertionError(f"{feature} has >100 values. Did you pre-bucket?")
 
+    # Start app
+    # app.stop_server()
+    app = ManualBucketerApp(pipe, X, X_prebucketed, y, index_bucket_pipeline)
+    app.run_server()
     # pipe[index_bucket_pipeline].pipeline.features_bucket_mapping_ = <from our app>
     # bucketed_X = pipe.transform(X)
     # binning_table(bucketed_X, y)
