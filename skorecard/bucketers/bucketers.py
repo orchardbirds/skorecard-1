@@ -6,6 +6,7 @@ from probatus.binning import (
     QuantileBucketer,
 )
 
+from typing import Union, List, Dict
 from .base_bucketer import BaseBucketer
 from skorecard.bucket_mapping import BucketMapping, FeaturesBucketMapping
 from skorecard.utils import NotInstalledError
@@ -491,10 +492,9 @@ class UserInputBucketer(BaseBucketer):
     assert len(new_X['LIMIT_BAL'].unique()) == 3
     ```
     
-    TODO: the __repr__ method does not show the full mapping dict..
     """
 
-    def __init__(self, features_bucket_mapping: dict, variables: list = []) -> None:
+    def __init__(self, features_bucket_mapping: Union[Dict, FeaturesBucketMapping], variables: List = []) -> None:
         """Initialise the user-defined boundaries with a dictionary.
 
         Args:
@@ -509,6 +509,9 @@ class UserInputBucketer(BaseBucketer):
             self.features_bucket_mapping_ = FeaturesBucketMapping(features_bucket_mapping)
         else:
             self.features_bucket_mapping_ = features_bucket_mapping
+
+        # Save under input name, for __repr___
+        self.features_bucket_mapping = self.features_bucket_mapping_
 
         # If user did not specify any variables,
         # use all the variables defined in the features_bucket_mapping
