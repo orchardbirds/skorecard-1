@@ -273,9 +273,10 @@ class ColumnSelector(BaseEstimator, TransformerMixin):
 
     On the transform, we return X.values instead of X to be compatible with our Bucket Transformers
 
-    The original can be found here:
-    https://scikit-lego.readthedocs.io/en/latest/_modules/sklego/preprocessing/pandastransformers.html#ColumnSelector
-    Allows selecting specific columns from a pandas DataFrame by name. Can be useful in a sklearn Pipeline.
+    The original can be found [here](
+    https://github.com/koaning/scikit-lego/blob/master/sklego/preprocessing/pandastransformers.py#L176)
+
+    Allows us to select specific columns from a pandas DataFrame by name. Can be useful in a sklearn Pipeline.
 
     Args:
         columns (list): list of column names to be selected

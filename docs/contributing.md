@@ -2,23 +2,30 @@
 
 ## Workflow
 
-Get an overview of on-going and upcoming work on the skorecard GitLab Board.
+Get an overview of on-going and upcoming work on the [skorecard GitLab Board.](https://gitlab.ing.net/RiskandPricingAdvancedAnalytics/skorecard/boards)
 
-Our work flow is the following:
-* Start on the skorecard GitLab with an Issue. In the Issue, "Create merge request". Then in MR, "Check out branch".
-* In a local terminal, check out branch with `git`.
-* Code. Add files. Commit files. Then `git pull origin master`. Resolve conflicts if any (then add/commit). Push.
-* Ask colleague to review MR on GitLab (e.g. by tagging them or assigning them). Discuss and resolve. Additional code
-and commits as necessary.
-* Ask colleague to Approve MR on GitLab.
-* Merge to master on GitLab.
+Our workflow is the following:
+
+- Start on the skorecard GitLab with an Issue. In the Issue, click "Create merge request". Then in this created MR,
+ click "Check out branch".
+ 
+- In a local terminal, check out branch with `git`.
+
+- Code. Add files. Commit files. Then `git pull origin master`. Resolve conflicts if any (then add/commit). Push.
+
+- Ask a colleague to review the MR on GitLab (e.g. by tagging them or assigning them). Discuss and resolve. Add additional code
+and commits if necessary.
+
+- Ask a colleague to approve the MR on GitLab.
+
+- Merge to master on GitLab.
 
 ## Repo structure
 
 ``` nohighlight
 ├── notebooks                  <- Jupyter notebooks are only allowed here (will be moved to docs/ folder instead!)
 ├── skorecard                  <- All reusable source code
-├── docs                       <- Documention in markdown
+├── docs                       <- Documentation in markdown
 └── tests                      <- Tests for unit and functional testing
 .gitignore                     <- Files for git to ignore
 .gitlab-ci.yml                 <- Setup file for CI pipeline
@@ -38,7 +45,7 @@ Please review [RPAA Coding Standards](https://confluence.europe.intranet/display
 
 ## Development setup
 
-We use python editable installs to develop this package. We added all packages also need for development to the "all" optional dependency set. To install:
+We use python editable installs to develop this package. We added all packages also needed for development to the "all" optional dependency set. To install:
 
 ```shell
 git clone git+ssh://git@gitlab.ing.net:2222/RiskandPricingAdvancedAnalytics/skorecard.git
@@ -60,7 +67,7 @@ pre-commit install
 
 We use [SemVer](http://semver.org/) for versioning.
 
-We use [mkdocs](https://www.mkdocs.org/) for documentation, you can view the docs locally with:
+We use [mkdocs](https://www.mkdocs.org/) for documentation. You can view the docs locally with:
 
 ```bash
 mkdocs serve
