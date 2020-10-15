@@ -26,3 +26,33 @@ def test_transform(df):
     tbt.fit(X, y)
 
     assert tbt.transform(X).shape == X.shape
+
+
+def test_running_twice(df):
+    """Test that running same bucketer twice does not change the bins.
+    
+    Context is that OptimalBucketer wraps optbinning.OptimalBinning, which also does prebinning using a DecisionTree.
+    It's a lot more work to extract from optbinning only the optimization algorithm, so we choose to
+    feed to OptimalBucketer already pre-binned buckets.
+    
+    We need to make sure that running it twice doesn't change the buckets.
+    """
+    X = df[["LIMIT_BAL", "BILL_AMT1"]]
+    y = df["default"]
+
+    tbt = DecisionTreeBucketer(variables=["LIMIT_BAL", "BILL_AMT1"])
+    tbt.fit(X, y)
+    X_prebucketed = tbt.transform(X)
+
+    tbt2 = DecisionTreeBucketer(variables=["LIMIT_BAL", "BILL_AMT1"])
+    tbt2.fit(X_prebucketed, y)
+    X_bucketed = tbt2.transform(X_prebucketed)
+
+    assert X_prebucketed["BILL_AMT1"].value_counts().equals(X_bucketed["BILL_AMT1"].value_counts())
+
+    # But what about using a different random_state?
+    tbt3 = DecisionTreeBucketer(variables=["LIMIT_BAL", "BILL_AMT1"], random_state=1)
+    tbt3.fit(X_prebucketed, y)
+    X_bucketed = tbt3.transform(X_prebucketed)
+
+    assert X_prebucketed["BILL_AMT1"].value_counts().equals(X_bucketed["BILL_AMT1"].value_counts())
