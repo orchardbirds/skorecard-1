@@ -1,7 +1,6 @@
 import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
 
-from skorecard.bucket_mapping import BucketMapping
 from sklearn.utils.validation import check_is_fitted
 
 
@@ -34,21 +33,6 @@ class BaseBucketer(BaseEstimator, TransformerMixin):
             for var in variables:
                 assert var in X.columns, f"Column {var} not present in X"
             return variables
-
-    def fit(self, X, y=None):
-        """Fit X, y."""
-        X = self._is_dataframe(X)
-        self.variables = self._check_variables(X, self.variables)
-
-        self.features_bucket_mapping_ = {}
-
-        for feature in self.variables:
-            self.bucketer.fit(X[feature].values, y)
-            self.features_bucket_mapping_[feature] = BucketMapping(
-                feature_name=feature, type="numerical", map=self.bucketer.boundaries
-            )
-
-        return self
 
     def transform(self, X, y=None):
         """Transforms an array into the corresponding buckets fitted by the Transformer.
