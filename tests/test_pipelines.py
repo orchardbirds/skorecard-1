@@ -18,7 +18,7 @@ from skorecard.bucketers import (
     DecisionTreeBucketer,
     OptimalBucketer,
 )
-from skorecard.pipeline import get_features_bucket_mapping, KeepPandas, BucketingPipeline
+from skorecard.pipeline import get_features_bucket_mapping, KeepPandas, make_coarse_classing_pipeline
 from skorecard.bucket_mapping import BucketMapping
 
 
@@ -80,11 +80,9 @@ def test_bucketing_pipeline(df):
 
     prebucket_pipeline = make_pipeline(DecisionTreeBucketer(variables=num_cols, max_n_bins=100, min_bin_size=0.05))
 
-    bucket_pipeline = BucketingPipeline(
-        make_pipeline(
-            OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
-            OptimalBucketer(variables=cat_cols, max_n_bins=10, min_bin_size=0.05),
-        )
+    bucket_pipeline = make_coarse_classing_pipeline(
+        OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
+        OptimalBucketer(variables=cat_cols, max_n_bins=10, min_bin_size=0.05),
     )
 
     pipe = make_pipeline(prebucket_pipeline, bucket_pipeline)
@@ -92,7 +90,6 @@ def test_bucketing_pipeline(df):
     # Make sure we can fit it twice
     pipe.fit(X, y)
 
-    assert bucket_pipeline.pipeline.features_bucket_mapping_
     # make sure sure transforms work.
     pipe.transform(X)
     pipe.fit_transform(X, y)
