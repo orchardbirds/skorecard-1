@@ -84,7 +84,7 @@ class ManualBucketerApp(object):
         self.X_prebucketed = X_prebucketed
         self.index_bucket_pipeline = index_bucket_pipeline
 
-        self._features_bucket_mapping = self.pipeline[index_bucket_pipeline].pipeline.features_bucket_mapping_
+        self._features_bucket_mapping = self.pipeline[index_bucket_pipeline].features_bucket_mapping_
 
         app = JupyterDash(__name__)  # , external_stylesheets=external_stylesheets)
         self.app = app
@@ -96,7 +96,7 @@ class ManualBucketerApp(object):
             return vals
 
         def get_bucket_table(col):
-            df = self.pipeline.transform(self.X)
+            df = Pipeline(self.pipeline.steps[: index_bucket_pipeline + 1]).transform(self.X)
             vals = pd.DataFrame(df[col].value_counts()).sort_index()
             vals["bucket"] = vals.index
             return vals
