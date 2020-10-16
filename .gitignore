@@ -1,4 +1,5 @@
 /notebooks/private/*
+notebooks/*
 .idea
 *.log
 tmd/csv_files/
