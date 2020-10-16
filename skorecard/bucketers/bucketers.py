@@ -4,6 +4,7 @@ import pandas as pd
 from probatus.binning import AgglomerativeBucketer
 from probatus.utils import ApproximationWarning
 
+from typing import Union, List, Dict
 from .base_bucketer import BaseBucketer
 from skorecard.bucket_mapping import BucketMapping, FeaturesBucketMapping
 from skorecard.utils import NotInstalledError
@@ -330,13 +331,14 @@ class DecisionTreeBucketer(BaseBucketer):
     ```
     """
 
-    def __init__(self, variables=[], max_n_bins=100, min_bin_size=0.05, **kwargs) -> None:
+    def __init__(self, variables=[], max_n_bins=100, min_bin_size=0.05, random_state=42, **kwargs) -> None:
         """Init the class.
 
         Args:
             variables (list): The features to bucket. Uses all features if not defined.
             min_bin_size: Minimum fraction of observations in a bucket. Passed directly to min_samples_leaf.
             max_n_bins: Maximum numbers of bins to return. Passed directly to max_leaf_nodes.
+            random_state: The random state, Passed directly to DecisionTreeClassifier
             kwargs: Other parameters passed to DecisionTreeClassifier
         """
         assert isinstance(variables, list)
@@ -345,10 +347,14 @@ class DecisionTreeBucketer(BaseBucketer):
         self.kwargs = kwargs
         self.max_n_bins = max_n_bins
         self.min_bin_size = min_bin_size
+        self.random_state = random_state
 
         self.binners = {
             var: DecisionTreeClassifier(
-                max_leaf_nodes=self.max_n_bins, min_samples_leaf=self.min_bin_size, random_state=42, **self.kwargs
+                max_leaf_nodes=self.max_n_bins,
+                min_samples_leaf=self.min_bin_size,
+                random_state=random_state,
+                **self.kwargs,
             )
             for var in self.variables
         }
@@ -540,10 +546,9 @@ class UserInputBucketer(BaseBucketer):
     assert len(new_X['LIMIT_BAL'].unique()) == 3
     ```
     
-    TODO: the __repr__ method does not show the full mapping dict..
     """
 
-    def __init__(self, features_bucket_mapping: dict, variables: list = []) -> None:
+    def __init__(self, features_bucket_mapping: Union[Dict, FeaturesBucketMapping], variables: List = []) -> None:
         """Initialise the user-defined boundaries with a dictionary.
 
         Args:
@@ -558,6 +563,9 @@ class UserInputBucketer(BaseBucketer):
             self.features_bucket_mapping_ = FeaturesBucketMapping(features_bucket_mapping)
         else:
             self.features_bucket_mapping_ = features_bucket_mapping
+
+        # Save under input name, for __repr___
+        self.features_bucket_mapping = self.features_bucket_mapping_
 
         # If user did not specify any variables,
         # use all the variables defined in the features_bucket_mapping
