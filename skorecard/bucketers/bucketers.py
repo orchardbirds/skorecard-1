@@ -7,7 +7,7 @@ from probatus.utils import ApproximationWarning
 from typing import Union, List, Dict
 from .base_bucketer import BaseBucketer
 from skorecard.bucket_mapping import BucketMapping, FeaturesBucketMapping
-from skorecard.utils import NotInstalledError
+from skorecard.utils import NotInstalledError, NotPreBucketedError
 
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.tree import _tree
@@ -31,9 +31,6 @@ class OptimalBucketer(BaseBucketer):
     
     - Is supervised: is uses the target variable to find good buckets
     - Supports both numerical and categorical features
-    
-    TODO: We probably want more control over pre-binning.
-    We can write a lower-level ConstrainedProgrammingBucketer that wraps optbinning's `cp` solver.
     
     Example:
     
@@ -61,24 +58,11 @@ class OptimalBucketer(BaseBucketer):
         self.variables_type = variables_type
         self.max_n_bins = max_n_bins
         self.min_bin_size = min_bin_size
-        assert variables_type in ["numerical", "categorical"]
+        self.kwargs = kwargs
 
-        self.binners = {
-            var: OptimalBinning(
-                name=var,
-                dtype=self.variables_type,
-                solver="cp",
-                monotonic_trend="auto_asc_desc",
-                min_prebin_size=0.02,
-                max_n_prebins=100,
-                min_bin_size=self.min_bin_size,
-                max_n_bins=self.max_n_bins,
-                cat_cutoff=0.05,
-                time_limit=25,
-                **kwargs,
-            )
-            for var in self.variables
-        }
+        assert variables_type in ["numerical", "categorical"]
+        assert "min_prebin_size" not in self.kwargs, "You need to do pre-binning yourself, see skorecard docs"
+        assert "max_n_prebins" not in self.kwargs, "You need to do pre-binning yourself, see skorecard docs"
 
     def fit(self, X, y):
         """Fit X, y."""
@@ -88,9 +72,38 @@ class OptimalBucketer(BaseBucketer):
             y = y.values
 
         self.features_bucket_mapping_ = {}
+        self.binners = {}
 
         for feature in self.variables:
-            binner = self.binners.get(feature)
+
+            if self.variables_type == "numerical":
+                uniq_values = np.sort(np.unique(X[feature].values))
+                if len(uniq_values) > 100:
+                    raise NotPreBucketedError(
+                        f"""
+                        OptimalBucketer requires numerical feature '{feature}' to be pre-bucketed:
+                        currently there are {len(uniq_values)} unique values present.
+                        """
+                    )
+                user_splits = uniq_values
+            else:
+                user_splits = None
+
+            binner = OptimalBinning(
+                name=feature,
+                dtype=self.variables_type,
+                solver="cp",
+                monotonic_trend="auto_asc_desc",
+                # We want skorecard users to explictly define pre-binning for numerical features
+                # Settings the user_splits prevents OptimalBinning from doing pre-binning again.
+                user_splits=user_splits,
+                min_bin_size=self.min_bin_size,
+                max_n_bins=self.max_n_bins,
+                cat_cutoff=0.05,
+                time_limit=25,
+                **self.kwargs,
+            )
+            self.binners[feature] = binner
 
             binner.fit(X[feature].values, y)
 
@@ -349,25 +362,22 @@ class DecisionTreeBucketer(BaseBucketer):
         self.min_bin_size = min_bin_size
         self.random_state = random_state
 
-        self.binners = {
-            var: DecisionTreeClassifier(
-                max_leaf_nodes=self.max_n_bins,
-                min_samples_leaf=self.min_bin_size,
-                random_state=random_state,
-                **self.kwargs,
-            )
-            for var in self.variables
-        }
-
     def fit(self, X, y):
         """Fit X,y."""
         X = self._is_dataframe(X)
         self.variables = self._check_variables(X, self.variables)
 
         self.features_bucket_mapping_ = {}
+        self.binners = {}
 
         for feature in self.variables:
-            binner = self.binners.get(feature)
+            binner = DecisionTreeClassifier(
+                max_leaf_nodes=self.max_n_bins,
+                min_samples_leaf=self.min_bin_size,
+                random_state=self.random_state,
+                **self.kwargs,
+            )
+            self.binners[feature] = binner
             binner.fit(X[feature].values.reshape(-1, 1), y)
 
             # Extract fitted boundaries
