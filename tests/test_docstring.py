@@ -26,8 +26,10 @@ MODULES_TO_TEST = [skorecard.apps.manual_bucketer_app]
 CLASSES_TO_TEST = [
     skorecard.apps.ManualBucketerApp,
     skorecard.linear_model.LogisticRegression,
-    skorecard.pipeline.ColumnSelector,
     skorecard.pipeline.KeepPandas,
+    skorecard.pipeline.make_coarse_classing_pipeline,
+    skorecard.pipeline.tweak_buckets,
+    skorecard.pipeline.get_features_bucket_mapping,
     skorecard.bucketers.OptimalBucketer,
     skorecard.bucketers.EqualWidthBucketer,
     skorecard.bucketers.AgglomerativeClusteringBucketer,
