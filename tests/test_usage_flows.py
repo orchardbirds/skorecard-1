@@ -1,11 +1,9 @@
-from skorecard import datasets
 from skorecard.bucketers import DecisionTreeBucketer, OptimalBucketer
 from sklearn.pipeline import make_pipeline
 
 
-def test_full_pipeline():
+def test_full_pipeline(df):
     """Tests some complete pipelines."""
-    df = datasets.load_uci_credit_card(as_frame=True)
     X = df.drop(columns=["default"])
     y = df["default"]
 

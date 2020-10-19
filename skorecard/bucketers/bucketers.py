@@ -44,20 +44,34 @@ class OptimalBucketer(BaseBucketer):
     ```
     """
 
-    def __init__(self, variables=[], variables_type="numerical", max_n_bins=10, min_bin_size=0.05, **kwargs) -> None:
+    def __init__(
+        self,
+        variables=[],
+        variables_type="numerical",
+        max_n_bins=10,
+        min_bin_size=0.05,
+        cat_cutoff=0.05,
+        time_limit=25,
+        **kwargs,
+    ) -> None:
         """Initialize Optimal Bucketer.
         
         Args:
             variables: List of variables to bucket.
             variables_type: Type of the variables
-            min_bin_size: Minimum fraction of observations in a bucket.
-            max_n_bins: Maximum numbers of bins to return.
-            kwargs: Other parameters passed to optbinning.OptimalBinning
+            min_bin_size: Minimum fraction of observations in a bucket. Passed to optbinning.OptimalBinning.
+            max_n_bins: Maximum numbers of bins to return. Passed to optbinning.OptimalBinning.
+            cat_cutoff: Threshold ratio to below which categories are grouped
+                together in a bucket 'other'. Passed to optbinning.OptimalBinning.
+            time_limit: Time limit in seconds to find an optimal solution. Passed to optbinning.OptimalBinning.
+            kwargs: Other parameters passed to optbinning.OptimalBinning. Passed to optbinning.OptimalBinning.
         """
         self.variables = variables
         self.variables_type = variables_type
         self.max_n_bins = max_n_bins
         self.min_bin_size = min_bin_size
+        self.cat_cutoff = cat_cutoff
+        self.time_limit = time_limit
         self.kwargs = kwargs
 
         assert variables_type in ["numerical", "categorical"]
@@ -99,8 +113,8 @@ class OptimalBucketer(BaseBucketer):
                 user_splits=user_splits,
                 min_bin_size=self.min_bin_size,
                 max_n_bins=self.max_n_bins,
-                cat_cutoff=0.05,
-                time_limit=25,
+                cat_cutoff=self.cat_cutoff,
+                time_limit=self.time_limit,
                 **self.kwargs,
             )
             self.binners[feature] = binner

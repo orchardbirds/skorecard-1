@@ -1,16 +1,9 @@
-from skorecard import datasets
 from skorecard.bucketers import OrdinalCategoricalBucketer
 
 # from sklearn.pipeline import Pipeline, FeatureUnion
 # from skorecard.pipeline import ColumnSelector
 import numpy as np
 import pytest
-
-
-@pytest.fixture()
-def df():
-    """Generate dataframe."""
-    return datasets.load_uci_credit_card(as_frame=True)
 
 
 def test_threshold_min(df) -> None:

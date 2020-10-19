@@ -1,14 +1,7 @@
-from skorecard import datasets
 from skorecard.bucketers import UserInputBucketer
 from skorecard.bucket_mapping import BucketMapping
 
 import pytest
-
-
-@pytest.fixture()
-def df():
-    """Generate dataframe."""
-    return datasets.load_uci_credit_card(as_frame=True)
 
 
 @pytest.fixture()

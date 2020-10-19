@@ -10,7 +10,6 @@ from sklearn.exceptions import NotFittedError
 from sklearn.preprocessing import StandardScaler
 from sklearn.compose import ColumnTransformer
 
-from skorecard import datasets
 from skorecard.bucketers import (
     EqualWidthBucketer,
     EqualFrequencyBucketer,
@@ -22,17 +21,11 @@ from skorecard.pipeline import get_features_bucket_mapping, KeepPandas, make_coa
 from skorecard.bucket_mapping import BucketMapping
 
 
-@pytest.fixture()
-def df():
-    """Generate dataframe."""
-    return datasets.load_uci_credit_card(as_frame=True)
-
-
 @pytest.mark.filterwarnings("ignore:sklearn.")
 def test_keep_pandas(df, caplog):
     """Tests the KeepPandas() class."""
     y = df["default"].values
-    X = df.drop(columns=["default"])
+    X = df.drop(columns=["default", "pet_ownership"])
 
     bucket_pipeline = make_pipeline(StandardScaler(), EqualWidthBucketer(bins=5, variables=["LIMIT_BAL", "BILL_AMT1"]),)
     # Doesn't work, input should be a pandas dataframe.
