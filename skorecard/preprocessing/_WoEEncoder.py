@@ -1,8 +1,8 @@
 import numpy as np
-import pandas as pd
 
 from skorecard.bucketers.base_bucketer import BaseBucketer
 from skorecard.bucket_mapping import BucketMapping
+from skorecard.metrics.metrics import woe_1d
 
 
 class WoeEncoder(BaseBucketer):
@@ -61,25 +61,13 @@ class WoeEncoder(BaseBucketer):
         X = self._is_dataframe(X)
         self._check_contains_na(X, self.variables)
 
-        X["target"] = y
         self.features_bucket_mapping_ = {}
 
-        total_pos = X["target"].sum()
-        total_neg = X.shape[0] - total_pos
-        X["non_target"] = np.where(X["target"] == 1, 0, 1)
-
         for var in self.variables:
-            pos = X.groupby([var])["target"].sum() / total_pos
-            neg = X.groupby([var])["non_target"].sum() / total_neg
-
-            t = pd.concat([pos + self.epsilon, neg + self.epsilon], axis=1)
-            t["woe"] = np.log(t["target"] / t["non_target"])
-
-            if any(t["target"] == 0) or any(t["non_target"] == 0):
-                raise ZeroDivisionError("One of the categories has no occurances of the positive class")
+            bins, woe, _, _ = woe_1d(X[var], y, epsilon=self.epsilon)
 
             self.features_bucket_mapping_[var] = BucketMapping(
-                feature_name=var, type="categorical", map=t["woe"].to_dict()
+                feature_name=var, type="categorical", map=dict(zip(bins, woe))
             )
 
         return self

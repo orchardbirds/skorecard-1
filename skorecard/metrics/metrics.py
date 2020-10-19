@@ -3,11 +3,11 @@ import numpy as np
 from sklearn.metrics import make_scorer
 
 
-def woe_1d(X, y, epsilon=0.0001):
+def woe_1d(x, y, epsilon=0.0001):
     """Compute the weight of evidence on a 1-dimensional array.
 
     Args:
-        X (np.array): 1d array, (binned) feature
+        x (np.array): 1d array, (binned) feature
         y (np.array): target
         epsilon (float): Amount to be added to relative counts in order to avoid division by zero in the WOE
             calculation.
@@ -18,20 +18,33 @@ def woe_1d(X, y, epsilon=0.0001):
         - counts_0: count of entries per bin where y==0
         - counts_1: count of entries per bin where y==1
     """
-    if 0 not in X:
-        raise ValueError("Array must contain an index 0")
-    X_0 = X[y == 0]
-    X_1 = X[y == 1]
+    if 0 not in x:
+        raise ValueError("Array x must contain an index 0")
+    if len(np.unique(y)) != 2:
+        raise ValueError("y must contain a binary target")
 
-    total_0 = X_0.shape[0]
-    total_1 = X_1.shape[0]
+    x_0 = x[y == 0]
+    x_1 = x[y == 1]
 
-    bins = np.unique(X)
-    counts_0 = np.bincount(X_0, minlength=len(bins))
-    counts_1 = np.bincount(X_1, minlength=len(bins))
+    total_0 = x_0.shape[0]
+    total_1 = x_1.shape[0]
+
+    bins = np.unique(x)
+    counts_0 = np.bincount(x_0, minlength=len(bins))
+    counts_1 = np.bincount(x_1, minlength=len(bins))
 
     woe_num = (counts_0 / total_0) + epsilon
     woe_denom = (counts_1 / total_1) + epsilon
+
+    # Make sure to give informative error when dividing by zero error occurs
+    msg = """
+    One of the unique values in X has no occurances of the %s class.
+    Set epsilon to a very small value, or use a more coarse binning.
+    """
+    if any(woe_num == 0):
+        raise ZeroDivisionError(msg % "negative")
+    if any(woe_denom == 0):
+        raise ZeroDivisionError(msg % "positive")
 
     woe_values = np.log(woe_num / woe_denom)
 
