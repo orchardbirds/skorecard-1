@@ -15,12 +15,8 @@ def df():
 def example_features_bucket_map():
     """Generate example dict."""
     return {
-        "LIMIT_BAL": BucketMapping(
-            feature_name="LIMIT_BAL", type="numerical", map=[10000.0, 105000.0, 265000.0, 760000.0], right=True,
-        ),
-        "BILL_AMT1": BucketMapping(
-            feature_name="BILL_AMT1", type="numerical", map=[-165580.0, 34211.5, 173337.5, 610723.0], right=True,
-        ),
+        "LIMIT_BAL": BucketMapping(feature_name="LIMIT_BAL", type="numerical", map=[105000.0, 265000.0], right=True,),
+        "BILL_AMT1": BucketMapping(feature_name="BILL_AMT1", type="numerical", map=[34211.5, 173337.5], right=True,),
     }
 
 

@@ -8,8 +8,6 @@ from skorecard.bucketers import (
     EqualWidthBucketer,
     AgglomerativeClusteringBucketer,
     EqualFrequencyBucketer,
-    DecisionTreeBucketer,
-    OrdinalCategoricalBucketer,
 )
 
 BUCKETERS_WITH_SET_BINS = [
@@ -17,8 +15,6 @@ BUCKETERS_WITH_SET_BINS = [
     AgglomerativeClusteringBucketer,
     EqualFrequencyBucketer,
 ]
-
-BUCKETERS_AUTO_BINS = [DecisionTreeBucketer, OrdinalCategoricalBucketer]
 
 
 @pytest.fixture()
@@ -72,3 +68,14 @@ def test_type_error_input(bucketer, df):
     pipe = make_pipeline(StandardScaler(), bucketer(bins=7, variables=["BILL_AMT1"]),)
     with pytest.raises(TypeError):
         pipe.fit_transform(df)
+
+
+@pytest.mark.parametrize("bucketer", BUCKETERS_WITH_SET_BINS)
+def test_zero_indexed(bucketer, df):
+    """Test that bins are zero-indexed."""
+    BUCK = bucketer(bins=3)
+    x_t = BUCK.fit_transform(df)
+    assert x_t["MARRIAGE"].min() == 0
+    assert x_t["EDUCATION"].min() == 0
+    assert x_t["LIMIT_BAL"].min() == 0
+    assert x_t["BILL_AMT1"].min() == 0

@@ -7,21 +7,17 @@ def test_bucket_mapping_numerical():
     """Tests numerical transforms."""
     x = [0, 1, 2, 3, 4, 5]
     bucket = BucketMapping("feature1", "numerical", map=[3, 4])
-    assert all(np.equal(bucket.transform(x), np.array([1.0, 1.0, 1.0, 1.0, 1.0, 1.0])))
-    # np.digitize(x, [3,4], right=True)
+    assert all(np.equal(bucket.transform(x), np.digitize(x, [3, 4], right=True)))
     # array([0, 0, 0, 0, 1, 2])
 
     x = [0, 1, 2, 3, 4, 5]
     bucket = BucketMapping("feature1", "numerical", map=[2, 3, 4])
-    assert all(np.equal(bucket.transform(x), np.array([1.0, 1.0, 1.0, 1.0, 2.0, 2.0])))
-    # np.digitize(x, [2, 3, 4], right=True)
+    assert all(np.equal(bucket.transform(x), np.digitize(x, [2, 3, 4], right=True)))
     # array([0, 0, 0, 1, 2, 3])
 
     x = [0, 1, np.nan, 3, 4, 5]
     bucket = BucketMapping("feature1", "numerical", map=[2, 3, 4])
-    assert np.allclose(bucket.transform(x), np.array([1.0, 1.0, np.nan, 1.0, 2.0, 2.0]), equal_nan=True)
-    # np.digitize(x, [2, 3, 4], right=True)
-    # array([0, 0, 3, 1, 2, 3])
+    assert np.allclose(bucket.transform(x), np.array([0.0, 0.0, np.nan, 1.0, 2.0, 3.0]), equal_nan=True)
 
 
 def test_bucket_mapping_categorical():
