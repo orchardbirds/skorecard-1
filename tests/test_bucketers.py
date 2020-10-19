@@ -3,7 +3,6 @@ import pytest
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import make_pipeline
 
-from skorecard import datasets
 from skorecard.bucketers import (
     EqualWidthBucketer,
     AgglomerativeClusteringBucketer,
@@ -15,12 +14,6 @@ BUCKETERS_WITH_SET_BINS = [
     AgglomerativeClusteringBucketer,
     EqualFrequencyBucketer,
 ]
-
-
-@pytest.fixture()
-def df():
-    """Generate dataframe."""
-    return datasets.load_uci_credit_card(as_frame=True)
 
 
 @pytest.mark.parametrize("bucketer", BUCKETERS_WITH_SET_BINS)
@@ -65,6 +58,7 @@ def test_error_input(bucketer, df):
 @pytest.mark.parametrize("bucketer", BUCKETERS_WITH_SET_BINS)
 def test_type_error_input(bucketer, df):
     """Test that input is always a dataFrame."""
+    df = df.drop(columns=["pet_ownership"])
     pipe = make_pipeline(StandardScaler(), bucketer(bins=7, variables=["BILL_AMT1"]),)
     with pytest.raises(TypeError):
         pipe.fit_transform(df)
@@ -74,7 +68,7 @@ def test_type_error_input(bucketer, df):
 def test_zero_indexed(bucketer, df):
     """Test that bins are zero-indexed."""
     BUCK = bucketer(bins=3)
-    x_t = BUCK.fit_transform(df)
+    x_t = BUCK.fit_transform(df.drop(columns=["pet_ownership"]))
     assert x_t["MARRIAGE"].min() == 0
     assert x_t["EDUCATION"].min() == 0
     assert x_t["LIMIT_BAL"].min() == 0

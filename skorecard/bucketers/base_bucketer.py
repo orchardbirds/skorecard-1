@@ -28,11 +28,12 @@ class BaseBucketer(BaseEstimator, TransformerMixin):
     def _check_variables(X, variables):
         assert isinstance(variables, list)
         if len(variables) == 0:
-            return X.columns
+            variables = list(X.columns)
         else:
             for var in variables:
-                assert var in X.columns, f"Column {var} not present in X"
-            return variables
+                assert var in list(X.columns), f"Column {var} not present in X"
+        assert variables is not None and len(variables) > 0
+        return variables
 
     def transform(self, X, y=None):
         """Transforms an array into the corresponding buckets fitted by the Transformer.

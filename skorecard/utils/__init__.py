@@ -1,5 +1,5 @@
 from .arrayfuncs import reshape_1d_to_2d
-from .exceptions import DimensionalityError, UnknownCategoryError, NotInstalledError
+from .exceptions import DimensionalityError, UnknownCategoryError, NotInstalledError, NotPreBucketedError
 from .dataframe import detect_types
 
 __all__ = [
@@ -8,4 +8,5 @@ __all__ = [
     "UnknownCategoryError",
     "NotInstalledError",
     "detect_types",
+    "NotPreBucketedError",
 ]

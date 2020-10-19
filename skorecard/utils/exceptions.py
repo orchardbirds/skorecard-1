@@ -1,3 +1,15 @@
+class NotPreBucketedError(Exception):
+    """Raise this when a feature is not prebucketed (has >100 unique values)."""
+
+    def __init__(self, message):
+        """Raise this when this when a feature is not prebucketed (has >100 unique values).
+
+        Args:
+            message: (str) message when exception is raised
+        """
+        self.message = message
+
+
 class DimensionalityError(Exception):
     """Raise this when the Dimension of the numpy array or pandas DataFrame is wrong."""
 
