@@ -2,8 +2,10 @@ import numpy as np
 import pytest
 import pandas as pd
 
-from skorecard import datasets
-from skorecard.bucketers import WoEBucketer
+from skorecard.preprocessing import WoeEncoder
+
+
+# TODO: WoE should treat missing values as a separate bin and thus handled seamlessly.
 
 
 @pytest.fixture()
@@ -33,17 +35,11 @@ def X_y_2():
     return X, y
 
 
-@pytest.fixture()
-def df():
-    """Generate dataframe."""
-    return datasets.load_uci_credit_card(as_frame=True)
-
-
 def test_woe_transformed_dimensions(X_y):
     """Tests that the total number of unique WOEs matches the unique number of bins in X."""
     X, y = X_y
 
-    woeb = WoEBucketer(variables=["col1", "col2"])
+    woeb = WoeEncoder(variables=["col1", "col2"])
     new_X = woeb.fit_transform(X, y)
     assert len(new_X["col1"].unique()) == len(X["col1"].unique())
     assert len(new_X["col2"].unique()) == len(X["col2"].unique())
@@ -53,7 +49,7 @@ def test_missing_bucket(X_y_2):
     """Tests that the total number of unique WOEs matches the unique number of bins in X."""
     X, y = X_y_2
 
-    woeb = WoEBucketer(variables=["col1", "col2"])
+    woeb = WoeEncoder(variables=["col1", "col2"])
     new_X = woeb.fit_transform(X, y)
 
     assert new_X.shape == X.shape
@@ -67,14 +63,14 @@ def test_missing_bucket(X_y_2):
 
     # If epsilon is set to zero, expect a Division By Zero exception
     with pytest.raises(ZeroDivisionError):
-        WoEBucketer(epsilon=0, variables=["col1", "col2"]).fit_transform(X, y)
+        WoeEncoder(epsilon=0, variables=["col1", "col2"]).fit_transform(X, y)
 
 
 def test_woe_values(X_y):
     """Tests the value of the WOE."""
     X, y = X_y
 
-    woeb = WoEBucketer(variables=["col1", "col2"])
+    woeb = WoeEncoder(variables=["col1", "col2"])
     new_X = woeb.fit_transform(X, y)
     new_X
 

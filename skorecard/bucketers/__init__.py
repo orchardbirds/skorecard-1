@@ -9,7 +9,6 @@ from .bucketers import (
     DecisionTreeBucketer,
     OrdinalCategoricalBucketer,
     UserInputBucketer,
-    WoEBucketer,
 )
 
 __all__ = [
@@ -20,5 +19,4 @@ __all__ = [
     "DecisionTreeBucketer",
     "OrdinalCategoricalBucketer",
     "UserInputBucketer",
-    "WoEBucketer",
 ]
