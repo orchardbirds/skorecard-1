@@ -91,21 +91,21 @@ def make_coarse_classing_pipeline(*steps, **kwargs):
     from sklearn.pipeline import make_pipeline
     
     df = datasets.load_uci_credit_card(as_frame=True)
-    X = df.drop(columns=["default"])
     y = df["default"]
+    X = df.drop(columns=["default"])
 
     num_cols = ["LIMIT_BAL", "BILL_AMT1"]
     cat_cols = ["EDUCATION", "MARRIAGE"]
 
     pipeline = make_pipeline(
-        DecisionTreeBucketer(variables=num_cols, max_n_bins=100, min_bin_size=0.05)
+        DecisionTreeBucketer(variables=num_cols, max_n_bins=100, min_bin_size=0.05),
         make_coarse_classing_pipeline(
             OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
             OptimalBucketer(variables=cat_cols, max_n_bins=10, min_bin_size=0.05),
         )
     )
     
-    pipe.fit(X, y)
+    pipeline.fit(X, y)
     ```
     """
     for step in steps:
