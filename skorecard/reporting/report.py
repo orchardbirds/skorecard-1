@@ -41,7 +41,7 @@ def create_report(X, y, column, bucketer, epsilon=0.00001, verbose=False):
 
     X_transform["target"] = y
 
-    # Defaults
+    # Default stats
     tmp = (
         X_transform.groupby([column])["target"]
         .sum()
