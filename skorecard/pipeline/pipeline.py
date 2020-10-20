@@ -1,4 +1,5 @@
 import logging
+import copy
 
 import pandas as pd
 import numpy as np
@@ -14,7 +15,7 @@ from skorecard.apps import ManualBucketerApp
 
 class KeepPandas(BaseEstimator, TransformerMixin):
     """Keep pandas dataframe in a sklearn pipeline.
-   
+
     This is a helper class to turn sklearn transformations back to pandas.
 
     !!! warning
@@ -25,10 +26,10 @@ class KeepPandas(BaseEstimator, TransformerMixin):
     from skorecard.pipeline import KeepPandas
     from skorecard import datasets
     from skorecard.bucketers import EqualWidthBucketer
-    
+
     from sklearn.pipeline import make_pipeline
     from sklearn.preprocessing import StandardScaler
-    
+
     X, y = datasets.load_uci_credit_card(return_X_y=True)
 
     bucket_pipeline = make_pipeline(
@@ -81,15 +82,15 @@ class KeepPandas(BaseEstimator, TransformerMixin):
 
 def make_coarse_classing_pipeline(*steps, **kwargs):
     """Identity sklearn pipeline steps as coarse classing.
-    
+
     Very simple wrapper of sklearn.pipeline.make_pipeline()
-    
+
     ```python
     from skorecard import datasets
     from skorecard.bucketers import DecisionTreeBucketer, OptimalBucketer
     from skorecard.pipeline import make_coarse_classing_pipeline, tweak_buckets
     from sklearn.pipeline import make_pipeline
-    
+
     df = datasets.load_uci_credit_card(as_frame=True)
     y = df["default"]
     X = df.drop(columns=["default"])
@@ -104,7 +105,7 @@ def make_coarse_classing_pipeline(*steps, **kwargs):
             OptimalBucketer(variables=cat_cols, max_n_bins=10, min_bin_size=0.05),
         )
     )
-    
+
     pipeline.fit(X, y)
     ```
     """
@@ -122,7 +123,7 @@ def make_coarse_classing_pipeline(*steps, **kwargs):
 
 def tweak_buckets(pipe: Pipeline, X: pd.DataFrame, y: np.ndarray) -> Pipeline:
     """Tweak the bucket manually.
-    
+
     ```python
     from skorecard import datasets
     from skorecard.bucketers import DecisionTreeBucketer, OptimalBucketer
@@ -130,7 +131,7 @@ def tweak_buckets(pipe: Pipeline, X: pd.DataFrame, y: np.ndarray) -> Pipeline:
     from sklearn.pipeline import make_pipeline
     from sklearn.preprocessing import OneHotEncoder
     from sklearn.linear_model import LogisticRegression
-    
+
     df = datasets.load_uci_credit_card(as_frame=True)
     X = df.drop(columns=["default"])
     y = df["default"]
@@ -147,12 +148,15 @@ def tweak_buckets(pipe: Pipeline, X: pd.DataFrame, y: np.ndarray) -> Pipeline:
         OneHotEncoder(),
         LogisticRegression()
     )
-     
+
     pipeline.fit(X, y)
     pipeline.predict_proba(X)
     # pipe2 = tweak_buckets(pipeline, X, y) # not run - don't start server
     ```
     """
+    # Copy the pipeline
+    pipe = copy.deepcopy(pipe)
+
     # Find the bucketing pipeline step
     bucket_pipes = [s for s in pipe.steps if getattr(s[1], "name", "") == "bucketing_pipeline"]
 
@@ -248,11 +252,11 @@ def get_features_bucket_mapping(pipe: Pipeline) -> FeaturesBucketMapping:
         ('one-hot-encoding', OneHotEncoder()),
         ('lr', LogisticRegression())
     ])
-    
+
     pipe.fit(X, y)
     features_bucket_mapping = get_features_bucket_mapping(pipe)
     ```
-    
+
     Args:
         pipe (Pipeline): fitted scikitlearn pipeline with bucketing transformers
 

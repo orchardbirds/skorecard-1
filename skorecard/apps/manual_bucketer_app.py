@@ -56,7 +56,10 @@ except ModuleNotFoundError:
 
 # TODO make this internal to the package
 # external_stylesheets = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
-external_stylesheets = [dbc.themes.SKETCHY]
+external_stylesheets = [
+    # "https://codepen.io/your-codepen-name/pen/your-pen-identifier.css",
+    dbc.themes.BOOTSTRAP
+]
 
 
 class ManualBucketerApp(object):
@@ -86,7 +89,11 @@ class ManualBucketerApp(object):
 
         self._features_bucket_mapping = self.pipeline[index_bucket_pipeline].features_bucket_mapping_
 
-        app = JupyterDash(__name__)  # , external_stylesheets=external_stylesheets)
+        app = JupyterDash(__name__, external_stylesheets=external_stylesheets)
+        # for url in external_stylesheets:
+        #     app.css.append_css({
+        #         "external_url": url
+        #     })
         self.app = app
 
         def get_prebucket_table(col):
@@ -104,40 +111,63 @@ class ManualBucketerApp(object):
         # Add the layout
         app.layout = html.Div(
             children=[
-                html.H2(children="skorecard.ManualBucketerApp"),
-                html.Div(
+                dbc.Row(
+                    dbc.Col(
+                        html.Div(
+                            [
+                                html.H2(children="skorecard.ManualBucketerApp"),
+                                dcc.Dropdown(
+                                    id="input_column",
+                                    options=[{"label": o, "value": o} for o in self.X_prebucketed.columns],
+                                    value=self.X.columns[0],
+                                ),
+                            ],
+                            style={"width": "20%"},
+                        )
+                    )
+                ),
+                # dcc.Markdown(id="output-container-range-slider"),
+                dbc.Row(
                     [
-                        dcc.Dropdown(
-                            id="input_column",
-                            options=[{"label": o, "value": o} for o in self.X_prebucketed.columns],
-                            value=self.X.columns[0],
+                        dbc.Col(dcc.Graph(id="graph-prebucket")),
+                        dbc.Col(dcc.Graph(id="graph-bucket")),
+                    ]
+                ),
+                dbc.Row(
+                    [
+                        dbc.Col(
+                            html.Div(
+                                [
+                                    html.P(children="pre-bucketing table"),
+                                    dash_table.DataTable(
+                                        id="prebucket_table",
+                                        columns=[
+                                            {"name": i, "id": i}
+                                            for i in get_prebucket_table(self.X_prebucketed.columns[0])
+                                        ],
+                                        data=get_prebucket_table(self.X_prebucketed.columns[0]).to_dict("records"),
+                                        editable=True,
+                                    ),
+                                ]
+                            ),
+                            style={"padding-left": "1em"},
+                        ),
+                        dbc.Col(
+                            html.Div(
+                                [
+                                    html.P(children="bucketing table"),
+                                    dash_table.DataTable(
+                                        id="bucket_table",
+                                        columns=[{"name": i, "id": i} for i in get_bucket_table(self.X.columns[0])],
+                                        data=get_bucket_table(self.X.columns[0]).to_dict("records"),
+                                    ),
+                                ]
+                            ),
+                            style={"padding-right": "1em"},
                         ),
                     ],
-                    style={"width": "20%"},
-                ),
-                dcc.Markdown(id="output-container-range-slider"),
-                html.Div(
-                    [
-                        dcc.Graph(id="distr-graph"),
-                        # dcc.RangeSlider(
-                        #     id="range-slider",
-                        #     allowCross=True,
-                        #     tooltip={"always_visible": True, "placement": "topLeft"},
-                        # ),
-                        html.P(children="pre-bucketing table"),
-                        dash_table.DataTable(
-                            id="prebucket_table",
-                            columns=[{"name": i, "id": i} for i in get_prebucket_table(self.X_prebucketed.columns[0])],
-                            data=get_prebucket_table(self.X_prebucketed.columns[0]).to_dict("records"),
-                            editable=True,
-                        ),
-                        html.P(children="bucketing table"),
-                        dash_table.DataTable(
-                            id="bucket_table",
-                            columns=[{"name": i, "id": i} for i in get_bucket_table(self.X.columns[0])],
-                            data=get_bucket_table(self.X.columns[0]).to_dict("records"),
-                        ),
-                    ]
+                    no_gutters=False,
+                    justify="center",
                 ),
             ]
         )
@@ -172,24 +202,31 @@ class ManualBucketerApp(object):
         #     return f"Boundaries for `{col}`: `{value}`"
 
         @app.callback(
-            Output("distr-graph", "figure"), [Input("input_column", "value")],
+            Output("graph-prebucket", "figure"),
+            [Input("input_column", "value")],
         )
         def plot_dist(col):
-
             fig = plot_bins(self.X_prebucketed, col)
             fig.update_layout(transition_duration=50)
             fig.update_layout(showlegend=False)
             fig.update_layout(xaxis_title=col)
-            # fig.update_yaxes(showticklabels=False)
-
-            # Add boundary cuts as vertical lines
-            # if boundaries:
-            #     shapes = []
-            #     for b in boundaries:
-            #         shapes.append(dict(type="line", yref="paper", y0=0, y1=1, xref="x", x0=b, x1=b))
-            #     fig.update_layout(shapes=shapes)
-
+            fig.update_layout(title="Pre-bucketed")
             return fig
+
+        @app.callback(
+            Output("graph-bucket", "figure"),
+            [Input("input_column", "value")],
+        )
+        def plot_dist2(col):
+            fig = plot_bins(get_bucketed_X(), col)
+            fig.update_layout(transition_duration=50)
+            fig.update_layout(showlegend=False)
+            fig.update_layout(xaxis_title=col)
+            fig.update_layout(title="Bucketed")
+            return fig
+
+        def get_bucketed_X():
+            return Pipeline(self.pipeline.steps[: self.index_bucket_pipeline + 1]).transform(self.X)
 
     def run_server(self, *args, **kwargs):
         """Start a dash server.
