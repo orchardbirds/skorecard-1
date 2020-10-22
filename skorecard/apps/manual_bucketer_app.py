@@ -18,10 +18,11 @@ X, y = datasets.load_uci_credit_card(return_X_y=True)
 """
 
 import pandas as pd
-from sklearn.pipeline import Pipeline
+from sklearn.pipeline import Pipeline, make_pipeline
 
 from skorecard.utils.exceptions import NotInstalledError
-from skorecard.reporting import plot_bins
+from skorecard.reporting import plot_bins, bucket_table
+from skorecard.pipeline import split_pipeline
 
 # Dash + dependencies
 try:
@@ -68,7 +69,7 @@ class ManualBucketerApp(object):
     Class that contains a Dash app
     """
 
-    def __init__(self, pipeline: Pipeline, X: pd.DataFrame, X_prebucketed: pd.DataFrame, y, index_bucket_pipeline: int):
+    def __init__(self, pipeline: Pipeline, X: pd.DataFrame, y):
         """Create new dash app.
 
         Args:
@@ -84,29 +85,32 @@ class ManualBucketerApp(object):
         self.pipeline = pipeline
         self.X = X
         self.y = y
-        self.X_prebucketed = X_prebucketed
-        self.index_bucket_pipeline = index_bucket_pipeline
 
-        self._features_bucket_mapping = self.pipeline[index_bucket_pipeline].features_bucket_mapping_
+        self.prebucketing_pipeline, self.ui_bucketer, self.postbucketing_pipeline = split_pipeline(pipeline)
+
+        self.X_prebucketed = self.prebucketing_pipeline.transform(self.X)
 
         app = JupyterDash(__name__, external_stylesheets=external_stylesheets)
-        # for url in external_stylesheets:
-        #     app.css.append_css({
-        #         "external_url": url
-        #     })
         self.app = app
 
+        @app.callback(
+            Output("prebucket_table", "data"),
+            [Input("input_column", "value")],
+        )
         def get_prebucket_table(col):
-            vals = pd.DataFrame(self.X_prebucketed[col].value_counts()).sort_index()
-            vals["bucket"] = vals.index
-            vals["new_bucket"] = vals.index
-            return vals
+            table = bucket_table(x_original=self.X[col], x_bucketed=self.X_prebucketed[col], y=self.y)
+            table = table.rename(columns={"bucket": "pre-bucket"})
+            return table.to_dict("records")
 
+        @app.callback(
+            Output("bucket_table", "data"),
+            [Input("input_column", "value")],
+        )
         def get_bucket_table(col):
-            df = Pipeline(self.pipeline.steps[: index_bucket_pipeline + 1]).transform(self.X)
-            vals = pd.DataFrame(df[col].value_counts()).sort_index()
-            vals["bucket"] = vals.index
-            return vals
+            X_bucketed = make_pipeline(self.prebucketing_pipeline, self.ui_bucketer).transform(self.X)
+
+            table = bucket_table(x_original=self.X_prebucketed[col], x_bucketed=X_bucketed[col], y=self.y)
+            return table.to_dict("records")
 
         # Add the layout
         app.layout = html.Div(
@@ -119,14 +123,14 @@ class ManualBucketerApp(object):
                                 dcc.Dropdown(
                                     id="input_column",
                                     options=[{"label": o, "value": o} for o in self.X_prebucketed.columns],
-                                    value=self.X.columns[0],
+                                    value=self.X_prebucketed.columns[0],
                                 ),
                             ],
                             style={"width": "20%"},
                         )
                     )
                 ),
-                # dcc.Markdown(id="output-container-range-slider"),
+                dcc.Markdown(id="output-container-range-slider"),
                 dbc.Row(
                     [
                         dbc.Col(dcc.Graph(id="graph-prebucket")),
@@ -141,16 +145,25 @@ class ManualBucketerApp(object):
                                     html.P(children="pre-bucketing table"),
                                     dash_table.DataTable(
                                         id="prebucket_table",
+                                        style_data={
+                                            "whiteSpace": "normal",
+                                            "height": "auto",
+                                        },
+                                        style_cell={"overflow": "hidden", "textOverflow": "ellipsis", "maxWidth": 0},
+                                        style_as_list_view=True,
+                                        page_size=20,
                                         columns=[
-                                            {"name": i, "id": i}
-                                            for i in get_prebucket_table(self.X_prebucketed.columns[0])
+                                            {"name": "pre-bucket", "id": "pre-bucket"},
+                                            {"name": "min", "id": "min"},
+                                            {"name": "max", "id": "max"},
+                                            {"name": "count", "id": "count"},
                                         ],
-                                        data=get_prebucket_table(self.X_prebucketed.columns[0]).to_dict("records"),
                                         editable=True,
                                     ),
-                                ]
+                                ],
+                                style={"padding-left": "1em", "width": "400px"},
                             ),
-                            style={"padding-left": "1em"},
+                            style={"margin-left": "1em"},
                         ),
                         dbc.Col(
                             html.Div(
@@ -158,12 +171,24 @@ class ManualBucketerApp(object):
                                     html.P(children="bucketing table"),
                                     dash_table.DataTable(
                                         id="bucket_table",
-                                        columns=[{"name": i, "id": i} for i in get_bucket_table(self.X.columns[0])],
-                                        data=get_bucket_table(self.X.columns[0]).to_dict("records"),
+                                        style_data={
+                                            "whiteSpace": "normal",
+                                            "height": "auto",
+                                        },
+                                        style_cell={"overflow": "hidden", "textOverflow": "ellipsis", "maxWidth": 0},
+                                        style_as_list_view=True,
+                                        page_size=20,
+                                        columns=[
+                                            {"name": "bucket", "id": "bucket"},
+                                            {"name": "min", "id": "min"},
+                                            {"name": "max", "id": "max"},
+                                            {"name": "count", "id": "count"},
+                                        ],
+                                        editable=False,
                                     ),
-                                ]
+                                ],
+                                style={"margin-right": "1em", "width": "400px"},
                             ),
-                            style={"padding-right": "1em"},
                         ),
                     ],
                     no_gutters=False,
@@ -226,7 +251,7 @@ class ManualBucketerApp(object):
             return fig
 
         def get_bucketed_X():
-            return Pipeline(self.pipeline.steps[: self.index_bucket_pipeline + 1]).transform(self.X)
+            return make_pipeline(self.prebucketing_pipeline, self.ui_bucketer).transform(self.X)
 
     def run_server(self, *args, **kwargs):
         """Start a dash server.

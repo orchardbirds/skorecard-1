@@ -1,6 +1,7 @@
 import logging
 import copy
 
+from typing import Tuple
 import pandas as pd
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
@@ -10,7 +11,6 @@ from sklearn.utils.validation import check_is_fitted
 
 from skorecard.bucket_mapping import FeaturesBucketMapping
 from skorecard.bucketers import UserInputBucketer
-from skorecard.apps import ManualBucketerApp
 
 
 class KeepPandas(BaseEstimator, TransformerMixin):
@@ -175,6 +175,7 @@ def tweak_buckets(pipe: Pipeline, X: pd.DataFrame, y: np.ndarray) -> Pipeline:
         ```
         """
         raise AssertionError(msg)
+
     if len(bucket_pipes) > 1:
         msg = """
         You need to identity only the bucketing step. You can combine multiple bucketing steps
@@ -187,6 +188,7 @@ def tweak_buckets(pipe: Pipeline, X: pd.DataFrame, y: np.ndarray) -> Pipeline:
         )
         ```
         """
+        raise AssertionError(msg)
 
     index_bucket_pipeline = pipe.steps.index(bucket_pipes[0])
 
@@ -209,22 +211,74 @@ def tweak_buckets(pipe: Pipeline, X: pd.DataFrame, y: np.ndarray) -> Pipeline:
     # This way, we can easily change the mapping for a feature manually
     features_bucket_mapping = get_features_bucket_mapping(pipe[index_bucket_pipeline])
 
-    # Overwrite the pipeline
+    # Overwrite the bucketering pipeline with a UserInputBucketer
     # This is the real 'trick'
     # as it allows us to update with a
     # (potentially tweaked) feature_bucket_mapping
     pipe.steps.pop(index_bucket_pipeline)
-    pipe.steps.insert(index_bucket_pipeline, ["manual_coarse_classing", UserInputBucketer(features_bucket_mapping)])
+    ui_bucketer = UserInputBucketer(features_bucket_mapping)
+    pipe.steps.insert(index_bucket_pipeline, ["manual_coarse_classing", ui_bucketer])
+
+    # ui_bucketer.features_bucket_mapping.get('LIMIT_BAL').map = [1,2,3,4,5]
+
+    # def find_ui_bucketer(pipe):
+    #     for s in pipe.steps:
 
     # Start app
     # app.stop_server()
-    app = ManualBucketerApp(pipe, X, X_prebucketed, y, index_bucket_pipeline)
+    # This import is here to prevent a circular import
+    from skorecard.apps import ManualBucketerApp
+
+    app = ManualBucketerApp(pipe, X, y)
     app.run_server()
 
     return pipe
     # pipe[index_bucket_pipeline].pipeline.features_bucket_mapping_ = <from our app>
     # bucketed_X = pipe.transform(X)
     # binning_table(bucketed_X, y)
+
+
+def split_pipeline(pipe: Pipeline) -> Tuple[Pipeline, UserInputBucketer, Pipeline]:
+    """Splits a pipeline into three parts.
+
+    1) prebucketing (includes preprocessing)
+    2) bucketing by a UserInputBucketer
+    3) postbucketing (includesany postprocessing like WoeEncoder and modelling steps)
+
+    Args:
+        pipe (Pipeline): [description]
+
+    Example:
+
+    ```python
+    1==1
+    ```
+
+    Returns:
+        Tuple[Pipeline, UserInputBucketer, Pipeline]: [description]
+    """
+    pipe = copy.deepcopy(pipe)
+
+    prebucketing = []
+    ui_bucketer = None
+    postbucketing = []
+
+    for step in pipe.steps:
+        if type(step[1]) == UserInputBucketer:
+            ui_bucketer = step[1]
+        else:
+            if ui_bucketer:
+                postbucketing.append(step)
+            else:
+                prebucketing.append(step)
+
+    assert (
+        prebucketing
+    ), "pipeline does not have any preprocessing steps before the UserInputBucketer. Did you do pre-binning?"
+    assert ui_bucketer, "pipeline does not have a step with a UserInputBucketer"
+    assert postbucketing, "pipeline does not have any steps after the UserInputBucketer"
+
+    return Pipeline(prebucketing), ui_bucketer, Pipeline(postbucketing)
 
 
 def get_features_bucket_mapping(pipe: Pipeline) -> FeaturesBucketMapping:

@@ -11,6 +11,7 @@ from skorecard.utils import NotInstalledError, NotPreBucketedError
 
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.tree import _tree
+from sklearn.utils.validation import check_is_fitted
 
 try:
     from optbinning import OptimalBinning
@@ -20,20 +21,20 @@ except ModuleNotFoundError:
 
 class OptimalBucketer(BaseBucketer):
     """Find Optimal Buckets.
-    
+
     Bucket transformer that uses the [optbinning](http://gnpalencia.org/optbinning) package to find optimal buckets.
     This bucketers basically wraps optbinning.OptimalBinning to be consistent with skorecard.
 
     This bucketer uses pre-binning to bucket a feature into max 100 bins. It then uses a constrained programming solver
     to merge buckets, taking into accounts constraints 1) monotonicity in bad rate, 2) at least 5% of records per bin.
-    
+
     This bucketer:
-    
+
     - Is supervised: is uses the target variable to find good buckets
     - Supports both numerical and categorical features
-    
+
     Example:
-    
+
     ```python
     from skorecard import datasets
     from skorecard.bucketers import OptimalBucketer
@@ -55,7 +56,7 @@ class OptimalBucketer(BaseBucketer):
         **kwargs,
     ) -> None:
         """Initialize Optimal Bucketer.
-        
+
         Args:
             variables: List of variables to bucket.
             variables_type: Type of the variables
@@ -145,7 +146,7 @@ class OptimalBucketer(BaseBucketer):
 
 class EqualWidthBucketer(BaseBucketer):
     """Bucket transformer that creates equally spaced bins using numpy.histogram function.
-   
+
     This bucketer:
     - is unsupervised: it does not consider the target value when fitting the buckets.
     - ignores missing values and passes them through.
@@ -208,7 +209,7 @@ class AgglomerativeClusteringBucketer(BaseBucketer):
     This bucketer:
     - is unsupervised: it does not consider the target value when fitting the buckets.
     - ignores missing values and passes them through.
-    
+
     ```python
     from skorecard import datasets
     from skorecard.bucketers import AgglomerativeClusteringBucketer
@@ -267,7 +268,7 @@ class EqualFrequencyBucketer(BaseBucketer):
     This bucketer:
     - is unsupervised: it does not consider the target value when fitting the buckets.
     - ignores missing values and passes them through.
-    
+
     ```python
     from skorecard import datasets
     from skorecard.bucketers import EqualFrequencyBucketer
@@ -294,10 +295,10 @@ class EqualFrequencyBucketer(BaseBucketer):
 
     def fit(self, X, y=None):
         """Fit X, y.
-        
+
         Uses pd.qcut()
         https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.qcut.html
-        
+
         """
         X = self._is_dataframe(X)
         self.variables = self._check_variables(X, self.variables)
@@ -353,7 +354,7 @@ class DecisionTreeBucketer(BaseBucketer):
 
     dt_bucketer = DecisionTreeBucketer(variables=['LIMIT_BAL'])
     dt_bucketer.fit(X, y)
-    
+
     dt_bucketer.fit_transform(X, y)['LIMIT_BAL'].value_counts()
     ```
     """
@@ -444,7 +445,7 @@ class OrdinalCategoricalBucketer(BaseBucketer):
     they will be replaced by 0.
 
     This bucketer:
-    
+
     - is unsupervised when `encoding_method=='frequency'`: it does not consider
         the target value when fitting the buckets.
     - is supervised when `encoding_method=='ordered'`: it uses
@@ -462,12 +463,12 @@ class OrdinalCategoricalBucketer(BaseBucketer):
     bucketer = OrdinalCategoricalBucketer(max_n_categories=2, variables=['EDUCATION'])
     bucketer.fit_transform(X, y)
     ```
-    
+
     Credits: Code & ideas adapted from:
-    
+
     - feature_engine.categorical_encoders.OrdinalCategoricalEncoder
     - feature_engine.categorical_encoders.RareLabelCategoricalEncoder
-    
+
     """
 
     def __init__(self, tol=0.05, max_n_categories=None, variables=[], encoding_method="frequency"):
@@ -569,11 +570,14 @@ class UserInputBucketer(BaseBucketer):
     new_X = ui_bucketer.fit_transform(X)
     assert len(new_X['LIMIT_BAL'].unique()) == 3
     ```
-    
+
     """
 
     def __init__(self, features_bucket_mapping: Union[Dict, FeaturesBucketMapping], variables: List = []) -> None:
         """Initialise the user-defined boundaries with a dictionary.
+
+        Notes:
+        - features_bucket_mapping is stored without the trailing underscore (_) because it is not fitted.
 
         Args:
             features_bucket_mapping (dict): Contains the feature name and boundaries defined for this feature.
@@ -584,26 +588,41 @@ class UserInputBucketer(BaseBucketer):
         if not isinstance(features_bucket_mapping, FeaturesBucketMapping):
             if not isinstance(features_bucket_mapping, dict):
                 raise TypeError("'features_bucket_mapping' must be a dict or FeaturesBucketMapping instance")
-            self.features_bucket_mapping_ = FeaturesBucketMapping(features_bucket_mapping)
+            self.features_bucket_mapping = FeaturesBucketMapping(features_bucket_mapping)
         else:
-            self.features_bucket_mapping_ = features_bucket_mapping
-
-        # Save under input name, for __repr___
-        self.features_bucket_mapping = self.features_bucket_mapping_
+            self.features_bucket_mapping = features_bucket_mapping
 
         # If user did not specify any variables,
         # use all the variables defined in the features_bucket_mapping
         self.variables = variables
         if variables == []:
-            self.variables = list(self.features_bucket_mapping_.maps.keys())
+            self.variables = list(self.features_bucket_mapping.maps.keys())
+
+        # Variable with trailing underscore tells sklearn the transformer is fitted
+        self.is_fitted_ = True
 
     def fit(self, X, y=None):
         """Init the class."""
         return self
 
-    def transform(self, X):
-        """Transform X."""
-        return super().transform(X)
+    def transform(self, X, y=None):
+        """Transforms an array into the corresponding buckets fitted by the Transformer.
+
+        Args:
+            X (pd.DataFrame): dataframe which will be transformed into the corresponding buckets
+            y (array): target
+
+        Returns:
+            pd.DataFrame with transformed features
+        """
+        check_is_fitted(self)
+        X = self._is_dataframe(X)
+
+        for feature in self.variables:
+            bucket_mapping = self.features_bucket_mapping.get(feature)
+            X[feature] = bucket_mapping.transform(X[feature])
+
+        return X
 
 
 class WoEBucketer(BaseBucketer):
