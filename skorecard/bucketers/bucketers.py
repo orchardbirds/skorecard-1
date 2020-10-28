@@ -51,6 +51,9 @@ class OptimalBucketer(BaseBucketer):
         variables_type="numerical",
         max_n_bins=10,
         min_bin_size=0.05,
+        do_prebinning=False,
+        min_prebin_size=0.05,
+        max_n_prebins=100,
         cat_cutoff=0.05,
         time_limit=25,
         **kwargs,
@@ -62,6 +65,11 @@ class OptimalBucketer(BaseBucketer):
             variables_type: Type of the variables
             min_bin_size: Minimum fraction of observations in a bucket. Passed to optbinning.OptimalBinning.
             max_n_bins: Maximum numbers of bins to return. Passed to optbinning.OptimalBinning.
+            do_prebinning: Should we also do pre-binning? Default is False
+            min_prebin_size: Minimum fraction of observations in a pre-bucket.
+                Ignored if allow_prebinning = False. Passed to optbinning.OptimalBinning.
+            max_n_prebins: Maximum numbers of pre-buckets to return. Ignored if allow_prebinning = False.
+                Passed to optbinning.OptimalBinning.
             cat_cutoff: Threshold ratio to below which categories are grouped
                 together in a bucket 'other'. Passed to optbinning.OptimalBinning.
             time_limit: Time limit in seconds to find an optimal solution. Passed to optbinning.OptimalBinning.
@@ -71,13 +79,17 @@ class OptimalBucketer(BaseBucketer):
         self.variables_type = variables_type
         self.max_n_bins = max_n_bins
         self.min_bin_size = min_bin_size
+        self.do_prebinning = do_prebinning
+        self.min_prebin_size = min_prebin_size
+        self.max_n_prebins = max_n_prebins
         self.cat_cutoff = cat_cutoff
         self.time_limit = time_limit
         self.kwargs = kwargs
 
         assert variables_type in ["numerical", "categorical"]
-        assert "min_prebin_size" not in self.kwargs, "You need to do pre-binning yourself, see skorecard docs"
-        assert "max_n_prebins" not in self.kwargs, "You need to do pre-binning yourself, see skorecard docs"
+        if self.do_prebinning is False:
+            assert "min_prebin_size" not in self.kwargs, "You need to do pre-binning yourself, see skorecard docs"
+            assert "max_n_prebins" not in self.kwargs, "You need to do pre-binning yourself, see skorecard docs"
 
     def fit(self, X, y):
         """Fit X, y."""
@@ -91,13 +103,15 @@ class OptimalBucketer(BaseBucketer):
 
         for feature in self.variables:
 
-            if self.variables_type == "numerical":
+            if self.variables_type == "numerical" and self.do_prebinning is False:
                 uniq_values = np.sort(np.unique(X[feature].values))
                 if len(uniq_values) > 100:
                     raise NotPreBucketedError(
                         f"""
                         OptimalBucketer requires numerical feature '{feature}' to be pre-bucketed:
                         currently there are {len(uniq_values)} unique values present.
+
+                        Apply pre-buckets or set 'do_prebinning' to True
                         """
                     )
                 user_splits = uniq_values
@@ -114,6 +128,8 @@ class OptimalBucketer(BaseBucketer):
                 user_splits=user_splits,
                 min_bin_size=self.min_bin_size,
                 max_n_bins=self.max_n_bins,
+                min_prebin_size=self.min_prebin_size,  # ignored if user_splits is specified
+                max_n_prebins=self.max_n_bins,  # ignored if user_splits is specified
                 cat_cutoff=self.cat_cutoff,
                 time_limit=self.time_limit,
                 **self.kwargs,
