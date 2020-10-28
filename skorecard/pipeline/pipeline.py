@@ -121,6 +121,93 @@ def make_coarse_classing_pipeline(*steps, **kwargs):
     return pipeline
 
 
+class UserInputPipeline(BaseEstimator, TransformerMixin):
+    """Class."""
+
+    def __init__(self, pipe: Pipeline, X: pd.DataFrame, y: np.ndarray):
+        """
+        Initialize.
+        """
+        self.X = X
+        self.y = y
+
+        # Make sure we don't change instance of input pipeline
+        pipe = copy.deepcopy(pipe)
+
+        # Find the bucketing pipeline step
+        bucket_pipes = [s for s in pipe.steps if getattr(s[1], "name", "") == "bucketing_pipeline"]
+
+        # Find the bucketing pipeline step
+        if len(bucket_pipes) == 0:
+            msg = """
+            Did not find a bucketing pipeline step. Identity the bucketing pipeline step
+            using skorecard.pipeline.make_coarse_classing_pipeline. Example:
+            
+            ```python
+            from skorecard.pipeline import set_as_bucketing_step
+            bucket_pipeline = make_coarse_classing_pipeline(
+                OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
+                OptimalBucketer(variables=cat_cols, max_n_bins=10, min_bin_size=0.05),
+            )
+            ```
+            """
+            raise AssertionError(msg)
+
+        if len(bucket_pipes) > 1:
+            msg = """
+            You need to identity only the bucketing step. You can combine multiple bucketing steps
+            using sklearn.pipeline.make_pipeline(). Example:
+            
+            ```python
+            bucket_pipeline = make_coarse_classing_pipeline(
+                OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
+                OptimalBucketer(variables=cat_cols, max_n_bins=10, min_bin_size=0.05),
+            )
+            ```
+            """
+            raise AssertionError(msg)
+
+        index_bucket_pipeline = pipe.steps.index(bucket_pipes[0])
+
+        # Get the prebucketed, prepared features.
+        try:
+            X_prebucketed = Pipeline(pipe.steps[:index_bucket_pipeline]).transform(X)
+        except NotFittedError:
+            pipe.fit(X, y)
+            X_prebucketed = Pipeline(pipe.steps[:index_bucket_pipeline]).transform(X)
+
+        # Checks on prebucketed data
+        assert isinstance(X_prebucketed, pd.DataFrame)
+        # Prebucketed features should have at most 100 unique values.
+        # otherwise app prebinning table is too big.
+        for feature in X_prebucketed.columns:
+            if len(X_prebucketed[feature].unique()) > 100:
+                raise AssertionError(f"{feature} has >100 values. Did you pre-bucket?")
+
+        # Save the reference to feature_bucket_mapping_ instance
+        # This way, we can easily change the mapping for a feature manually
+        features_bucket_mapping = get_features_bucket_mapping(pipe[index_bucket_pipeline])
+
+        # Overwrite the bucketering pipeline with a UserInputBucketer
+        # This is the real 'trick'
+        # as it allows us to update with a
+        # (potentially tweaked) feature_bucket_mapping
+        pipe.steps.pop(index_bucket_pipeline)
+        ui_bucketer = UserInputBucketer(features_bucket_mapping)
+        pipe.steps.insert(index_bucket_pipeline, ["manual_coarse_classing", ui_bucketer])
+
+        self.pipe = pipe
+
+        # This import is here to prevent a circular import
+        from skorecard.apps import ManualBucketerApp
+
+        self.mb_app = ManualBucketerApp(pipe, X, y)
+
+    def run_server(self, *args, **kwargs):
+        """Starts the server."""
+        self.mb_app.run_server(*args, **kwargs)
+
+
 def tweak_buckets(pipe: Pipeline, X: pd.DataFrame, y: np.ndarray) -> Pipeline:
     """Tweak the bucket manually.
 
@@ -154,85 +241,9 @@ def tweak_buckets(pipe: Pipeline, X: pd.DataFrame, y: np.ndarray) -> Pipeline:
     # pipe2 = tweak_buckets(pipeline, X, y) # not run - don't start server
     ```
     """
-    # Copy the pipeline
-    pipe = copy.deepcopy(pipe)
-
-    # Find the bucketing pipeline step
-    bucket_pipes = [s for s in pipe.steps if getattr(s[1], "name", "") == "bucketing_pipeline"]
-
-    # Find the bucketing pipeline step
-    if len(bucket_pipes) == 0:
-        msg = """
-        Did not find a bucketing pipeline step. Identity the bucketing pipeline step
-        using skorecard.pipeline.make_coarse_classing_pipeline. Example:
-        
-        ```python
-        from skorecard.pipeline import set_as_bucketing_step
-        bucket_pipeline = make_coarse_classing_pipeline(
-            OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
-            OptimalBucketer(variables=cat_cols, max_n_bins=10, min_bin_size=0.05),
-        )
-        ```
-        """
-        raise AssertionError(msg)
-
-    if len(bucket_pipes) > 1:
-        msg = """
-        You need to identity only the bucketing step. You can combine multiple bucketing steps
-        using sklearn.pipeline.make_pipeline(). Example:
-        
-        ```python
-        bucket_pipeline = make_coarse_classing_pipeline(
-            OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
-            OptimalBucketer(variables=cat_cols, max_n_bins=10, min_bin_size=0.05),
-        )
-        ```
-        """
-        raise AssertionError(msg)
-
-    index_bucket_pipeline = pipe.steps.index(bucket_pipes[0])
-
-    # Get the prebucketed, prepared features.
-    try:
-        X_prebucketed = Pipeline(pipe.steps[:index_bucket_pipeline]).transform(X)
-    except NotFittedError:
-        pipe.fit(X, y)
-        X_prebucketed = Pipeline(pipe.steps[:index_bucket_pipeline]).transform(X)
-
-    # Checks on prebucketed data
-    assert isinstance(X_prebucketed, pd.DataFrame)
-    # Prebucketed features should have at most 100 unique values.
-    # otherwise app prebinning table is too big.
-    for feature in X_prebucketed.columns:
-        if len(X_prebucketed[feature].unique()) > 100:
-            raise AssertionError(f"{feature} has >100 values. Did you pre-bucket?")
-
-    # Save the reference to feature_bucket_mapping_ instance
-    # This way, we can easily change the mapping for a feature manually
-    features_bucket_mapping = get_features_bucket_mapping(pipe[index_bucket_pipeline])
-
-    # Overwrite the bucketering pipeline with a UserInputBucketer
-    # This is the real 'trick'
-    # as it allows us to update with a
-    # (potentially tweaked) feature_bucket_mapping
-    pipe.steps.pop(index_bucket_pipeline)
-    ui_bucketer = UserInputBucketer(features_bucket_mapping)
-    pipe.steps.insert(index_bucket_pipeline, ["manual_coarse_classing", ui_bucketer])
-
-    # ui_bucketer.features_bucket_mapping.get('LIMIT_BAL').map = [1,2,3,4,5]
-
-    # def find_ui_bucketer(pipe):
-    #     for s in pipe.steps:
-
-    # Start app
-    # app.stop_server()
-    # This import is here to prevent a circular import
-    from skorecard.apps import ManualBucketerApp
-
-    app = ManualBucketerApp(pipe, X, y)
-    app.run_server()
-
-    return pipe
+    pass
+    # app.run_server()
+    # return pipe
     # pipe[index_bucket_pipeline].pipeline.features_bucket_mapping_ = <from our app>
     # bucketed_X = pipe.transform(X)
     # binning_table(bucketed_X, y)

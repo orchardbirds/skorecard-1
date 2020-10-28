@@ -4,6 +4,7 @@ from .pipeline import (
     KeepPandas,
     make_coarse_classing_pipeline,
     tweak_buckets,
+    UserInputPipeline,
 )
 
 __all__ = [
@@ -12,4 +13,5 @@ __all__ = [
     "KeepPandas",
     "make_coarse_classing_pipeline",
     "tweak_buckets",
+    "UserInputPipeline",
 ]

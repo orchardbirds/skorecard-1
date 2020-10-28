@@ -17,6 +17,9 @@ X, y = datasets.load_uci_credit_card(return_X_y=True)
 ```
 """
 
+import copy
+
+from skorecard.bucket_mapping import BucketMapping
 import pandas as pd
 from sklearn.pipeline import Pipeline, make_pipeline
 
@@ -28,13 +31,14 @@ from skorecard.pipeline import split_pipeline
 try:
     import dash_core_components as dcc
     import dash_html_components as html
-    from dash.dependencies import Input, Output
+    from dash.dependencies import Input, Output, State
     import dash_table
 except ModuleNotFoundError:
     dcc = NotInstalledError("dash_core_components", "dashboard")
     html = NotInstalledError("dash_html_components", "dashboard")
     Input = NotInstalledError("dash", "dashboard")
     Output = NotInstalledError("dash", "dashboard")
+    State = NotInstalledError("dash", "dashboard")
     dash_table = NotInstalledError("dash_table", "dashboard")
 
 # JupyterDash
@@ -48,6 +52,12 @@ try:
     import dash_bootstrap_components as dbc
 except ModuleNotFoundError:
     dbc = NotInstalledError("dash_bootstrap_components", "dashboard")
+
+try:
+    import plotly.express as px
+except ModuleNotFoundError:
+    px = NotInstalledError("plotly", "reporting")
+
 
 # try:
 #     import plotly.figure_factory as ff
@@ -77,6 +87,7 @@ class ManualBucketerApp(object):
             y (np.array): target array
             features_bucket_mapping: Class with bucketing information for features
 
+
         Returns:
             dash: Dash app
         """
@@ -87,11 +98,25 @@ class ManualBucketerApp(object):
         self.y = y
 
         self.prebucketing_pipeline, self.ui_bucketer, self.postbucketing_pipeline = split_pipeline(pipeline)
-
         self.X_prebucketed = self.prebucketing_pipeline.transform(self.X)
+
+        self.original_feature_mapping = copy.deepcopy(self.ui_bucketer.features_bucket_mapping)
 
         app = JupyterDash(__name__, external_stylesheets=external_stylesheets)
         self.app = app
+
+        @app.callback(
+            Output("original_boundaries", "children"),
+            [Input("input_column", "value")],
+        )
+        def update_original_boundaries(col):
+            return str(self.original_feature_mapping.get(col).map)
+
+        @app.callback(
+            Output("updated_boundaries", "children"), Input("bucket_table", "data"), State("input_column", "value")
+        )
+        def update_updated_boundaries(bucket_table, col):
+            return str(self.ui_bucketer.features_bucket_mapping.get(col).map)
 
         @app.callback(
             Output("prebucket_table", "data"),
@@ -100,15 +125,31 @@ class ManualBucketerApp(object):
         def get_prebucket_table(col):
             table = bucket_table(x_original=self.X[col], x_bucketed=self.X_prebucketed[col], y=self.y)
             table = table.rename(columns={"bucket": "pre-bucket"})
+
+            # Apply bucket mapping
+            bucket_mapping = self.ui_bucketer.features_bucket_mapping.get(col)
+            table["bucket"] = bucket_mapping.transform(table["pre-bucket"])
             return table.to_dict("records")
 
         @app.callback(
             Output("bucket_table", "data"),
-            [Input("input_column", "value")],
+            [
+                Input("input_column", "value"),
+                Input("prebucket_table", "data"),
+            ],
         )
-        def get_bucket_table(col):
-            X_bucketed = make_pipeline(self.prebucketing_pipeline, self.ui_bucketer).transform(self.X)
+        def get_bucket_table(col, prebucket_table):
 
+            new_buckets = pd.DataFrame()
+            new_buckets["pre_buckets"] = [row.get("pre-bucket") for row in prebucket_table]
+            new_buckets["buckets"] = [int(row.get("bucket")) for row in prebucket_table]
+
+            bucket_mapping = self.ui_bucketer.features_bucket_mapping.get(col)
+
+            boundaries = determine_boundaries(new_buckets, bucket_mapping)
+            self.ui_bucketer.features_bucket_mapping.get(col).map = boundaries
+
+            X_bucketed = make_pipeline(self.prebucketing_pipeline, self.ui_bucketer).transform(self.X)
             table = bucket_table(x_original=self.X_prebucketed[col], x_bucketed=X_bucketed[col], y=self.y)
             return table.to_dict("records")
 
@@ -142,40 +183,60 @@ class ManualBucketerApp(object):
                         dbc.Col(
                             html.Div(
                                 [
-                                    html.P(children="pre-bucketing table"),
+                                    html.H4(children="pre-bucketing table"),
+                                    html.P(["Original boundaries: ", html.Code(["1,2,4"], id="original_boundaries")]),
+                                    html.P(["Updated boundaries: ", html.Code(["1,2,4"], id="updated_boundaries")]),
                                     dash_table.DataTable(
                                         id="prebucket_table",
                                         style_data={
                                             "whiteSpace": "normal",
                                             "height": "auto",
                                         },
-                                        style_cell={"overflow": "hidden", "textOverflow": "ellipsis", "maxWidth": 0},
+                                        style_cell={
+                                            "overflow": "hidden",
+                                            "textOverflow": "ellipsis",
+                                            "maxWidth": 0,
+                                            "textAlign": "center",
+                                        },
                                         style_as_list_view=True,
                                         page_size=20,
                                         columns=[
-                                            {"name": "pre-bucket", "id": "pre-bucket"},
-                                            {"name": "min", "id": "min"},
-                                            {"name": "max", "id": "max"},
-                                            {"name": "count", "id": "count"},
+                                            {"name": "pre-bucket", "id": "pre-bucket", "editable": False},
+                                            {"name": "min", "id": "min", "editable": False},
+                                            {"name": "max", "id": "max", "editable": False},
+                                            {"name": "count", "id": "count", "editable": False},
+                                            {"name": "bucket", "id": "bucket", "editable": True},
+                                        ],
+                                        style_data_conditional=[
+                                            {
+                                                "if": {"column_editable": True},
+                                                "backgroundColor": "rgb(46,139,87)",
+                                                "color": "white",
+                                            }
                                         ],
                                         editable=True,
                                     ),
                                 ],
-                                style={"padding-left": "1em", "width": "400px"},
+                                style={"padding-left": "1em", "width": "600px"},
                             ),
                             style={"margin-left": "1em"},
                         ),
                         dbc.Col(
                             html.Div(
                                 [
-                                    html.P(children="bucketing table"),
+                                    html.H4(children="bucketing table"),
                                     dash_table.DataTable(
                                         id="bucket_table",
                                         style_data={
                                             "whiteSpace": "normal",
                                             "height": "auto",
                                         },
-                                        style_cell={"overflow": "hidden", "textOverflow": "ellipsis", "maxWidth": 0},
+                                        style_cell={
+                                            "overflow": "hidden",
+                                            "textOverflow": "ellipsis",
+                                            "maxWidth": 0,
+                                            "textAlign": "center",
+                                        },
                                         style_as_list_view=True,
                                         page_size=20,
                                         columns=[
@@ -197,35 +258,6 @@ class ManualBucketerApp(object):
             ]
         )
 
-        # @app.callback(
-        #     [
-        #         Output("range-slider", "min"),
-        #         Output("range-slider", "max"),
-        #         Output("range-slider", "value"),
-        #         Output("range-slider", "marks"),
-        #     ],
-        #     [Input("input_column", "value")],
-        # )
-        # def change_col_update_slider(col):
-        #     col_min = round(self.X_prebucketed[col].min(), 2)
-        #     col_max = round(self.X_prebucketed[col].max(), 2)
-
-        #     bucket_mapping = self._features_bucket_mapping.get(col)
-        #     mark_edges = [round(x, 2) for x in bucket_mapping.map]
-
-        #     marks = {}
-        #     for b in mark_edges:
-        #         marks[b] = {"label": str(b)}
-
-        #     return col_min, col_max, mark_edges, marks
-
-        # @app.callback(
-        #     Output("output-container-range-slider", "children"),
-        #     [Input("range-slider", "value"), Input("input_column", "value")],
-        # )
-        # def update_bucket_mapping(value, col):
-        #     return f"Boundaries for `{col}`: `{value}`"
-
         @app.callback(
             Output("graph-prebucket", "figure"),
             [Input("input_column", "value")],
@@ -240,18 +272,20 @@ class ManualBucketerApp(object):
 
         @app.callback(
             Output("graph-bucket", "figure"),
-            [Input("input_column", "value")],
+            [Input("bucket_table", "data")],
         )
-        def plot_dist2(col):
-            fig = plot_bins(get_bucketed_X(), col)
+        def plot_dist2(data):
+
+            plotdf = pd.DataFrame(
+                {"bucket": [int(row.get("bucket")) for row in data], "counts": [int(row.get("count")) for row in data]}
+            )
+
+            fig = px.bar(plotdf, x="bucket", y="counts")
             fig.update_layout(transition_duration=50)
             fig.update_layout(showlegend=False)
-            fig.update_layout(xaxis_title=col)
+            fig.update_layout(xaxis_title="Bucket")
             fig.update_layout(title="Bucketed")
             return fig
-
-        def get_bucketed_X():
-            return make_pipeline(self.prebucketing_pipeline, self.ui_bucketer).transform(self.X)
 
     def run_server(self, *args, **kwargs):
         """Start a dash server.
@@ -268,3 +302,84 @@ class ManualBucketerApp(object):
         [More info](https://community.plotly.com/t/how-to-shutdown-a-jupyterdash-app-in-external-mode/41292/3)
         """
         self.app._terminate_server_for_port("localhost", 8050)
+
+
+def determine_boundaries(df: pd.DataFrame, bucket_mapping: BucketMapping) -> list:
+    """
+    Example.
+
+    ```python
+    import pandas as pd
+    from skorecard.bucket_mapping import BucketMapping
+    df = pd.DataFrame()
+    df['pre_buckets'] = [0,1,2,3,4,5,6,7,8,9,10]
+    df['buckets'] = [0,0,1,1,2,2,2,3,3,4,5]
+
+    bucket_mapping = BucketMapping('feature1', 'numerical', map = [2,3,4,5])
+
+    determine_boundaries(df, bucket_mapping)
+    ```
+    """
+    assert "pre_buckets" in df.columns
+    assert "buckets" in df.columns
+
+    if bucket_mapping.type != "numerical":
+        raise NotImplementedError("todo")
+
+    dfg = df.groupby(["buckets"]).agg(["max"])
+    dfg.columns = dfg.columns.get_level_values(1)
+    boundaries = dfg["max"]
+    if bucket_mapping.right is False:
+        # the prebuckets are integers
+        # So we can safely add 1 to make sure the
+        # map includes the right prebuckets
+        boundaries += 1
+
+    # Drop the last value,
+    # This makes sure outlier values are in the same bucket
+    # instead of a new one
+    boundaries = list(boundaries)[:-1]
+
+    assert sorted(boundaries) == boundaries, "buckets must be sorted"
+    return boundaries
+
+
+# This section is here to help debug the Dash app
+# This custom code start the underlying flask server from dash directly
+# allowing better debugging in IDE's f.e. using breakpoint()
+# Example:
+# python -m ipdb -c continue manual_bucketer_app.py
+if __name__ == "__main__":
+
+    from skorecard import datasets
+    from skorecard.bucketers import DecisionTreeBucketer, OptimalBucketer
+    from skorecard.pipeline import make_coarse_classing_pipeline
+    from sklearn.preprocessing import OneHotEncoder
+    from sklearn.linear_model import LogisticRegression
+
+    df = datasets.load_uci_credit_card(as_frame=True)
+    X = df.drop(columns=["default"])
+    y = df["default"]
+
+    num_cols = ["LIMIT_BAL", "BILL_AMT1"]
+    cat_cols = ["EDUCATION", "MARRIAGE"]
+
+    pipeline = make_pipeline(
+        DecisionTreeBucketer(variables=num_cols, max_n_bins=100, min_bin_size=0.05),
+        make_coarse_classing_pipeline(
+            OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
+            OptimalBucketer(variables=cat_cols, max_n_bins=10, min_bin_size=0.05),
+        ),
+        OneHotEncoder(),
+        LogisticRegression(),
+    )
+
+    pipeline.fit(X, y)
+    pipeline.predict_proba(X)
+
+    from skorecard.pipeline import UserInputPipeline
+
+    uipipe = UserInputPipeline(pipeline, X, y)
+
+    application = uipipe.mb_app.app.server
+    application.run(debug=True)
