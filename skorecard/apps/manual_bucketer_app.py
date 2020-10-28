@@ -139,7 +139,6 @@ class ManualBucketerApp(object):
             ],
         )
         def get_bucket_table(col, prebucket_table):
-
             new_buckets = pd.DataFrame()
             new_buckets["pre_buckets"] = [row.get("pre-bucket") for row in prebucket_table]
             new_buckets["buckets"] = [int(row.get("bucket")) for row in prebucket_table]
@@ -150,7 +149,9 @@ class ManualBucketerApp(object):
             self.ui_bucketer.features_bucket_mapping.get(col).map = boundaries
 
             X_bucketed = make_pipeline(self.prebucketing_pipeline, self.ui_bucketer).transform(self.X)
-            table = bucket_table(x_original=self.X_prebucketed[col], x_bucketed=X_bucketed[col], y=self.y)
+            table = bucket_table(
+                x_original=self.X_prebucketed[col], x_bucketed=X_bucketed[col], y=self.y, bucket_mapping=bucket_mapping
+            )
             return table.to_dict("records")
 
         # Add the layout
@@ -184,8 +185,6 @@ class ManualBucketerApp(object):
                             html.Div(
                                 [
                                     html.H4(children="pre-bucketing table"),
-                                    html.P(["Original boundaries: ", html.Code(["1,2,4"], id="original_boundaries")]),
-                                    html.P(["Updated boundaries: ", html.Code(["1,2,4"], id="updated_boundaries")]),
                                     dash_table.DataTable(
                                         id="prebucket_table",
                                         style_data={
@@ -202,9 +201,14 @@ class ManualBucketerApp(object):
                                         page_size=20,
                                         columns=[
                                             {"name": "pre-bucket", "id": "pre-bucket", "editable": False},
-                                            {"name": "min", "id": "min", "editable": False},
-                                            {"name": "max", "id": "max", "editable": False},
+                                            {"name": "range", "id": "range", "editable": False},
                                             {"name": "count", "id": "count", "editable": False},
+                                            {"name": "count %", "id": "count %", "editable": False},
+                                            {"name": "Non-event", "id": "Non-event", "editable": False},
+                                            {"name": "Event", "id": "Event", "editable": False},
+                                            {"name": "Event Rate", "id": "Event Rate", "editable": False},
+                                            {"name": "WoE", "id": "WoE", "editable": False},
+                                            {"name": "IV", "id": "IV", "editable": False},
                                             {"name": "bucket", "id": "bucket", "editable": True},
                                         ],
                                         style_data_conditional=[
@@ -216,10 +220,12 @@ class ManualBucketerApp(object):
                                         ],
                                         editable=True,
                                     ),
+                                    html.P(["Original boundaries: ", html.Code(["1,2,4"], id="original_boundaries")]),
+                                    html.P(["Updated boundaries: ", html.Code(["1,2,4"], id="updated_boundaries")]),
                                 ],
-                                style={"padding-left": "1em", "width": "600px"},
+                                style={"padding": "0 1em 0 1em", "width": "100%"},
                             ),
-                            style={"margin-left": "1em"},
+                            style={"margin": "0 1em 0 1em"},
                         ),
                         dbc.Col(
                             html.Div(
@@ -241,15 +247,21 @@ class ManualBucketerApp(object):
                                         page_size=20,
                                         columns=[
                                             {"name": "bucket", "id": "bucket"},
-                                            {"name": "min", "id": "min"},
-                                            {"name": "max", "id": "max"},
+                                            {"name": "range", "id": "range"},
                                             {"name": "count", "id": "count"},
+                                            {"name": "count %", "id": "count %"},
+                                            {"name": "Non-event", "id": "Non-event"},
+                                            {"name": "Event", "id": "Event"},
+                                            {"name": "Event Rate", "id": "Event Rate"},
+                                            {"name": "WoE", "id": "WoE"},
+                                            {"name": "IV", "id": "IV"},
                                         ],
                                         editable=False,
                                     ),
                                 ],
-                                style={"margin-right": "1em", "width": "400px"},
+                                style={"padding": "0 1em 0 1em", "width": "100%"},
                             ),
+                            style={"margin": "0 1em 0 1em"},
                         ),
                     ],
                     no_gutters=False,

@@ -45,3 +45,24 @@ def test_bucket_mapping_categorical():
     bucket = BucketMapping("feature1", "categorical", map={"car": 0, "truck": 0})
     reference = pd.Series([0, other_category_encoding, other_category_encoding, 0, 0, np.nan])
     assert bucket.transform(x).equals(reference)
+
+
+def test_get_map():
+    """Make sure nicely formatting is returned."""
+    bucket = BucketMapping("feature1", "numerical", map=[1, 3, 4], right=True)
+    assert bucket.get_map() == ["(-inf, 1.0]", "(1.0, 3.0]", "(3.0, 4.0]", "(4.0, inf]"]
+
+    bucket = BucketMapping("feature1", "numerical", map=[1, 3, 4], right=False)
+    assert bucket.get_map() == ["[-inf, 1.0)", "[1.0, 3.0)", "[3.0, 4.0)", "[4.0, inf)"]
+
+    bucket = BucketMapping("feature1", "numerical", map=[1], right=True)
+    assert bucket.get_map() == ["(-inf, 1.0]", "(1.0, inf]"]
+
+    bucket = BucketMapping("feature1", "numerical", map=[1], right=False)
+    assert bucket.get_map() == ["[-inf, 1.0)", "[1.0, inf)"]
+
+    bucket = BucketMapping("feature1", "numerical", map=[], right=True)
+    assert bucket.get_map() == ["(-inf, inf]"]
+
+    bucket = BucketMapping("feature1", "numerical", map=[], right=False)
+    assert bucket.get_map() == ["[-inf, inf)"]

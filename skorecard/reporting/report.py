@@ -1,13 +1,18 @@
 import pandas as pd
 import numpy as np
-from typing import Union
+from typing import Union, Optional
 
+from skorecard.bucket_mapping import BucketMapping
 
 # TODO: missing should be a separate row
 
 
 def bucket_table(
-    x_original: pd.Series, x_bucketed: pd.Series, y: Union[pd.Series, np.array], epsilon: float = 0.00001
+    x_original: pd.Series,
+    x_bucketed: pd.Series,
+    y: Union[pd.Series, np.array],
+    bucket_mapping: Optional[BucketMapping] = None,
+    epsilon: float = 0.00001,
 ) -> pd.DataFrame:
     """Create a table with results of bucketing.
 
@@ -15,23 +20,59 @@ def bucket_table(
 
     ```python
     from skorecard import datasets
-    from skorecard.bucketers import OptimalBucketer
+    from skorecard.bucketers import DecisionTreeBucketer
     from skorecard.reporting import bucket_table
 
     X, y = datasets.load_uci_credit_card(return_X_y=True)
-    X_trans = OptimalBucketer(max_n_bins=4, min_bin_size=0.05).fit_transform(X, y)
-    x_original = X['EDUCATION']
-    x_bucketed = X_trans['EDUCATION']
+    db = DecisionTreeBucketer(max_n_bins=7, min_bin_size=0.05)
+    X_trans = db.fit_transform(X, y)
+    x_original = X['BILL_AMT1']
+    x_bucketed = X_trans['BILL_AMT1']
 
     bucket_table(x_original, x_bucketed, y)
+
+    # or with a bucket_mapping for nice bucket range printing
+    bucket_table(x_original, x_bucketed, y,
+        bucket_mapping = db.features_bucket_mapping_.get('BILL_AMT1')
+    )
     ```
     """
-    table = pd.DataFrame()
-    table["original"] = x_original
-    table["bucket"] = x_bucketed
-    table = table.groupby("bucket")["original"].agg(["min", "max", "count"])
-    table = table.reset_index()
-    # TODO: add more info here, like event rates, etc
+    ref = pd.DataFrame()
+    ref["original"] = x_original
+    ref["bucket"] = x_bucketed
+    ref["y"] = y
+
+    table = ref.groupby("bucket")["original"].agg(["min", "max", "count"]).reset_index()
+    table["range"] = table["min"].astype(str) + " - " + table["max"].astype(str)
+    table = table.drop(columns=["min", "max"])
+    table = table[["bucket", "range", "count"]]
+
+    # Add bucket map as range, if available.
+    if bucket_mapping:
+        # note that the buckets are sorted, so we can use that order
+        table["range"] = table["bucket"].replace(table["bucket"].unique(), bucket_mapping.get_map())
+
+    # Add counts %
+    table["count %"] = round((table["count"] / table["count"].sum()) * 100, 2)
+    table["count %"] = table["count %"].astype(str) + "%"
+
+    # Add event rates
+    er = ref.groupby(["bucket", "y"]).agg({"y": ["count"]}).reset_index()
+    er.columns = [" ".join(col).strip() for col in er.columns.values]
+    er = er.pivot(index="bucket", columns="y", values="y count")
+    er = er.rename(columns={0: "Non-event", 1: "Event"})
+    er["Event Rate"] = round((er["Event"] / (er["Event"] + er["Non-event"])) * 100, 2).astype(str) + "%"
+    table = table.merge(er, how="left", on="bucket")
+
+    # Add WoE and IV
+    table["% Event"] = table["Event"] / table["Event"].sum()
+    table["% Non Event"] = table["Non-event"] / table["Non-event"].sum()
+    table["WoE"] = ((table["% Event"] + epsilon) / (table["% Non Event"] + epsilon)).apply(lambda x: np.log(x))
+    table["WoE"] = round(table["WoE"], 3)
+    table["IV"] = (table["% Event"] - table["% Non Event"]) * table["WoE"]
+    table["IV"] = round(table["IV"], 3)
+    table = table.drop(columns=["% Event", "% Non Event"])
+
     return table
 
 

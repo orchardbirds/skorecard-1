@@ -47,6 +47,20 @@ class BucketMapping:
         """
         assert self.type in ["numerical", "categorical"]
 
+    def get_map(self):
+        """Pretty form of the boundaries.
+
+        For example [2] will return ["(-inf, 2.0]", "(2.0, inf]"]
+        """
+        if self.type == "categorical":
+            # We might want to implement a nice max_length form here?
+            # ['a',...,'z']
+            return self.map
+
+        m = [str(c) for c in pd.cut(x=[], bins=[-np.inf] + list(self.map) + [np.inf], right=self.right).categories]
+
+        return m
+
     def transform(self, x):
         """Applies bucketing to and array.
 
