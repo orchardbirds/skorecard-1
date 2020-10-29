@@ -201,11 +201,15 @@ class ManualBucketerApp(object):
                                             "height": "auto",
                                         },
                                         style_cell={
+                                            "height": "auto",
                                             "overflow": "hidden",
                                             "textOverflow": "ellipsis",
                                             "maxWidth": 0,
                                             "textAlign": "center",
                                         },
+                                        style_cell_conditional=[
+                                            {"if": {"column_id": "range"}, "width": "180px"},
+                                        ],
                                         style_as_list_view=True,
                                         page_size=20,
                                         columns=[
@@ -221,12 +225,16 @@ class ManualBucketerApp(object):
                                             {"name": "bucket", "id": "bucket", "editable": True},
                                         ],
                                         style_data_conditional=[
+                                            {"if": {"row_index": "odd"}, "backgroundColor": "rgb(248, 248, 248)"},
                                             {
                                                 "if": {"column_editable": True},
                                                 "backgroundColor": "rgb(46,139,87)",
                                                 "color": "white",
-                                            }
+                                            },
                                         ],
+                                        style_header={
+                                            "backgroundColor": "rgb(230, 230, 230)",
+                                        },
                                         editable=True,
                                     ),
                                     html.P(["Original boundaries: ", html.Code(["1,2,4"], id="original_boundaries")]),
@@ -247,11 +255,18 @@ class ManualBucketerApp(object):
                                             "height": "auto",
                                         },
                                         style_cell={
+                                            "height": "auto",
                                             "overflow": "hidden",
                                             "textOverflow": "ellipsis",
                                             "maxWidth": 0,
                                             "textAlign": "center",
                                         },
+                                        style_header={
+                                            "backgroundColor": "rgb(230, 230, 230)",
+                                        },
+                                        style_data_conditional=[
+                                            {"if": {"row_index": "odd"}, "backgroundColor": "rgb(248, 248, 248)"}
+                                        ],
                                         style_as_list_view=True,
                                         page_size=20,
                                         columns=[
@@ -276,7 +291,8 @@ class ManualBucketerApp(object):
                     no_gutters=False,
                     justify="center",
                 ),
-            ]
+            ],
+            style={"margin": "1em", "padding:": "1em"},
         )
 
         @app.callback(
