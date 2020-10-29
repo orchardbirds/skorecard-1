@@ -132,16 +132,24 @@ class ManualBucketerApp(object):
             return table.to_dict("records")
 
         @app.callback(
-            Output("bucket_table", "data"),
+            [Output("bucket_table", "data"), Output("pre-bucket-error", "children")],
             [
                 Input("input_column", "value"),
                 Input("prebucket_table", "data"),
             ],
         )
         def get_bucket_table(col, prebucket_table):
+
             new_buckets = pd.DataFrame()
             new_buckets["pre_buckets"] = [row.get("pre-bucket") for row in prebucket_table]
             new_buckets["buckets"] = [int(row.get("bucket")) for row in prebucket_table]
+
+            # Explicit error handling
+            if all(new_buckets["buckets"].sort_values().values == new_buckets["buckets"].values):
+                error = []
+            else:
+                error = dbc.Alert("The buckets most be in ascending order!", color="danger")
+                return None, error
 
             bucket_mapping = self.ui_bucketer.features_bucket_mapping.get(col)
 
@@ -152,7 +160,7 @@ class ManualBucketerApp(object):
             table = bucket_table(
                 x_original=self.X_prebucketed[col], x_bucketed=X_bucketed[col], y=self.y, bucket_mapping=bucket_mapping
             )
-            return table.to_dict("records")
+            return table.to_dict("records"), error
 
         # Add the layout
         app.layout = html.Div(
@@ -185,6 +193,7 @@ class ManualBucketerApp(object):
                             html.Div(
                                 [
                                     html.H4(children="pre-bucketing table"),
+                                    html.Div(children=[], id="pre-bucket-error"),
                                     dash_table.DataTable(
                                         id="prebucket_table",
                                         style_data={
