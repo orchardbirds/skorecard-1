@@ -18,14 +18,13 @@ X, y = datasets.load_uci_credit_card(return_X_y=True)
 """
 
 import copy
-
-from skorecard.bucket_mapping import BucketMapping
 import pandas as pd
 from sklearn.pipeline import Pipeline, make_pipeline
 
 from skorecard.utils.exceptions import NotInstalledError
 from skorecard.reporting import plot_bins, bucket_table
 from skorecard.pipeline import split_pipeline
+from skorecard.apps.app_utils import determine_boundaries, perc_data_bars
 
 # Dash + dependencies
 try:
@@ -108,7 +107,8 @@ class ManualBucketerApp(object):
         self.app = app
 
         @app.callback(
-            Output("original_boundaries", "children"), [Input("input_column", "value")],
+            Output("original_boundaries", "children"),
+            [Input("input_column", "value")],
         )
         def update_original_boundaries(col):
             return str(self.original_feature_mapping.get(col).map)
@@ -120,7 +120,8 @@ class ManualBucketerApp(object):
             return str(self.ui_bucketer.features_bucket_mapping.get(col).map)
 
         @app.callback(
-            Output("prebucket_table", "data"), [Input("input_column", "value")],
+            Output("prebucket_table", "data"),
+            [Input("input_column", "value")],
         )
         def get_prebucket_table(col):
             table = bucket_table(x_original=self.X[col], x_bucketed=self.X_prebucketed[col], y=self.y)
@@ -213,7 +214,9 @@ class ManualBucketerApp(object):
                                             {"name": "IV", "id": "IV", "editable": False},
                                             {"name": "bucket", "id": "bucket", "editable": True},
                                         ],
-                                        style_data_conditional=[
+                                        style_data_conditional=perc_data_bars("count %")
+                                        + perc_data_bars("Event Rate")
+                                        + [
                                             {"if": {"row_index": "odd"}, "backgroundColor": "rgb(248, 248, 248)"},
                                             {
                                                 "if": {"column_editable": True},
@@ -250,9 +253,9 @@ class ManualBucketerApp(object):
                                         style_header={
                                             "backgroundColor": "rgb(230, 230, 230)",
                                         },
-                                        style_data_conditional=[
-                                            {"if": {"row_index": "odd"}, "backgroundColor": "rgb(248, 248, 248)"}
-                                        ],
+                                        style_data_conditional=perc_data_bars("count %")
+                                        + perc_data_bars("Event Rate")
+                                        + [{"if": {"row_index": "odd"}, "backgroundColor": "rgb(248, 248, 248)"}],
                                         style_as_list_view=True,
                                         page_size=20,
                                         columns=[
@@ -282,7 +285,8 @@ class ManualBucketerApp(object):
         )
 
         @app.callback(
-            Output("graph-prebucket", "figure"), [Input("input_column", "value")],
+            Output("graph-prebucket", "figure"),
+            [Input("input_column", "value")],
         )
         def plot_dist(col):
             fig = plot_bins(self.X_prebucketed, self.y, col)
@@ -293,7 +297,8 @@ class ManualBucketerApp(object):
             return fig
 
         @app.callback(
-            Output("graph-bucket", "figure"), [Input("bucket_table", "data")],
+            Output("graph-bucket", "figure"),
+            [Input("bucket_table", "data")],
         )
         def plot_dist2(data):
 
@@ -309,10 +314,12 @@ class ManualBucketerApp(object):
             fig = make_subplots(specs=[[{"secondary_y": True}]])
             # Add traces
             fig.add_trace(
-                go.Bar(x=plotdf["bucket"], y=plotdf["counts"]), secondary_y=False,
+                go.Bar(x=plotdf["bucket"], y=plotdf["counts"]),
+                secondary_y=False,
             )
             fig.add_trace(
-                go.Scatter(x=plotdf["bucket"], y=plotdf["Event Rate"]), secondary_y=True,
+                go.Scatter(x=plotdf["bucket"], y=plotdf["Event Rate"]),
+                secondary_y=True,
             )
             fig.update_layout(transition_duration=50)
             fig.update_layout(showlegend=False)
@@ -338,46 +345,6 @@ class ManualBucketerApp(object):
         [More info](https://community.plotly.com/t/how-to-shutdown-a-jupyterdash-app-in-external-mode/41292/3)
         """
         self.app._terminate_server_for_port("localhost", 8050)
-
-
-def determine_boundaries(df: pd.DataFrame, bucket_mapping: BucketMapping) -> list:
-    """
-    Example.
-
-    ```python
-    import pandas as pd
-    from skorecard.bucket_mapping import BucketMapping
-    df = pd.DataFrame()
-    df['pre_buckets'] = [0,1,2,3,4,5,6,7,8,9,10]
-    df['buckets'] = [0,0,1,1,2,2,2,3,3,4,5]
-
-    bucket_mapping = BucketMapping('feature1', 'numerical', map = [2,3,4,5])
-
-    determine_boundaries(df, bucket_mapping)
-    ```
-    """
-    assert "pre_buckets" in df.columns
-    assert "buckets" in df.columns
-
-    if bucket_mapping.type != "numerical":
-        raise NotImplementedError("todo")
-
-    dfg = df.groupby(["buckets"]).agg(["max"])
-    dfg.columns = dfg.columns.get_level_values(1)
-    boundaries = dfg["max"]
-    if bucket_mapping.right is False:
-        # the prebuckets are integers
-        # So we can safely add 1 to make sure the
-        # map includes the right prebuckets
-        boundaries += 1
-
-    # Drop the last value,
-    # This makes sure outlier values are in the same bucket
-    # instead of a new one
-    boundaries = list(boundaries)[:-1]
-
-    assert sorted(boundaries) == boundaries, "buckets must be sorted"
-    return boundaries
 
 
 # This section is here to help debug the Dash app

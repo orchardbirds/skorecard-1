@@ -54,14 +54,15 @@ def bucket_table(
 
     # Add counts %
     table["count %"] = round((table["count"] / table["count"].sum()) * 100, 2)
-    table["count %"] = table["count %"].astype(str) + "%"
+    # table["count %"] = table["count %"].astype(str) + "%"
 
     # Add event rates
     er = ref.groupby(["bucket", "y"]).agg({"y": ["count"]}).reset_index()
     er.columns = [" ".join(col).strip() for col in er.columns.values]
     er = er.pivot(index="bucket", columns="y", values="y count")
     er = er.rename(columns={0: "Non-event", 1: "Event"})
-    er["Event Rate"] = round((er["Event"] / (er["Event"] + er["Non-event"])) * 100, 2).astype(str) + "%"
+    er["Event Rate"] = round((er["Event"] / (er["Event"] + er["Non-event"])) * 100, 2)
+    # er["Event Rate"] = er["Event Rate"].astype(str) + "%"
     table = table.merge(er, how="left", on="bucket")
 
     # Add WoE and IV
