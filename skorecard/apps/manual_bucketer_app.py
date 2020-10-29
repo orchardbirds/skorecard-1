@@ -55,6 +55,8 @@ except ModuleNotFoundError:
 
 try:
     import plotly.express as px
+    import plotly.graph_objects as go
+    from plotly.subplots import make_subplots
 except ModuleNotFoundError:
     px = NotInstalledError("plotly", "reporting")
 
@@ -106,8 +108,7 @@ class ManualBucketerApp(object):
         self.app = app
 
         @app.callback(
-            Output("original_boundaries", "children"),
-            [Input("input_column", "value")],
+            Output("original_boundaries", "children"), [Input("input_column", "value")],
         )
         def update_original_boundaries(col):
             return str(self.original_feature_mapping.get(col).map)
@@ -119,8 +120,7 @@ class ManualBucketerApp(object):
             return str(self.ui_bucketer.features_bucket_mapping.get(col).map)
 
         @app.callback(
-            Output("prebucket_table", "data"),
-            [Input("input_column", "value")],
+            Output("prebucket_table", "data"), [Input("input_column", "value")],
         )
         def get_prebucket_table(col):
             table = bucket_table(x_original=self.X[col], x_bucketed=self.X_prebucketed[col], y=self.y)
@@ -133,10 +133,7 @@ class ManualBucketerApp(object):
 
         @app.callback(
             [Output("bucket_table", "data"), Output("pre-bucket-error", "children")],
-            [
-                Input("input_column", "value"),
-                Input("prebucket_table", "data"),
-            ],
+            [Input("input_column", "value"), Input("prebucket_table", "data")],
         )
         def get_bucket_table(col, prebucket_table):
 
@@ -181,12 +178,7 @@ class ManualBucketerApp(object):
                     )
                 ),
                 dcc.Markdown(id="output-container-range-slider"),
-                dbc.Row(
-                    [
-                        dbc.Col(dcc.Graph(id="graph-prebucket")),
-                        dbc.Col(dcc.Graph(id="graph-bucket")),
-                    ]
-                ),
+                dbc.Row([dbc.Col(dcc.Graph(id="graph-prebucket")), dbc.Col(dcc.Graph(id="graph-bucket"))]),
                 dbc.Row(
                     [
                         dbc.Col(
@@ -196,10 +188,7 @@ class ManualBucketerApp(object):
                                     html.Div(children=[], id="pre-bucket-error"),
                                     dash_table.DataTable(
                                         id="prebucket_table",
-                                        style_data={
-                                            "whiteSpace": "normal",
-                                            "height": "auto",
-                                        },
+                                        style_data={"whiteSpace": "normal", "height": "auto"},
                                         style_cell={
                                             "overflow": "hidden",
                                             "textOverflow": "ellipsis",
@@ -242,10 +231,7 @@ class ManualBucketerApp(object):
                                     html.H4(children="bucketing table"),
                                     dash_table.DataTable(
                                         id="bucket_table",
-                                        style_data={
-                                            "whiteSpace": "normal",
-                                            "height": "auto",
-                                        },
+                                        style_data={"whiteSpace": "normal", "height": "auto"},
                                         style_cell={
                                             "overflow": "hidden",
                                             "textOverflow": "ellipsis",
@@ -280,8 +266,7 @@ class ManualBucketerApp(object):
         )
 
         @app.callback(
-            Output("graph-prebucket", "figure"),
-            [Input("input_column", "value")],
+            Output("graph-prebucket", "figure"), [Input("input_column", "value")],
         )
         def plot_dist(col):
             fig = plot_bins(self.X_prebucketed, col)
@@ -292,19 +277,33 @@ class ManualBucketerApp(object):
             return fig
 
         @app.callback(
-            Output("graph-bucket", "figure"),
-            [Input("bucket_table", "data")],
+            Output("graph-bucket", "figure"), [Input("bucket_table", "data")],
         )
         def plot_dist2(data):
 
             plotdf = pd.DataFrame(
-                {"bucket": [int(row.get("bucket")) for row in data], "counts": [int(row.get("count")) for row in data]}
+                {
+                    "bucket": [int(row.get("bucket")) for row in data],
+                    "counts": [int(row.get("count")) for row in data],
+                    "Event Rate": [row.get("Event Rate") for row in data],
+                }
             )
 
-            fig = px.bar(plotdf, x="bucket", y="counts")
+            # Create figure with secondary y-axis
+            fig = make_subplots(specs=[[{"secondary_y": True}]])
+            # Add traces
+            fig.add_trace(
+                go.Bar(x=plotdf["bucket"], y=plotdf["counts"]), secondary_y=False,
+            )
+            fig.add_trace(
+                go.Scatter(x=plotdf["bucket"], y=plotdf["Event Rate"]), secondary_y=True,
+            )
             fig.update_layout(transition_duration=50)
             fig.update_layout(showlegend=False)
             fig.update_layout(xaxis_title="Bucket")
+            # Set y-axes titles
+            fig.update_yaxes(title_text="counts", secondary_y=False)
+            fig.update_yaxes(title_text="event rate (%)", secondary_y=True)
             fig.update_layout(title="Bucketed")
             return fig
 
