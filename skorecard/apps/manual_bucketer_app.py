@@ -269,7 +269,7 @@ class ManualBucketerApp(object):
             Output("graph-prebucket", "figure"), [Input("input_column", "value")],
         )
         def plot_dist(col):
-            fig = plot_bins(self.X_prebucketed, col)
+            fig = plot_bins(self.X_prebucketed, self.y, col)
             fig.update_layout(transition_duration=50)
             fig.update_layout(showlegend=False)
             fig.update_layout(xaxis_title=col)
