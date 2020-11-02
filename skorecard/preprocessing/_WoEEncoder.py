@@ -59,15 +59,17 @@ class WoeEncoder(BaseBucketer):
         assert len(np.unique(y)) == 2, "WoEBucketer is only suited for binary classification"
 
         X = self._is_dataframe(X)
+        # TODO: WoE should treat missing values as a separate bin and thus handled seamlessly.
         self._check_contains_na(X, self.variables)
 
         self.features_bucket_mapping_ = {}
 
         for var in self.variables:
-            bins, woe, _, _ = woe_1d(X[var], y, epsilon=self.epsilon)
+
+            t = woe_1d(X[var], y, epsilon=self.epsilon)
 
             self.features_bucket_mapping_[var] = BucketMapping(
-                feature_name=var, type="categorical", map=dict(zip(bins, woe))
+                feature_name=var, type="categorical", map=t["woe"].to_dict()
             )
 
         return self
