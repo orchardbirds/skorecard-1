@@ -89,3 +89,9 @@ python -m pybadges \
     --right-text="3.6+" \
     --whole-link="https://www.python.org/" > docs/assets/img/python_badge.svg
 ```
+
+## Ideas for further directions
+
+- `mlflow` integration
+- Add a catboost bucketer
+- Add a multivariate bucketer
