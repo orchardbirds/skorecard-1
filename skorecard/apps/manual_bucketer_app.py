@@ -20,6 +20,7 @@ X, y = datasets.load_uci_credit_card(return_X_y=True)
 import copy
 import pandas as pd
 from sklearn.pipeline import Pipeline, make_pipeline
+from sklearn.metrics import roc_auc_score
 
 from skorecard.utils.exceptions import NotInstalledError
 from skorecard.reporting import plot_bins, bucket_table
@@ -105,6 +106,17 @@ class ManualBucketerApp(object):
 
         app = JupyterDash(__name__, external_stylesheets=external_stylesheets)
         self.app = app
+
+        @app.callback(
+            Output("auc-badge", "children"),
+            [Input("bucket_table", "data")],
+        )
+        def update_auc(prebucket_table):
+            pipe = make_pipeline(self.prebucketing_pipeline, self.ui_bucketer, self.postbucketing_pipeline)
+            pipe.fit(self.X, self.y)
+            yhat = [x[1] for x in pipe.predict_proba(X)]
+            auc = roc_auc_score(y, yhat)
+            return f"AUC: {auc:.3f}"
 
         @app.callback(
             Output("original_boundaries", "children"),
@@ -434,7 +446,6 @@ if __name__ == "__main__":
     )
 
     pipeline.fit(X, y)
-    pipeline.predict_proba(X)
 
     from skorecard.pipeline import UserInputPipeline
 
