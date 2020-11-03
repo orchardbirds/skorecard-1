@@ -33,10 +33,12 @@ def plot_bins(X, y, col):
 
     # Add traces
     fig.add_trace(
-        go.Bar(x=plotdf["bucket"], y=plotdf["counts"]), secondary_y=False,
+        go.Bar(x=plotdf["bucket"], y=plotdf["counts"], name="Bucket counts"),
+        secondary_y=False,
     )
     fig.add_trace(
-        go.Scatter(x=plotdf["bucket"], y=plotdf["Event Rate"]), secondary_y=True,
+        go.Scatter(x=plotdf["bucket"], y=plotdf["Event Rate"], name="Event Rate", line=dict(color="#454c57")),
+        secondary_y=True,
     )
     fig.update_layout(transition_duration=50)
     fig.update_layout(showlegend=False)
@@ -45,4 +47,9 @@ def plot_bins(X, y, col):
     fig.update_yaxes(title_text="counts", secondary_y=False)
     fig.update_yaxes(title_text="event rate (%)", secondary_y=True)
     fig.update_layout(title="Bucketed")
+    fig.update_xaxes(type="category")
+    fig.update_layout(
+        margin=dict(l=20, r=20, t=40, b=20),
+        height=350,
+    )
     return fig

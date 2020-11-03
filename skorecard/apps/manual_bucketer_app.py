@@ -24,7 +24,7 @@ from sklearn.pipeline import Pipeline, make_pipeline
 from skorecard.utils.exceptions import NotInstalledError
 from skorecard.reporting import plot_bins, bucket_table
 from skorecard.pipeline import split_pipeline
-from skorecard.apps.app_utils import determine_boundaries, perc_data_bars
+from skorecard.apps.app_utils import determine_boundaries, perc_data_bars, colorize_cell, get_bucket_colors
 
 # Dash + dependencies
 try:
@@ -164,21 +164,45 @@ class ManualBucketerApp(object):
         app.layout = html.Div(
             children=[
                 dbc.Row(
-                    dbc.Col(
-                        html.Div(
-                            [
-                                html.H2(children="skorecard.ManualBucketerApp"),
-                                dcc.Dropdown(
-                                    id="input_column",
-                                    options=[{"label": o, "value": o} for o in self.X_prebucketed.columns],
-                                    value=self.X_prebucketed.columns[0],
-                                ),
-                            ],
-                            style={"width": "20%"},
-                        )
-                    )
+                    [
+                        dbc.Col(
+                            html.Div(
+                                [
+                                    html.H3(
+                                        [
+                                            "skorecard | Bucketing App",
+                                            dbc.Badge("AUC: 0.98", className="ml-1", id="auc-badge"),
+                                        ]
+                                    ),
+                                ]
+                            )
+                        ),
+                        dbc.Col(
+                            html.Div(
+                                [
+                                    # html.Div("hello", style={'display' : 'inline-block'}),
+                                    # html.Div("hello", style={'display' : 'inline-block'}),
+                                    html.Div(
+                                        dcc.Dropdown(
+                                            id="input_column",
+                                            options=[{"label": o, "value": o} for o in self.X_prebucketed.columns],
+                                            value=self.X_prebucketed.columns[0],
+                                            style={
+                                                "max-width": "300px",
+                                                "min-width": "250px",
+                                                "background-color": "#ededed",
+                                            },
+                                        ),
+                                        style={"display": "inline-block", "float": "right"},
+                                    ),
+                                    # html.Div(dbc.Button("Regular button", className="mr-1"),
+                                    # style={'display' : 'inline-block'}),
+                                ]
+                            )
+                        ),
+                    ],
+                    style={"padding-bottom": "1em"},
                 ),
-                dcc.Markdown(id="output-container-range-slider"),
                 dbc.Row([dbc.Col(dcc.Graph(id="graph-prebucket")), dbc.Col(dcc.Graph(id="graph-bucket"))]),
                 dbc.Row(
                     [
@@ -223,7 +247,13 @@ class ManualBucketerApp(object):
                                                 "backgroundColor": "rgb(46,139,87)",
                                                 "color": "white",
                                             },
-                                        ],
+                                            {
+                                                "if": {"state": "active"},  # 'active' | 'selected'
+                                                "backgroundColor": "rgba(0, 116, 217, 0.3)",
+                                                "border": "1px solid rgb(0, 116, 217)",
+                                            },
+                                        ]
+                                        + colorize_cell("bucket"),
                                         style_header={
                                             "backgroundColor": "rgb(230, 230, 230)",
                                         },
@@ -255,7 +285,15 @@ class ManualBucketerApp(object):
                                         },
                                         style_data_conditional=perc_data_bars("count %")
                                         + perc_data_bars("Event Rate")
-                                        + [{"if": {"row_index": "odd"}, "backgroundColor": "rgb(248, 248, 248)"}],
+                                        + [
+                                            {"if": {"row_index": "odd"}, "backgroundColor": "rgb(248, 248, 248)"},
+                                            {
+                                                "if": {"state": "active"},  # 'active' | 'selected'
+                                                "backgroundColor": "rgba(0, 116, 217, 0.3)",
+                                                "border": "1px solid rgb(0, 116, 217)",
+                                            },
+                                        ]
+                                        + colorize_cell("bucket"),
                                         style_as_list_view=True,
                                         page_size=20,
                                         columns=[
@@ -286,21 +324,30 @@ class ManualBucketerApp(object):
 
         @app.callback(
             Output("graph-prebucket", "figure"),
-            [Input("input_column", "value")],
+            [Input("input_column", "value"), Input("prebucket_table", "data")],
         )
-        def plot_dist(col):
+        def plot_prebucket_bins(col, prebucket_table):
+            bucket_colors = get_bucket_colors() * 4  # We repeat the colors in case there are lots of buckets
+            buckets = [int(x.get("bucket")) for x in prebucket_table]
+            bar_colors = [bucket_colors[i] for i in buckets]
+
             fig = plot_bins(self.X_prebucketed, self.y, col)
             fig.update_layout(transition_duration=50)
             fig.update_layout(showlegend=False)
             fig.update_layout(xaxis_title=col)
             fig.update_layout(title="Pre-bucketed")
+            fig.update_traces(marker=dict(color=bar_colors), selector=dict(type="bar"))
             return fig
 
         @app.callback(
             Output("graph-bucket", "figure"),
             [Input("bucket_table", "data")],
         )
-        def plot_dist2(data):
+        def plot_bucket_bins(data):
+
+            bucket_colors = get_bucket_colors() * 4  # We repeat the colors in case there are lots of buckets
+            buckets = [int(x.get("bucket")) for x in data]
+            bar_colors = [bucket_colors[i] for i in buckets]
 
             plotdf = pd.DataFrame(
                 {
@@ -314,11 +361,11 @@ class ManualBucketerApp(object):
             fig = make_subplots(specs=[[{"secondary_y": True}]])
             # Add traces
             fig.add_trace(
-                go.Bar(x=plotdf["bucket"], y=plotdf["counts"]),
+                go.Bar(x=plotdf["bucket"], y=plotdf["counts"], name="counts"),
                 secondary_y=False,
             )
             fig.add_trace(
-                go.Scatter(x=plotdf["bucket"], y=plotdf["Event Rate"]),
+                go.Scatter(x=plotdf["bucket"], y=plotdf["Event Rate"], name="Event Rate", line=dict(color="#454c57")),
                 secondary_y=True,
             )
             fig.update_layout(transition_duration=50)
@@ -328,6 +375,15 @@ class ManualBucketerApp(object):
             fig.update_yaxes(title_text="counts", secondary_y=False)
             fig.update_yaxes(title_text="event rate (%)", secondary_y=True)
             fig.update_layout(title="Bucketed")
+            fig.update_xaxes(type="category")
+            fig.update_traces(
+                marker=dict(color=bar_colors),
+                selector=dict(type="bar"),
+            )
+            fig.update_layout(
+                margin=dict(l=20, r=20, t=40, b=20),
+                height=350,
+            )
             return fig
 
     def run_server(self, *args, **kwargs):

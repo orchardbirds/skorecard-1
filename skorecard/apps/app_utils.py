@@ -113,3 +113,54 @@ def perc_data_bars(column):
         )
 
     return styles
+
+
+def get_bucket_colors():
+    """Return diverging color for unique buckets.
+
+    Generated using:
+
+    ```python
+    import seaborn as sns
+    colors = sns.color_palette("Set2")
+    rgbs = []
+    for r,g,b in list(colors):
+        rgbs.append(
+            f"rgb({int(r*255)},{int(g*255)},{int(b*255)})"
+        )
+    ```
+    """
+    return [
+        "rgb(102,194,165)",
+        "rgb(252,141,98)",
+        "rgb(141,160,203)",
+        "rgb(231,138,195)",
+        "rgb(166,216,84)",
+        "rgb(255,217,47)",
+        "rgb(229,196,148)",
+        "rgb(179,179,179)",
+    ]
+
+
+def colorize_cell(column):
+    """Colourize the integer bucket number.
+
+    We can safely assume max 20 buckets, as features are often binned to 3-7 buckets.
+    We will cycle through them.
+    """
+    colors = get_bucket_colors()
+
+    styles = []
+    for i in range(21):
+        styles.append(
+            {
+                "if": {
+                    # 'row_index': i,  # number | 'odd' | 'even'
+                    "filter_query": f"{{{column}}} = '{i}'",
+                    "column_id": column,
+                },
+                "backgroundColor": colors[i % len(colors)],
+                "color": "white",
+            }
+        )
+    return styles
