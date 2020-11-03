@@ -131,7 +131,7 @@ class BucketMapping:
         return dataclasses.asdict(self)
 
     def _apply_num_mapping(self, x):
-        """Apply numerical bucketing and stores the label for the bucket.
+        """Apply numerical bucketing and stores the labels for the buckets.
 
         Args:
             x (np.array): feature
