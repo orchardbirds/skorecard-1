@@ -142,7 +142,8 @@ class BucketMapping:
         buckets = np.digitize(x, self.map, right=self.right)
         buckets = buckets.astype(int)
 
-        map_ = [-np.inf] + self.map + [np.inf]
+        map_ = np.hstack([-np.inf, self.map, np.inf])
+        print(f">>> {map_} <<<")
         for bucket in np.unique(buckets):
 
             bucket_str = f"{map_[int(bucket)]},{map_[int(bucket) + 1]}"
@@ -155,8 +156,7 @@ class BucketMapping:
         return buckets
 
     def assign_specials(self, x, buckets):
-        """
-        Assign the special buckets as defined in the buckets dictionary.
+        """Assign the special buckets as defined in the specials dictionary.
 
         Args:
             x (np.array): feature
