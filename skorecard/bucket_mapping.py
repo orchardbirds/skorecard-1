@@ -32,12 +32,15 @@ class BucketMapping:
         type (str): Type of feature, one of ['categorical','numerical']
         map (list or dict): The info needed to create the buckets (boundaries or cats)
         right (bool): parameter to np.digitize, used when map='numerical'.
+        specials (dict): dictionary of special values to bin separately. The key is used for the bin index,
     """
 
     feature_name: str
     type: str
     map: Union[Dict, List] = field(default_factory=lambda: [])
     right: bool = True
+    specials: Dict = field(default_factory=lambda: {})
+    labels: list = field(default_factory=lambda: [])
 
     def __post_init__(self) -> None:
         """Do input validation.
@@ -78,9 +81,12 @@ class BucketMapping:
         np.where(np.isnan(x), np.nan, new)
         ```
         """
-        buckets = np.digitize(x, self.map, right=self.right)
-        buckets = buckets.astype(int)
-        buckets = np.where(np.isnan(x), np.nan, buckets)
+        buckets = self._apply_num_mapping(x)
+        if np.isnan(x).any():
+            buckets = np.where(np.isnan(x), np.nan, buckets)
+            self.labels.append("Missing")
+        if len(self.specials) > 0:
+            buckets = self.assign_specials(x, buckets)
         return buckets
 
     def _transform_cat(self, x):
@@ -123,6 +129,49 @@ class BucketMapping:
             dict: data in class
         """
         return dataclasses.asdict(self)
+
+    def _apply_num_mapping(self, x):
+        """Apply numerical bucketing and stores the label for the bucket.
+
+        Args:
+            x (np.array): feature
+
+        Returns:
+            (np.array), buckets
+        """
+        buckets = np.digitize(x, self.map, right=self.right)
+        buckets = buckets.astype(int)
+
+        map_ = [-np.inf] + self.map + [np.inf]
+        for bucket in np.unique(buckets):
+
+            bucket_str = f"{map_[int(bucket)]},{map_[int(bucket) + 1]}"
+            if self.right:
+                bucket_str = f"({bucket_str}]"
+            else:
+                bucket_str = f"[{bucket_str})"
+
+            self.labels.append(bucket_str)
+        return buckets
+
+    def assign_specials(self, x, buckets):
+        """
+        Assign the special buckets as defined in the buckets dictionary.
+
+        Args:
+            x (np.array): feature
+            buckets (np.array): buckets for the feature x
+
+        Returns:
+            (np.array), buckets
+
+        """
+        max_bucket = buckets.max()
+        for k, v in self.specials.items():
+            max_bucket += 1
+            buckets = np.where(x.isin(v), max_bucket, buckets)
+            self.labels.append(k)
+        return buckets
 
 
 class FeaturesBucketMapping:
