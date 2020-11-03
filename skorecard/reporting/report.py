@@ -106,7 +106,7 @@ def create_report(
     if bucket_mapping.type != "numerical":
         raise NotImplementedError("Currently supporting only numerical buckets")
 
-    thresholds = bucket_mapping.map
+    thresholds = np.hstack([-np.inf, bucket_mapping.map, np.inf])
     thresh_mins = thresholds[:-1]
     thresh_max = thresholds[1:]
 
@@ -124,7 +124,7 @@ def create_report(
 
     X_transform["target"] = y
 
-    # Defaults
+    # Default statistics
     tmp = (
         X_transform.groupby([column])["target"]
         .sum()
