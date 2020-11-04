@@ -1,5 +1,6 @@
 from skorecard import datasets
 from skorecard.bucketers import DecisionTreeBucketer
+import numpy as np
 
 import pytest
 
@@ -56,3 +57,22 @@ def test_running_twice(df):
     X_bucketed = tbt3.transform(X_prebucketed)
 
     assert X_prebucketed["BILL_AMT1"].value_counts().equals(X_bucketed["BILL_AMT1"].value_counts())
+
+
+def test_specials(df):
+    """Test that when adding specials,the binner performs as expected.
+
+    Context: special values should be binned in their own bin.
+    """
+    X = df[["LIMIT_BAL", "BILL_AMT1"]]
+    y = df["default"]
+
+    specials = {"LIMIT_BAL": {"=50000": [50000], "in [20001,30000]": [20000, 30000]}}
+
+    tbt = DecisionTreeBucketer(variables=["LIMIT_BAL", "BILL_AMT1"], random_state=1, max_n_bins=3, specials=specials)
+    X_bins = tbt.fit_transform(X, y)
+
+    assert X_bins["BILL_AMT1"].nunique() == 3
+    assert X_bins["LIMIT_BAL"].nunique() == 5  # maximum n_bins +2 coming from the specials
+
+    assert X_bins[X["LIMIT_BAL"] == 50000]["LIMIT_BAL"].unique() == np.array(3)

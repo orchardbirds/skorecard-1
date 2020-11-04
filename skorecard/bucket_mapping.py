@@ -143,7 +143,7 @@ class BucketMapping:
         buckets = buckets.astype(int)
 
         map_ = np.hstack([-np.inf, self.map, np.inf])
-        print(f">>> {map_} <<<")
+
         for bucket in np.unique(buckets):
 
             bucket_str = f"{map_[int(bucket)]},{map_[int(bucket) + 1]}"
