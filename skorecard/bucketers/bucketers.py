@@ -93,7 +93,12 @@ class OptimalBucketer(BaseBucketer):
 
         for feature in self.variables:
 
-            X_flt, y_flt = self._filter_specials_for_fit(X=X[feature], y=y, specials=self.specials[feature])
+            if feature in self.specials.keys():
+                special = self.specials[feature]
+                X_flt, y_flt = self._filter_specials_for_fit(X=X[feature], y=y, specials=special)
+            else:
+                X_flt, y_flt = X[feature], y
+                special = {}
 
             if self.variables_type == "numerical":
                 uniq_values = np.sort(np.unique(X_flt.values))
@@ -138,11 +143,7 @@ class OptimalBucketer(BaseBucketer):
             # Note that optbinning transform uses right=False
             # https://github.com/guillermo-navas-palencia/optbinning/blob/396b9bed97581094167c9eb4744c2fd1fb5c7408/optbinning/binning/transformations.py#L126-L132
             self.features_bucket_mapping_[feature] = BucketMapping(
-                feature_name=feature,
-                type=self.variables_type,
-                map=splits,
-                right=False,
-                specials=self.specials[feature],
+                feature_name=feature, type=self.variables_type, map=splits, right=False, specials=special,
             )
 
         return self
@@ -193,7 +194,14 @@ class EqualWidthBucketer(BaseBucketer):
         self.features_bucket_mapping_ = {}
 
         for feature in self.variables:
-            X_flt, y_flt = self._filter_specials_for_fit(X=X[feature], y=y, specials=self.specials[feature])
+
+            if feature in self.specials.keys():
+                special = self.specials[feature]
+                X_flt, y_flt = self._filter_specials_for_fit(X=X[feature], y=y, specials=special)
+            else:
+                X_flt = X[feature]
+                special = {}
+
             _, boundaries = np.histogram(X_flt.values, bins=self.bins)
 
             # np.histogram returns the min & max values of the fits
@@ -203,7 +211,7 @@ class EqualWidthBucketer(BaseBucketer):
             boundaries = boundaries[1:-1]
 
             self.features_bucket_mapping_[feature] = BucketMapping(
-                feature_name=feature, type="numerical", map=boundaries, right=True, specials=self.specials[feature]
+                feature_name=feature, type="numerical", map=boundaries, right=True, specials=special
             )
 
         return self
@@ -256,7 +264,12 @@ class AgglomerativeClusteringBucketer(BaseBucketer):
         for feature in self.variables:
             ab = AgglomerativeBucketer(bin_count=self.bins)
 
-            X_flt, y_flt = self._filter_specials_for_fit(X=X[feature], y=y, specials=self.specials[feature])
+            if feature in self.specials.keys():
+                special = self.specials[feature]
+                X_flt, y_flt = self._filter_specials_for_fit(X=X[feature], y=y, specials=special)
+            else:
+                X_flt = X[feature]
+                special = {}
 
             ab.fit(X_flt.values, y=None)
 
@@ -267,7 +280,7 @@ class AgglomerativeClusteringBucketer(BaseBucketer):
             boundaries = ab.boundaries[1:-1]
 
             self.features_bucket_mapping_[feature] = BucketMapping(
-                feature_name=feature, type="numerical", map=boundaries, right=True, specials=self.specials[feature]
+                feature_name=feature, type="numerical", map=boundaries, right=True, specials=special
             )
 
         return self
@@ -324,7 +337,12 @@ class EqualFrequencyBucketer(BaseBucketer):
 
         for feature in self.variables:
 
-            X_flt, y_flt = self._filter_specials_for_fit(X=X[feature], y=y, specials=self.specials[feature])
+            if feature in self.specials.keys():
+                special = self.specials[feature]
+                X_flt, y_flt = self._filter_specials_for_fit(X=X[feature], y=y, specials=special)
+            else:
+                X_flt = X[feature]
+                special = {}
             try:
                 _, boundaries = pd.qcut(X_flt, q=self.bins, retbins=True, duplicates="raise")
             except ValueError:
@@ -345,7 +363,7 @@ class EqualFrequencyBucketer(BaseBucketer):
                 type="numerical",
                 map=boundaries,
                 right=True,  # pd.qcut returns bins includiing right edge: (edge, edge]
-                specials=self.specials[feature],
+                specials=special,
             )
 
         return self
@@ -415,7 +433,12 @@ class DecisionTreeBucketer(BaseBucketer):
             )
             self.binners[feature] = binner
 
-            X_flt, y_flt = self._filter_specials_for_fit(X=X[feature], y=y, specials=self.specials[feature])
+            if feature in self.specials.keys():
+                special = self.specials[feature]
+                X_flt, y_flt = self._filter_specials_for_fit(X=X[feature], y=y, specials=special)
+            else:
+                X_flt, y_flt = X[feature], y
+                special = {}
 
             binner.fit(X_flt.values.reshape(-1, 1), y_flt)
 
@@ -423,7 +446,7 @@ class DecisionTreeBucketer(BaseBucketer):
             splits = np.unique(binner.tree_.threshold[binner.tree_.feature != _tree.TREE_UNDEFINED])
 
             self.features_bucket_mapping_[feature] = BucketMapping(
-                feature_name=feature, type="numerical", map=splits, right=False, specials=self.specials[feature]
+                feature_name=feature, type="numerical", map=splits, right=False, specials=special
             )
 
         return self
