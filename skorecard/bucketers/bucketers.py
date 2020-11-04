@@ -47,6 +47,7 @@ class OptimalBucketer(BaseBucketer):
     def __init__(
         self,
         variables=[],
+        specials={},
         variables_type="numerical",
         max_n_bins=10,
         min_bin_size=0.05,
@@ -58,6 +59,7 @@ class OptimalBucketer(BaseBucketer):
         
         Args:
             variables: List of variables to bucket.
+            specials: dictionary of special values that require their own binning.
             variables_type: Type of the variables
             min_bin_size: Minimum fraction of observations in a bucket. Passed to optbinning.OptimalBinning.
             max_n_bins: Maximum numbers of bins to return. Passed to optbinning.OptimalBinning.
@@ -67,6 +69,7 @@ class OptimalBucketer(BaseBucketer):
             kwargs: Other parameters passed to optbinning.OptimalBinning. Passed to optbinning.OptimalBinning.
         """
         self.variables = variables
+        self.specials = specials
         self.variables_type = variables_type
         self.max_n_bins = max_n_bins
         self.min_bin_size = min_bin_size
@@ -90,8 +93,10 @@ class OptimalBucketer(BaseBucketer):
 
         for feature in self.variables:
 
+            X_flt, y_flt = self._filter_specials_for_fit(X=X[feature], y=y, specials=self.specials[feature])
+
             if self.variables_type == "numerical":
-                uniq_values = np.sort(np.unique(X[feature].values))
+                uniq_values = np.sort(np.unique(X_flt.values))
                 if len(uniq_values) > 100:
                     raise NotPreBucketedError(
                         f"""
@@ -119,7 +124,7 @@ class OptimalBucketer(BaseBucketer):
             )
             self.binners[feature] = binner
 
-            binner.fit(X[feature].values, y)
+            binner.fit(X_flt.values, y_flt)
 
             # Extract fitted boundaries
             if self.variables_type == "categorical":
@@ -133,7 +138,11 @@ class OptimalBucketer(BaseBucketer):
             # Note that optbinning transform uses right=False
             # https://github.com/guillermo-navas-palencia/optbinning/blob/396b9bed97581094167c9eb4744c2fd1fb5c7408/optbinning/binning/transformations.py#L126-L132
             self.features_bucket_mapping_[feature] = BucketMapping(
-                feature_name=feature, type=self.variables_type, map=splits, right=False
+                feature_name=feature,
+                type=self.variables_type,
+                map=splits,
+                right=False,
+                specials=self.specials[feature],
             )
 
         return self
@@ -161,18 +170,20 @@ class EqualWidthBucketer(BaseBucketer):
     ```
     """
 
-    def __init__(self, bins=-1, variables=[]):
+    def __init__(self, bins=-1, variables=[], specials={}):
         """Init the class.
 
         Args:
             bins (int): Number of bins to create.
             variables (list): The features to bucket. Uses all features if not defined.
+            specials (dict): dictionary of special values that require their own binning.
         """
         assert isinstance(variables, list)
         assert isinstance(bins, int)
 
         self.variables = variables
         self.bins = bins
+        self.specials = specials
 
     def fit(self, X, y=None):
         """Fit X, y."""
@@ -182,8 +193,8 @@ class EqualWidthBucketer(BaseBucketer):
         self.features_bucket_mapping_ = {}
 
         for feature in self.variables:
-
-            _, boundaries = np.histogram(X[feature].values, bins=self.bins)
+            X_flt, y_flt = self._filter_specials_for_fit(X=X[feature], y=y, specials=self.specials[feature])
+            _, boundaries = np.histogram(X_flt.values, bins=self.bins)
 
             # np.histogram returns the min & max values of the fits
             # On transform, we use np.digitize, which means new data that is outside of this range
@@ -192,7 +203,7 @@ class EqualWidthBucketer(BaseBucketer):
             boundaries = boundaries[1:-1]
 
             self.features_bucket_mapping_[feature] = BucketMapping(
-                feature_name=feature, type="numerical", map=boundaries, right=True
+                feature_name=feature, type="numerical", map=boundaries, right=True, specials=self.specials[feature]
             )
 
         return self
@@ -220,18 +231,20 @@ class AgglomerativeClusteringBucketer(BaseBucketer):
     ```
     """
 
-    def __init__(self, bins=-1, variables=[]):
+    def __init__(self, bins=-1, variables=[], specials={}):
         """Init the class.
 
         Args:
             bins (int): Number of bins to create.
             variables (list): The features to bucket. Uses all features if not defined.
+            specials (dict): dictionary of special values that require their own binning.
         """
         assert isinstance(variables, list)
         assert isinstance(bins, int)
 
         self.variables = variables
         self.bins = bins
+        self.specials = specials
 
     def fit(self, X, y=None):
         """Fit X, y."""
@@ -242,7 +255,10 @@ class AgglomerativeClusteringBucketer(BaseBucketer):
 
         for feature in self.variables:
             ab = AgglomerativeBucketer(bin_count=self.bins)
-            ab.fit(X[feature].values, y=None)
+
+            X_flt, y_flt = self._filter_specials_for_fit(X=X[feature], y=y, specials=self.specials[feature])
+
+            ab.fit(X_flt.values, y=None)
 
             # AgglomerativeBucketer returns the min & max values of the fits
             # On transform, we use np.digitize, which means new data that is outside of this range
@@ -251,7 +267,7 @@ class AgglomerativeClusteringBucketer(BaseBucketer):
             boundaries = ab.boundaries[1:-1]
 
             self.features_bucket_mapping_[feature] = BucketMapping(
-                feature_name=feature, type="numerical", map=boundaries, right=True
+                feature_name=feature, type="numerical", map=boundaries, right=True, specials=self.specials[feature]
             )
 
         return self
@@ -279,18 +295,20 @@ class EqualFrequencyBucketer(BaseBucketer):
     ```
     """
 
-    def __init__(self, bins=-1, variables=[]):
+    def __init__(self, bins=-1, variables=[], specials={}):
         """Init the class.
 
         Args:
             bins (int): Number of bins to create.
             variables (list): The features to bucket. Uses all features if not defined.
+             specials (dict): dictionary of special values that require their own binning.
         """
         assert isinstance(variables, list)
         assert isinstance(bins, int)
 
         self.variables = variables
         self.bins = bins
+        self.specials = specials
 
     def fit(self, X, y=None):
         """Fit X, y.
@@ -306,13 +324,14 @@ class EqualFrequencyBucketer(BaseBucketer):
 
         for feature in self.variables:
 
+            X_flt, y_flt = self._filter_specials_for_fit(X=X[feature], y=y, specials=self.specials[feature])
             try:
-                _, boundaries = pd.qcut(X[feature], q=self.bins, retbins=True, duplicates="raise")
+                _, boundaries = pd.qcut(X_flt, q=self.bins, retbins=True, duplicates="raise")
             except ValueError:
                 # If there are too many duplicate values (assume a lot of filled missings)
                 # this crashes - the exception drops them.
                 # This means that it will return approximate quantile bins
-                _, boundaries = pd.qcut(X[feature], q=self.bins, retbins=True, duplicates="drop")
+                _, boundaries = pd.qcut(X_flt, q=self.bins, retbins=True, duplicates="drop")
                 warnings.warn(ApproximationWarning("Approximated quantiles - too many unique values"))
 
             # pd.qcut returns the min & max values of the fits
@@ -326,6 +345,7 @@ class EqualFrequencyBucketer(BaseBucketer):
                 type="numerical",
                 map=boundaries,
                 right=True,  # pd.qcut returns bins includiing right edge: (edge, edge]
+                specials=self.specials[feature],
             )
 
         return self
@@ -358,11 +378,12 @@ class DecisionTreeBucketer(BaseBucketer):
     ```
     """
 
-    def __init__(self, variables=[], max_n_bins=100, min_bin_size=0.05, random_state=42, **kwargs) -> None:
+    def __init__(self, variables=[], specials={}, max_n_bins=100, min_bin_size=0.05, random_state=42, **kwargs) -> None:
         """Init the class.
 
         Args:
             variables (list): The features to bucket. Uses all features if not defined.
+            specials (dict): dictionary of special values that require their own binning.
             min_bin_size: Minimum fraction of observations in a bucket. Passed directly to min_samples_leaf.
             max_n_bins: Maximum numbers of bins to return. Passed directly to max_leaf_nodes.
             random_state: The random state, Passed directly to DecisionTreeClassifier
@@ -371,6 +392,7 @@ class DecisionTreeBucketer(BaseBucketer):
         assert isinstance(variables, list)
 
         self.variables = variables
+        self.specials = specials
         self.kwargs = kwargs
         self.max_n_bins = max_n_bins
         self.min_bin_size = min_bin_size
@@ -392,13 +414,16 @@ class DecisionTreeBucketer(BaseBucketer):
                 **self.kwargs,
             )
             self.binners[feature] = binner
-            binner.fit(X[feature].values.reshape(-1, 1), y)
+
+            X_flt, y_flt = self._filter_specials_for_fit(X=X[feature], y=y, specials=self.specials[feature])
+
+            binner.fit(X_flt.values.reshape(-1, 1), y_flt)
 
             # Extract fitted boundaries
             splits = np.unique(binner.tree_.threshold[binner.tree_.feature != _tree.TREE_UNDEFINED])
 
             self.features_bucket_mapping_[feature] = BucketMapping(
-                feature_name=feature, type="numerical", map=splits, right=False
+                feature_name=feature, type="numerical", map=splits, right=False, specials=self.specials[feature]
             )
 
         return self

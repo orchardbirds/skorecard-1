@@ -2,6 +2,7 @@ import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
 
 from sklearn.utils.validation import check_is_fitted
+import itertools
 
 
 class BaseBucketer(BaseEstimator, TransformerMixin):
@@ -34,6 +35,17 @@ class BaseBucketer(BaseEstimator, TransformerMixin):
                 assert var in list(X.columns), f"Column {var} not present in X"
         assert variables is not None and len(variables) > 0
         return variables
+
+    @staticmethod
+    def _filter_specials_for_fit(X, y, specials):
+        flt_vals = list(itertools.chain(*specials.values()))
+        flt = X.isin(flt_vals)
+        X_out = X[~flt]
+        if y is not None:
+            y_out = y[~flt]
+        else:
+            y_out = y
+        return X_out, y_out
 
     def transform(self, X, y=None):
         """Transforms an array into the corresponding buckets fitted by the Transformer.
