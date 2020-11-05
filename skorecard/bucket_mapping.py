@@ -81,6 +81,12 @@ class BucketMapping:
         np.where(np.isnan(x), np.nan, new)
         ```
         """
+        self.labels = []
+        if isinstance(x, np.ndarray):
+            x = pd.Series(x)
+        if isinstance(x, list):
+            x = pd.Series(x)
+
         buckets = self._apply_num_mapping(x)
         if np.isnan(x).any():
             buckets = np.where(np.isnan(x), np.nan, buckets)
