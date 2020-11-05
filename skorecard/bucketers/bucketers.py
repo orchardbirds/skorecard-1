@@ -389,7 +389,15 @@ class DecisionTreeBucketer(BaseBucketer):
     from skorecard.bucketers import DecisionTreeBucketer
     X, y = datasets.load_uci_credit_card(return_X_y=True)
 
-    dt_bucketer = DecisionTreeBucketer(variables=['LIMIT_BAL'])
+    # make sure that those cases
+    specials = {
+        "LIMIT_BAL":{
+            "=50000":[50000],
+            "in [20001,30000]":[20000,30000],
+            }
+    }
+
+    dt_bucketer = DecisionTreeBucketer(variables=['LIMIT_BAL'], specials = specials)
     dt_bucketer.fit(X, y)
     
     dt_bucketer.fit_transform(X, y)['LIMIT_BAL'].value_counts()
@@ -616,6 +624,22 @@ class UserInputBucketer(BaseBucketer):
     ui_bucketer = UserInputBucketer(mapping)
     new_X = ui_bucketer.fit_transform(X)
     assert len(new_X['LIMIT_BAL'].unique()) == 3
+
+    #Map some values to the special buckets
+    specials = {
+        "LIMIT_BAL":{
+            "=50000":[50000],
+            "in [20001,30000]":[20000,30000],
+            }
+    }
+
+    ac_bucketer = AgglomerativeClusteringBucketer(bins=3, variables=['LIMIT_BAL'], specials = specials)
+    ac_bucketer.fit(X)
+    mapping = ac_bucketer.features_bucket_mapping_
+
+    ui_bucketer = UserInputBucketer(mapping)
+    new_X = ui_bucketer.fit_transform(X)
+    assert len(new_X['LIMIT_BAL'].unique()) == 5
     ```
     
     """
