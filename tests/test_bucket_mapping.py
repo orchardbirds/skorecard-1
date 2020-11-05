@@ -45,3 +45,24 @@ def test_bucket_mapping_categorical():
     bucket = BucketMapping("feature1", "categorical", map={"car": 0, "truck": 0})
     reference = pd.Series([0, other_category_encoding, other_category_encoding, 0, 0, np.nan])
     assert bucket.transform(x).equals(reference)
+
+
+def test_specials_numerical():
+    """Test that the specials are put in a special bin."""
+    # test that a special case
+    x = [0, 1, 2, 3, 4, 5, 2]
+    bucket = BucketMapping("feature1", "numerical", map=[3, 4], specials={"special": [2]})
+    assert all(np.equal(bucket.transform(x), np.array([0, 0, 3, 0, 1, 2, 3])))
+
+    assert bucket.labels == ["(-inf, 3.0]", "(3.0, 4.0]", "(4.0, inf]", "special"]
+
+    # test that calling transform again does not change the labelling
+    bucket.transform(x)
+    bucket.transform(x)
+
+    assert bucket.labels == ["(-inf, 3.0]", "(3.0, 4.0]", "(4.0, inf]", "special"]
+
+    # Test that if special is not in x, nothing happens
+    x = [0, 1, 2, 3, 4, 5]
+    bucket = BucketMapping("feature1", "numerical", map=[3, 4], specials={"special": [6]})
+    assert all(np.equal(bucket.transform(x), np.digitize(x, [3, 4], right=True)))
