@@ -108,19 +108,38 @@ class BucketMapping:
         if isinstance(x, list):
             x = pd.Series(x)
 
-        mapping = MissingDict(self.map)
-        mapping.set_missing_value(-1)  # This was 'other' but you cannot mix integers and strings
-
-        new = x.map(mapping)
-
-        # Put back NA's
-        new = new.where(~x.isna(), np.nan)
+        new = self._apply_cat_mapping(x)
 
         # if x.hasnans:
         #     msg = f"Feature {self.feature_name} has a new, unseen category that causes NaNs."
         #     raise UnknownCategoryError(msg)
 
         return new
+
+    def _apply_cat_mapping(self, x):
+        other_value = -1
+        mapping = MissingDict(self.map)
+        mapping.set_missing_value(other_value)  # This was 'other' but you cannot mix integers and strings
+
+        new = x.map(mapping)
+
+        # define the labels
+        v = {}
+
+        # create a dictionary that groups by the
+        for key, value in sorted(mapping.items()):
+            v.setdefault(value, []).append(key)
+        v[other_value] = "other"
+        sorted_v = {key: v[key] for key in sorted(v)}
+        self.labels = [v for v in sorted_v.values()]
+
+        if x.isna().any():
+            # new = np.where(np.isnan(x), np.nan, new)
+            new = np.where(x.isna(), np.nan, new)
+            self.labels.append("Missing")
+        # Put back NA's
+
+        return pd.Series(new)
 
     def as_dict(self) -> dict:
         """Return data in class as a dict.
