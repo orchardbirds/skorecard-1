@@ -48,7 +48,7 @@ class BucketMapping:
         Returns:
             None: nothing
         """
-        assert self.type in ["numerical", "categorical"]
+        assert self.type in ["numerical", "categorical", "woe"]
 
     def transform(self, x):
         """Applies bucketing to and array.
@@ -65,6 +65,8 @@ class BucketMapping:
             return self._transform_num(x)
         if self.type == "categorical":
             self._validate_categorical_map()
+            return self._transform_cat(x)
+        if self.type == "woe":
             return self._transform_cat(x)
 
     def _validate_categorical_map(self):
