@@ -152,8 +152,11 @@ class BucketMapping:
         v = {}
 
         # create a dictionary that groups by the
-        for key, value in sorted(mapping.items()):
-            v.setdefault(value, []).append(key)
+        if 0 not in mapping.items():
+            v[0] = "empty map"
+        else:
+            for key, value in sorted(mapping.items()):
+                v.setdefault(value, []).append(key)
         v[other_value] = "other"
         sorted_v = {key: v[key] for key in sorted(v)}
         self.labels = [v for v in sorted_v.values()]
