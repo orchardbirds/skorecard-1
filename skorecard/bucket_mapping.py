@@ -64,7 +64,19 @@ class BucketMapping:
         if self.type == "numerical":
             return self._transform_num(x)
         if self.type == "categorical":
+            self._validate_categorical_map()
             return self._transform_cat(x)
+
+    def _validate_categorical_map(self):
+        """Assure that the provided mapping starts at 0 and that is tas an incremental trend."""
+        values = [v for v in self.map.values()]
+        if len(values) > 0:
+            if not np.array_equal(np.unique(values), np.arange(max(values) + 1)):
+                err_msg = (
+                    f"Mapping dictionary must start at 0 and be incremental. "
+                    f"Found the following mappings {np.unique(values)}, and expected {np.arange(max(values) + 1)}"
+                )
+                raise ValueError(err_msg)
 
     def _transform_num(self, x):
         """
@@ -128,7 +140,7 @@ class BucketMapping:
         return new
 
     def _apply_cat_mapping(self, x):
-        other_value = -1
+        other_value = 1 if len(self.map.values()) == 0 else max(self.map.values())
         mapping = MissingDict(self.map)
         mapping.set_missing_value(other_value)  # This was 'other' but you cannot mix integers and strings
 
