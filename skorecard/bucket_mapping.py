@@ -40,7 +40,7 @@ class BucketMapping:
     map: Union[Dict, List] = field(default_factory=lambda: [])
     right: bool = True
     specials: Dict = field(default_factory=lambda: {})
-    labels: list = field(default_factory=lambda: [])
+    labels: List = field(default_factory=lambda: [])
 
     def __post_init__(self) -> None:
         """Do input validation.
@@ -81,12 +81,18 @@ class BucketMapping:
         np.where(np.isnan(x), np.nan, new)
         ```
         """
+        self.labels = []
+        if isinstance(x, np.ndarray):
+            x = pd.Series(x)
+        if isinstance(x, list):
+            x = pd.Series(x)
+
         buckets = self._apply_num_mapping(x)
         if np.isnan(x).any():
             buckets = np.where(np.isnan(x), np.nan, buckets)
             self.labels.append("Missing")
         if len(self.specials) > 0:
-            buckets = self.assign_specials(x, buckets)
+            buckets = self._assign_specials(x, buckets)
         return buckets
 
     def _transform_cat(self, x):
@@ -165,7 +171,7 @@ class BucketMapping:
 
         for bucket in np.unique(buckets):
 
-            bucket_str = f"{map_[int(bucket)]},{map_[int(bucket) + 1]}"
+            bucket_str = f"{map_[int(bucket)]}, {map_[int(bucket) + 1]}"
             if self.right:
                 bucket_str = f"({bucket_str}]"
             else:
@@ -174,7 +180,7 @@ class BucketMapping:
             self.labels.append(bucket_str)
         return buckets
 
-    def assign_specials(self, x, buckets):
+    def _assign_specials(self, x, buckets):
         """Assign the special buckets as defined in the specials dictionary.
 
         Args:
