@@ -593,7 +593,7 @@ class OrdinalCategoricalBucketer(BaseBucketer):
 
             # Determine Ordinal Encoder based on ordered labels
             # Note we start at 1, to be able to encode missings as 0.
-            mapping = dict(zip(normalized_counts.index, range(1, len(normalized_counts) + 1)))
+            mapping = dict(zip(normalized_counts.index, range(0, len(normalized_counts))))
 
             self.features_bucket_mapping_[var] = BucketMapping(feature_name=var, type="categorical", map=mapping)
 

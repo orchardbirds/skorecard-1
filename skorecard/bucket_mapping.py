@@ -142,7 +142,7 @@ class BucketMapping:
         return new
 
     def _apply_cat_mapping(self, x):
-        other_value = 1 if len(self.map.values()) == 0 else max(self.map.values())
+        other_value = 1 if len(self.map.values()) == 0 else max(self.map.values()) + 1
         mapping = MissingDict(self.map)
         mapping.set_missing_value(other_value)  # This was 'other' but you cannot mix integers and strings
 
