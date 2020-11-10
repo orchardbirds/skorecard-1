@@ -93,6 +93,7 @@ class BucketMapping:
             self.labels.append("Missing")
         if len(self.specials) > 0:
             buckets = self._assign_specials(x, buckets)
+
         return buckets
 
     def _transform_cat(self, x):
@@ -116,9 +117,13 @@ class BucketMapping:
 
         new = self._apply_cat_mapping(x)
 
-        # if x.hasnans:
-        #     msg = f"Feature {self.feature_name} has a new, unseen category that causes NaNs."
-        #     raise UnknownCategoryError(msg)
+        if x.isna().any():
+            # new = np.where(np.isnan(x), np.nan, new)
+            new = pd.Series(np.where(x.isna(), np.nan, new))
+            self.labels.append("Missing")
+
+        if len(self.specials) > 0:
+            new = self._assign_specials(x, new)
 
         return new
 
@@ -139,13 +144,7 @@ class BucketMapping:
         sorted_v = {key: v[key] for key in sorted(v)}
         self.labels = [v for v in sorted_v.values()]
 
-        if x.isna().any():
-            # new = np.where(np.isnan(x), np.nan, new)
-            new = np.where(x.isna(), np.nan, new)
-            self.labels.append("Missing")
-        # Put back NA's
-
-        return pd.Series(new)
+        return new
 
     def as_dict(self) -> dict:
         """Return data in class as a dict.
