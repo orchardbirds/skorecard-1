@@ -152,7 +152,7 @@ class BucketMapping:
         v = {}
 
         # create a dictionary that groups by the
-        if 0 not in mapping.items():
+        if 0 not in mapping.values():
             v[0] = "empty map"
         else:
             for key, value in sorted(mapping.items()):
