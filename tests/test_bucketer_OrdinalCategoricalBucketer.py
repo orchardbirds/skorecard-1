@@ -65,3 +65,25 @@ def test_encoding_method(df):
     ocb.fit(X, y)
 
     assert ocb.features_bucket_mapping_["EDUCATION"].map == {1: 0, 3: 1, 2: 2}
+
+
+def test_specials(df):
+    """Test specials get assigned to the highest bin."""
+    X = df[["EDUCATION"]]
+    y = df["default"]
+
+    ocb = OrdinalCategoricalBucketer(
+        tol=0.03, variables=["EDUCATION"], encoding_method="ordered", specials={"ed 0": [1]}
+    )
+    ocb.fit(X, y)
+
+    X_transform = ocb.transform(X)
+    assert np.unique(X_transform[X["EDUCATION"] == 1].values)[0] == 4
+
+    ocb = OrdinalCategoricalBucketer(
+        tol=0.03, variables=["EDUCATION"], encoding_method="frequency", specials={"ed 0": [1]}
+    )
+    ocb.fit(X, y)
+
+    X_transform = ocb.transform(X)
+    assert np.unique(X_transform[X["EDUCATION"] == 1].values)[0] == 4
