@@ -18,7 +18,7 @@ def test_bucket_mapping_numerical():
 
     x = [0, 1, np.nan, 3, 4, 5]
     bucket = BucketMapping("feature1", "numerical", map=[2, 3, 4])
-    assert np.allclose(bucket.transform(x), np.array([0.0, 0.0, np.nan, 1.0, 2.0, 3.0]), equal_nan=True)
+    assert np.allclose(bucket.transform(x), np.array([0.0, 0.0, 4, 1.0, 2.0, 3.0]), equal_nan=True)
 
 
 def test_bucket_mapping_categorical():
@@ -40,7 +40,8 @@ def test_bucket_mapping_categorical():
     x = ["car", "motorcycle", "boat", "truck", "truck", np.nan]
     bucket = BucketMapping("feature1", "categorical", map={})
     other_category_encoding = 1 if len(bucket.map.values()) == 0 else max(bucket.map.values()) + 1
-    assert bucket.transform(x).equals(pd.Series([other_category_encoding] * 5 + [np.nan]))
+    missing_cat = other_category_encoding + 1
+    assert bucket.transform(x).equals(pd.Series([other_category_encoding] * 5 + [missing_cat]))
     #
     # # Limited map
     x = ["car", "motorcycle", "boat", "truck", "truck"]
@@ -53,7 +54,8 @@ def test_bucket_mapping_categorical():
     x = ["car", "motorcycle", "boat", "truck", "truck", np.nan]
     bucket = BucketMapping("feature1", "categorical", map={"car": 0, "truck": 0})
     other_category_encoding = 1 if len(bucket.map.values()) == 0 else max(bucket.map.values()) + 1
-    reference = pd.Series([0, other_category_encoding, other_category_encoding, 0, 0, np.nan])
+    missing_cat = other_category_encoding + 1
+    reference = pd.Series([0, other_category_encoding, other_category_encoding, 0, 0, missing_cat])
     assert bucket.transform(x).equals(reference)
 
 

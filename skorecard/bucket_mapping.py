@@ -102,11 +102,13 @@ class BucketMapping:
             x = pd.Series(x)
 
         buckets = self._apply_num_mapping(x)
-        if np.isnan(x).any():
-            buckets = np.where(np.isnan(x), np.nan, buckets)
-            self.labels.append("Missing")
+
         if len(self.specials) > 0:
             buckets = self._assign_specials(x, buckets)
+
+        if np.isnan(x).any():
+            buckets = np.where(np.isnan(x), buckets.max() + 1, buckets)
+            self.labels.append("Missing")
 
         return buckets
 
@@ -131,13 +133,13 @@ class BucketMapping:
 
         new = self._apply_cat_mapping(x)
 
-        if x.isna().any():
-            # new = np.where(np.isnan(x), np.nan, new)
-            new = pd.Series(np.where(x.isna(), np.nan, new))
-            self.labels.append("Missing")
-
         if len(self.specials) > 0:
             new = self._assign_specials(x, new)
+
+        if x.isna().any():
+            # new = np.where(np.isnan(x), np.nan, new)
+            new = pd.Series(np.where(x.isna(), new.max() + 1, new))
+            self.labels.append("Missing")
 
         return new
 
