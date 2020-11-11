@@ -130,3 +130,5 @@ def test_optimal_binning_categorical(df):
     optb.fit(X["EDUCATION"], y)
     ref = optb.transform(X["EDUCATION"], metric="indices")
     X_trans["EDUCATION"].equals(pd.Series(ref))
+
+    raise NotImplementedError("implement a test with specials in categorical binning")

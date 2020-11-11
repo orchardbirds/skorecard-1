@@ -78,3 +78,8 @@ def test_specials_numerical():
     x = [0, 1, 2, 3, 4, 5]
     bucket = BucketMapping("feature1", "numerical", map=[3, 4], specials={"special": [6]})
     assert all(np.equal(bucket.transform(x), np.digitize(x, [3, 4], right=True)))
+
+
+def test_labels():
+    """Test that the labels are correct in different scenarios."""
+    raise NotImplementedError("Implement tests for labels on numerical and categorical")

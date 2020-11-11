@@ -543,6 +543,7 @@ class OrdinalCategoricalBucketer(BaseBucketer):
                     The lower the number of the bucket the lower the fraction of class 1 in that bucket.
         """
         assert isinstance(variables, list)
+        raise NotImplementedError("Implement the specials")
 
         if tol < 0 or tol > 1:
             raise ValueError("tol takes values between 0 and 1")
