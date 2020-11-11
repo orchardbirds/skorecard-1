@@ -526,7 +526,7 @@ class OrdinalCategoricalBucketer(BaseBucketer):
     
     """
 
-    def __init__(self, tol=0.05, max_n_categories=None, variables=[], encoding_method="frequency"):
+    def __init__(self, tol=0.05, max_n_categories=None, variables=[], specials={}, encoding_method="frequency"):
         """Init the class.
 
         Args:
@@ -536,6 +536,7 @@ class OrdinalCategoricalBucketer(BaseBucketer):
                 If None, all categories with frequency above the tolerance (tol) will be
                 considered.
             variables (list): The features to bucket. Uses all features if not defined.
+            specials (dict): dictionary of special values that require their own binning.
             encoding_method (string): encoding method.
                 - "frequency" (default): orders the buckets based on the frequency of observations in the bucket.
                     The lower the number of the bucket the most frequent are the observations in that bucket.
@@ -543,7 +544,6 @@ class OrdinalCategoricalBucketer(BaseBucketer):
                     The lower the number of the bucket the lower the fraction of class 1 in that bucket.
         """
         assert isinstance(variables, list)
-        raise NotImplementedError("Implement the specials")
 
         if tol < 0 or tol > 1:
             raise ValueError("tol takes values between 0 and 1")
@@ -555,6 +555,7 @@ class OrdinalCategoricalBucketer(BaseBucketer):
         self.tol = tol
         self.max_n_categories = max_n_categories
         self.variables = variables
+        self.specials = specials
         self.encoding_method = encoding_method
 
     def fit(self, X, y=None):
@@ -568,16 +569,28 @@ class OrdinalCategoricalBucketer(BaseBucketer):
 
             normalized_counts = None
             # Determine the order of unique values
+
+            if var in self.specials.keys():
+                special = self.specials[var]
+                X_flt, y_flt = self._filter_specials_for_fit(X=X[var], y=y, specials=special)
+            else:
+                X_flt, y_flt = X[var], y
+                special = {}
+            if not (isinstance(y_flt, pd.Series) or isinstance(y_flt, pd.DataFrame)):
+                y_flt = pd.Series(y_flt)
+            X_y = pd.concat([X_flt, y_flt], axis=1)
+            X_y.columns = [var, "target"]
+
             if self.encoding_method == "ordered":
                 if y is None:
                     raise ValueError("To use encoding_method=='ordered', y cannot be None.")
-                X["target"] = y
-                normalized_counts = X[var].value_counts(normalize=True)
-                cats = X.groupby([var])["target"].mean().sort_values(ascending=True).index
+                # X_flt["target"] = y_flt
+                normalized_counts = X_y[var].value_counts(normalize=True)
+                cats = X_y.groupby([var])["target"].mean().sort_values(ascending=True).index
                 normalized_counts = normalized_counts[cats]
 
             elif self.encoding_method == "frequency":
-                normalized_counts = X[var].value_counts(normalize=True)
+                normalized_counts = X_y[var].value_counts(normalize=True)
             else:
 
                 raise NotImplementedError(
@@ -596,7 +609,9 @@ class OrdinalCategoricalBucketer(BaseBucketer):
             # Note we start at 1, to be able to encode missings as 0.
             mapping = dict(zip(normalized_counts.index, range(0, len(normalized_counts))))
 
-            self.features_bucket_mapping_[var] = BucketMapping(feature_name=var, type="categorical", map=mapping)
+            self.features_bucket_mapping_[var] = BucketMapping(
+                feature_name=var, type="categorical", map=mapping, specials=self.specials
+            )
 
         return self
 
