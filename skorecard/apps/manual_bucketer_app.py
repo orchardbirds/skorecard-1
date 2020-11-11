@@ -25,7 +25,9 @@ from sklearn.metrics import roc_auc_score
 from skorecard.utils.exceptions import NotInstalledError
 from skorecard.reporting import plot_bins, bucket_table
 from skorecard.pipeline import split_pipeline
-from skorecard.apps.app_utils import determine_boundaries, perc_data_bars, colorize_cell, get_bucket_colors
+from skorecard.apps.app_utils import determine_boundaries, get_bucket_colors
+from skorecard.apps.app_layout import get_layout
+
 
 # Dash + dependencies
 try:
@@ -71,8 +73,43 @@ except ModuleNotFoundError:
 # external_stylesheets = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
 external_stylesheets = [
     # "https://codepen.io/your-codepen-name/pen/your-pen-identifier.css",
-    dbc.themes.BOOTSTRAP
+    dbc.themes.UNITED
 ]
+
+PLOTLY_LOGO = "https://images.plot.ly/logo/new-branding/plotly-logomark.png"
+
+# menu_bar = dbc.Row(
+#     [
+#         dbc.Col(dbc.Badge("AUC: 0.98", className="ml-1", color="light", id="auc-badge2")),
+#         dbc.Col(
+#             dbc.Button("Search", color="primary", className="ml-2"),
+#             width="auto",
+#         ),
+#     ],
+#     no_gutters=True,
+#     className="ml-auto flex-nowrap mt-3 mt-md-0",
+#     align="center",
+# )
+
+
+# navbar = dbc.Navbar(
+#     [
+#         # Use row and col to control vertical alignment of logo / brand
+#         dbc.Row(
+#             [
+#                 dbc.Col(html.A(html.Img(src=PLOTLY_LOGO, height="30px"), href="https://www.google.nl")),
+#                 dbc.Col(dbc.NavbarBrand("Skorecard | Bucketer App", className="ml-2")),
+#             ],
+#             align="center",
+#             no_gutters=True,
+#         ),
+#         dbc.NavbarToggler(id="navbar-toggler"),
+#         dbc.Collapse(menu_bar, id="navbar-collapse", navbar=True),
+#     ],
+#     color="dark",
+#     dark=True,
+#     style={'width': '100%'}
+# )
 
 
 class ManualBucketerApp(object):
@@ -107,16 +144,19 @@ class ManualBucketerApp(object):
         app = JupyterDash(__name__, external_stylesheets=external_stylesheets)
         self.app = app
 
+        # Get columns
+        column_options = [{"label": o, "value": o} for o in self.X_prebucketed.columns]
+        # Add the layout
+        app.layout = get_layout(column_options=column_options)
+
         @app.callback(
-            Output("auc-badge", "children"),
-            [Input("bucket_table", "data")],
+            Output("input_column", "value"),
+            [Input("input_column", "options")],
         )
-        def update_auc(prebucket_table):
-            pipe = make_pipeline(self.prebucketing_pipeline, self.ui_bucketer, self.postbucketing_pipeline)
-            pipe.fit(self.X, self.y)
-            yhat = [x[1] for x in pipe.predict_proba(X)]
-            auc = roc_auc_score(y, yhat)
-            return f"AUC: {auc:.3f}"
+        def set_column_selector_default(options):
+            return options[1]
+
+        # Add all the callbacks
 
         @app.callback(
             Output("original_boundaries", "children"),
@@ -126,7 +166,7 @@ class ManualBucketerApp(object):
             return str(self.original_feature_mapping.get(col).map)
 
         @app.callback(
-            Output("updated_boundaries", "children"), Input("bucket_table", "data"), State("input_column", "value")
+            Output("updated_boundaries", "children"), [Input("bucket_table", "data")], State("input_column", "value")
         )
         def update_updated_boundaries(bucket_table, col):
             return str(self.ui_bucketer.features_bucket_mapping.get(col).map)
@@ -146,9 +186,10 @@ class ManualBucketerApp(object):
 
         @app.callback(
             [Output("bucket_table", "data"), Output("pre-bucket-error", "children")],
-            [Input("input_column", "value"), Input("prebucket_table", "data")],
+            [Input("prebucket_table", "data")],
+            State("input_column", "value"),
         )
-        def get_bucket_table(col, prebucket_table):
+        def get_bucket_table(prebucket_table, col):
 
             new_buckets = pd.DataFrame()
             new_buckets["pre_buckets"] = [row.get("pre-bucket") for row in prebucket_table]
@@ -172,167 +213,16 @@ class ManualBucketerApp(object):
             )
             return table.to_dict("records"), error
 
-        # Add the layout
-        app.layout = html.Div(
-            children=[
-                dbc.Row(
-                    [
-                        dbc.Col(
-                            html.Div(
-                                [
-                                    html.H3(
-                                        [
-                                            "skorecard | Bucketing App",
-                                            dbc.Badge("AUC: 0.98", className="ml-1", id="auc-badge"),
-                                        ]
-                                    ),
-                                ]
-                            )
-                        ),
-                        dbc.Col(
-                            html.Div(
-                                [
-                                    # html.Div("hello", style={'display' : 'inline-block'}),
-                                    # html.Div("hello", style={'display' : 'inline-block'}),
-                                    html.Div(
-                                        dcc.Dropdown(
-                                            id="input_column",
-                                            options=[{"label": o, "value": o} for o in self.X_prebucketed.columns],
-                                            value=self.X_prebucketed.columns[0],
-                                            style={
-                                                "max-width": "300px",
-                                                "min-width": "250px",
-                                                "background-color": "#ededed",
-                                            },
-                                        ),
-                                        style={"display": "inline-block", "float": "right"},
-                                    ),
-                                    # html.Div(dbc.Button("Regular button", className="mr-1"),
-                                    # style={'display' : 'inline-block'}),
-                                ]
-                            )
-                        ),
-                    ],
-                    style={"padding-bottom": "1em"},
-                ),
-                dbc.Row([dbc.Col(dcc.Graph(id="graph-prebucket")), dbc.Col(dcc.Graph(id="graph-bucket"))]),
-                dbc.Row(
-                    [
-                        dbc.Col(
-                            html.Div(
-                                [
-                                    html.H4(children="pre-bucketing table"),
-                                    html.Div(children=[], id="pre-bucket-error"),
-                                    dash_table.DataTable(
-                                        id="prebucket_table",
-                                        style_data={"whiteSpace": "normal", "height": "auto"},
-                                        style_cell={
-                                            "height": "auto",
-                                            "overflow": "hidden",
-                                            "textOverflow": "ellipsis",
-                                            "maxWidth": 0,
-                                            "textAlign": "center",
-                                        },
-                                        style_cell_conditional=[
-                                            {"if": {"column_id": "range"}, "width": "180px"},
-                                        ],
-                                        style_as_list_view=True,
-                                        page_size=20,
-                                        columns=[
-                                            {"name": "pre-bucket", "id": "pre-bucket", "editable": False},
-                                            {"name": "range", "id": "range", "editable": False},
-                                            {"name": "count", "id": "count", "editable": False},
-                                            {"name": "count %", "id": "count %", "editable": False},
-                                            {"name": "Non-event", "id": "Non-event", "editable": False},
-                                            {"name": "Event", "id": "Event", "editable": False},
-                                            {"name": "Event Rate", "id": "Event Rate", "editable": False},
-                                            {"name": "WoE", "id": "WoE", "editable": False},
-                                            {"name": "IV", "id": "IV", "editable": False},
-                                            {"name": "bucket", "id": "bucket", "editable": True},
-                                        ],
-                                        style_data_conditional=perc_data_bars("count %")
-                                        + perc_data_bars("Event Rate")
-                                        + [
-                                            {"if": {"row_index": "odd"}, "backgroundColor": "rgb(248, 248, 248)"},
-                                            {
-                                                "if": {"column_editable": True},
-                                                "backgroundColor": "rgb(46,139,87)",
-                                                "color": "white",
-                                            },
-                                            {
-                                                "if": {"state": "active"},  # 'active' | 'selected'
-                                                "backgroundColor": "rgba(0, 116, 217, 0.3)",
-                                                "border": "1px solid rgb(0, 116, 217)",
-                                            },
-                                        ]
-                                        + colorize_cell("bucket"),
-                                        style_header={
-                                            "backgroundColor": "rgb(230, 230, 230)",
-                                        },
-                                        editable=True,
-                                    ),
-                                    html.P(["Original boundaries: ", html.Code(["1,2,4"], id="original_boundaries")]),
-                                    html.P(["Updated boundaries: ", html.Code(["1,2,4"], id="updated_boundaries")]),
-                                ],
-                                style={"padding": "0 1em 0 1em", "width": "100%"},
-                            ),
-                            style={"margin": "0 1em 0 1em"},
-                        ),
-                        dbc.Col(
-                            html.Div(
-                                [
-                                    html.H4(children="bucketing table"),
-                                    dash_table.DataTable(
-                                        id="bucket_table",
-                                        style_data={"whiteSpace": "normal", "height": "auto"},
-                                        style_cell={
-                                            "height": "auto",
-                                            "overflow": "hidden",
-                                            "textOverflow": "ellipsis",
-                                            "maxWidth": 0,
-                                            "textAlign": "center",
-                                        },
-                                        style_header={
-                                            "backgroundColor": "rgb(230, 230, 230)",
-                                        },
-                                        style_data_conditional=perc_data_bars("count %")
-                                        + perc_data_bars("Event Rate")
-                                        + [
-                                            {"if": {"row_index": "odd"}, "backgroundColor": "rgb(248, 248, 248)"},
-                                            {
-                                                "if": {"state": "active"},  # 'active' | 'selected'
-                                                "backgroundColor": "rgba(0, 116, 217, 0.3)",
-                                                "border": "1px solid rgb(0, 116, 217)",
-                                            },
-                                        ]
-                                        + colorize_cell("bucket"),
-                                        style_as_list_view=True,
-                                        page_size=20,
-                                        columns=[
-                                            {"name": "bucket", "id": "bucket"},
-                                            {"name": "range", "id": "range"},
-                                            {"name": "count", "id": "count"},
-                                            {"name": "count %", "id": "count %"},
-                                            {"name": "Non-event", "id": "Non-event"},
-                                            {"name": "Event", "id": "Event"},
-                                            {"name": "Event Rate", "id": "Event Rate"},
-                                            {"name": "WoE", "id": "WoE"},
-                                            {"name": "IV", "id": "IV"},
-                                        ],
-                                        editable=False,
-                                    ),
-                                ],
-                                style={"padding": "0 1em 0 1em", "width": "100%"},
-                            ),
-                            style={"margin": "0 1em 0 1em"},
-                        ),
-                    ],
-                    no_gutters=False,
-                    justify="center",
-                ),
-            ],
-            style={"margin": "1em", "padding:": "1em"},
+        @app.callback(
+            Output("auc-badge", "children"),
+            [Input("bucket_table", "data")],
         )
+        def update_auc(bucket_table):
+            pipe = make_pipeline(self.prebucketing_pipeline, self.ui_bucketer, self.postbucketing_pipeline)
+            pipe.fit(self.X, self.y)
+            yhat = [x[1] for x in pipe.predict_proba(X)]
+            auc = roc_auc_score(y, yhat)
+            return f"AUC: {auc:.3f}"
 
         @app.callback(
             Output("graph-prebucket", "figure"),
