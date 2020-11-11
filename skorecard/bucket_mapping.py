@@ -63,9 +63,11 @@ class BucketMapping:
         assert len(self.map) is not None, "Please set a 'map' first"
         if self.type == "numerical":
             return self._transform_num(x)
+
         if self.type == "categorical":
             self._validate_categorical_map()
             return self._transform_cat(x)
+
         if self.type == "woe":
             return self._transform_cat(x)
 
@@ -111,6 +113,10 @@ class BucketMapping:
             buckets = np.where(np.isnan(x), ix, buckets)
             self.labels[ix] = "Missing"
 
+        if isinstance(buckets, np.ndarray):
+            buckets = pd.Series(buckets)
+        if isinstance(buckets, list):
+            buckets = pd.Series(buckets)
         return buckets
 
     def _transform_cat(self, x):
@@ -202,7 +208,6 @@ class BucketMapping:
         map_ = np.hstack([-np.inf, self.map, np.inf])
 
         for bucket in np.unique(buckets):
-            print(bucket)
             bucket_str = f"{map_[int(bucket)]}, {map_[int(bucket) + 1]}"
             if self.right:
                 bucket_str = f"({bucket_str}]"

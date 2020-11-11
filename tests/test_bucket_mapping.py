@@ -91,6 +91,33 @@ def test_labels():
     labels = bins.map(bucket.labels)
 
     assert labels[in_series == "truck"].equals(labels[labels == "special"])
-    # assert labels[in_series == "car"].equals(labels[labels == ["boat", "car"]])
+    assert labels[(in_series.isin(["car", "boat"]))].equals(labels[labels == "boat, car"])
+
+    # test with numerical categories
+    # Limited map with NA's
+    x = [310, 311, 312, 313, 313, np.nan]
+    bucket = BucketMapping("feature1", "categorical", map={310: 0, 311: 1, 312: 2}, specials={"special": [313]})
+    bins = bucket.transform(x)
+
+    in_series = pd.Series(x)
+
+    labels = bins.map(bucket.labels)
+
+    assert labels[in_series == 313].equals(labels[labels == "special"])
+    assert labels[in_series == 311].equals(labels[labels == "311"])
+    assert labels[in_series.isna()].equals(labels[labels == "Missing"])
+
+    # test numerical labels
+    x = [0, 1, 2, 3, 4, 5, 2, np.nan]
+    bucket = BucketMapping("feature1", "numerical", map=[3, 4], specials={"special": [2]})
+    bins = bucket.transform(x)
+    in_series = pd.Series(x)
+
+    labels = bins.map(bucket.labels)
+
+    assert labels[(in_series <= 3) & (in_series != 2)].equals(labels[labels == "(-inf, 3.0]"])
+    assert labels[(in_series <= 4) & (in_series > 3)].equals(labels[labels == "(3.0, 4.0]"])
+    assert labels[in_series == 2].equals(labels[labels == "special"])
+    assert labels[in_series > 4].equals(labels[labels == "(4.0, inf]"])
 
     # raise NotImplementedError("Implement tests for labels on numerical and categorical")
