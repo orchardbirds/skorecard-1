@@ -66,13 +66,13 @@ def test_specials_numerical():
     bucket = BucketMapping("feature1", "numerical", map=[3, 4], specials={"special": [2]})
     assert all(np.equal(bucket.transform(x), np.array([0, 0, 3, 0, 1, 2, 3])))
 
-    assert bucket.labels == ["(-inf, 3.0]", "(3.0, 4.0]", "(4.0, inf]", "special"]
+    assert bucket.labels == {0: "(-inf, 3.0]", 1: "(3.0, 4.0]", 2: "(4.0, inf]", 3: "special"}
 
     # test that calling transform again does not change the labelling
     bucket.transform(x)
     bucket.transform(x)
 
-    assert bucket.labels == ["(-inf, 3.0]", "(3.0, 4.0]", "(4.0, inf]", "special"]
+    assert bucket.labels == {0: "(-inf, 3.0]", 1: "(3.0, 4.0]", 2: "(4.0, inf]", 3: "special"}
 
     # Test that if special is not in x, nothing happens
     x = [0, 1, 2, 3, 4, 5]
@@ -82,4 +82,15 @@ def test_specials_numerical():
 
 def test_labels():
     """Test that the labels are correct in different scenarios."""
-    raise NotImplementedError("Implement tests for labels on numerical and categorical")
+    x = ["car", "motorcycle", "boat", "truck", "truck", np.nan]
+    bucket = BucketMapping("feature1", "categorical", map={"car": 0, "boat": 0}, specials={"special": ["truck"]})
+    bins = bucket.transform(x)
+
+    in_series = pd.Series(x)
+
+    labels = bins.map(bucket.labels)
+
+    assert labels[in_series == "truck"].equals(labels[labels == "special"])
+    assert labels[in_series == "car"].equals(labels[labels == ["boat", "car"]])
+
+    # raise NotImplementedError("Implement tests for labels on numerical and categorical")

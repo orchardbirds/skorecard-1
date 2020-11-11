@@ -40,7 +40,7 @@ class BucketMapping:
     map: Union[Dict, List] = field(default_factory=lambda: [])
     right: bool = True
     specials: Dict = field(default_factory=lambda: {})
-    labels: List = field(default_factory=lambda: [])
+    labels: Dict = field(default_factory=lambda: {})
 
     def __post_init__(self) -> None:
         """Do input validation.
@@ -95,7 +95,7 @@ class BucketMapping:
         np.where(np.isnan(x), np.nan, new)
         ```
         """
-        self.labels = []
+        self.labels = {}
         if isinstance(x, np.ndarray):
             x = pd.Series(x)
         if isinstance(x, list):
@@ -107,8 +107,9 @@ class BucketMapping:
             buckets = self._assign_specials(x, buckets)
 
         if np.isnan(x).any():
-            buckets = np.where(np.isnan(x), buckets.max() + 1, buckets)
-            self.labels.append("Missing")
+            ix = buckets.max() + 1
+            buckets = np.where(np.isnan(x), ix, buckets)
+            self.labels[ix] = "Missing"
 
         return buckets
 
@@ -138,8 +139,9 @@ class BucketMapping:
 
         if x.isna().any():
             # new = np.where(np.isnan(x), np.nan, new)
-            new = pd.Series(np.where(x.isna(), new.max() + 1, new))
-            self.labels.append("Missing")
+            ix = new.max() + 1
+            new = pd.Series(np.where(x.isna(), ix, new))
+            self.labels[ix] = "Missing"
 
         return new
 
@@ -161,7 +163,7 @@ class BucketMapping:
                 v.setdefault(value, []).append(key)
         v[other_value] = "other"
         sorted_v = {key: v[key] for key in sorted(v)}
-        self.labels = [v for v in sorted_v.values()]
+        self.labels = sorted_v
 
         return new
 
@@ -188,14 +190,15 @@ class BucketMapping:
         map_ = np.hstack([-np.inf, self.map, np.inf])
 
         for bucket in np.unique(buckets):
-
+            print(bucket)
             bucket_str = f"{map_[int(bucket)]}, {map_[int(bucket) + 1]}"
             if self.right:
                 bucket_str = f"({bucket_str}]"
             else:
                 bucket_str = f"[{bucket_str})"
 
-            self.labels.append(bucket_str)
+            self.labels[bucket] = bucket_str
+
         return buckets
 
     def _assign_specials(self, x, buckets):
@@ -213,7 +216,7 @@ class BucketMapping:
         for k, v in self.specials.items():
             max_bucket += 1
             buckets = np.where(x.isin(v), max_bucket, buckets)
-            self.labels.append(k)
+            self.labels[max_bucket] = k
         return buckets
 
 
