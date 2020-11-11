@@ -129,6 +129,17 @@ def test_optimal_binning_categorical(df):
     )
     optb.fit(X["EDUCATION"], y)
     ref = optb.transform(X["EDUCATION"], metric="indices")
-    X_trans["EDUCATION"].equals(pd.Series(ref))
+    assert X_trans["EDUCATION"].equals(pd.Series(ref))
 
-    raise NotImplementedError("implement a test with specials in categorical binning")
+
+def test_optimal_binning_categorical_specials(df):
+    """Test categoricals with specials."""
+    X = df[["LIMIT_BAL", "BILL_AMT1", "EDUCATION"]]
+    y = df["default"].values
+
+    obt = OptimalBucketer(variables=["EDUCATION"], variables_type="categorical", specials={"special_one": [0]})
+    obt.fit(X, y)
+    X_trans = obt.transform(X)
+    assert len(X_trans["EDUCATION"].unique()) == 5
+
+    assert obt.transform(X)["EDUCATION"][X["EDUCATION"] == 0].shape[0] == 1

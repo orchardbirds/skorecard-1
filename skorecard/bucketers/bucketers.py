@@ -143,7 +143,7 @@ class OptimalBucketer(BaseBucketer):
             # Note that optbinning transform uses right=False
             # https://github.com/guillermo-navas-palencia/optbinning/blob/396b9bed97581094167c9eb4744c2fd1fb5c7408/optbinning/binning/transformations.py#L126-L132
             self.features_bucket_mapping_[feature] = BucketMapping(
-                feature_name=feature, type=self.variables_type, map=splits, right=False, specials=special,
+                feature_name=feature, type=self.variables_type, map=splits, right=False, specials=self.specials,
             )
 
         return self
