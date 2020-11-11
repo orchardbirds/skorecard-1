@@ -159,6 +159,48 @@ class ManualBucketerApp(object):
         # Add all the callbacks
 
         @app.callback(
+            Output("collapse-menu-boundaries", "is_open"),
+            [Input("menu-boundaries", "n_clicks")],
+            [State("collapse-menu-boundaries", "is_open")],
+        )
+        def toggle_collapse(n, is_open):
+            """Collapse menu item.
+
+            See https://dash-bootstrap-components.opensource.faculty.ai/docs/components/collapse/
+            """
+            if n:
+                return not is_open
+            return is_open
+
+        @app.callback(
+            Output("collapse-menu-save-versions", "is_open"),
+            [Input("menu-save-versions", "n_clicks")],
+            [State("collapse-menu-save-versions", "is_open")],
+        )
+        def toggle_collapse2(n, is_open):
+            """Collapse menu item.
+
+            See https://dash-bootstrap-components.opensource.faculty.ai/docs/components/collapse/
+            """
+            if n:
+                return not is_open
+            return is_open
+
+        @app.callback(
+            Output("collapse-menu-model-performance", "is_open"),
+            [Input("menu-model-performance", "n_clicks")],
+            [State("collapse-menu-model-performance", "is_open")],
+        )
+        def toggle_collapse3(n, is_open):
+            """Collapse menu item.
+
+            See https://dash-bootstrap-components.opensource.faculty.ai/docs/components/collapse/
+            """
+            if n:
+                return not is_open
+            return is_open
+
+        @app.callback(
             Output("original_boundaries", "children"),
             [Input("input_column", "value")],
         )
@@ -214,7 +256,7 @@ class ManualBucketerApp(object):
             return table.to_dict("records"), error
 
         @app.callback(
-            Output("auc-badge", "children"),
+            Output("menu-model-performance", "children"),
             [Input("bucket_table", "data")],
         )
         def update_auc(bucket_table):

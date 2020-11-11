@@ -30,8 +30,10 @@ def get_layout(column_options=[]):
     """
     navbar = dbc.NavbarSimple(
         children=[
-            dbc.Button("AUC: t.b.d.", color="primary", className="mr-1", id="auc-badge"),
-            # dbc.NavItem(dbc.NavLink("Page 1", href="#")),
+            dbc.Button("AUC: t.b.d.", color="primary", className="mr-1", id="menu-model-performance"),
+            dbc.Button("Boundaries", color="primary", className="mr-1", id="menu-boundaries"),
+            dbc.Button("Saved versions", color="primary", className="mr-1", id="menu-save-versions"),
+            # dbc.NavItem(dbc.NavLink("Boundaries", id="menu-boundaries", href="#")),
             dcc.Dropdown(
                 id="input_column",
                 options=column_options,
@@ -41,16 +43,16 @@ def get_layout(column_options=[]):
                     "min-width": "250px",
                 },
             ),
-            dbc.DropdownMenu(
-                children=[
-                    dbc.DropdownMenuItem("More pages", header=True),
-                    dbc.DropdownMenuItem("Page 2", href="#"),
-                    dbc.DropdownMenuItem("Page 3", href="#"),
-                ],
-                nav=True,
-                in_navbar=True,
-                label="More",
-            ),
+            # dbc.DropdownMenu(
+            #     children=[
+            #         dbc.DropdownMenuItem("More pages", header=True),
+            #         dbc.DropdownMenuItem("Page 2", href="#"),
+            #         dbc.DropdownMenuItem("Page 3", href="#"),
+            #     ],
+            #     nav=True,
+            #     in_navbar=True,
+            #     label="More",
+            # ),
         ],
         brand="Skorecard | Manual Bucketing App",
         brand_href="#",
@@ -63,6 +65,105 @@ def get_layout(column_options=[]):
     return html.Div(
         children=[
             dbc.Row(navbar, style={"padding-bottom": "3em"}),
+            dbc.Collapse(
+                dbc.Row(
+                    [
+                        dbc.Col(),
+                        dbc.Col(
+                            [
+                                dbc.Col(
+                                    dbc.Card(
+                                        [
+                                            dbc.CardHeader("Boundaries"),
+                                            dbc.CardBody(
+                                                [
+                                                    html.P(
+                                                        [
+                                                            "Original boundaries: ",
+                                                            html.Code([""], id="original_boundaries"),
+                                                            html.Br(),
+                                                            "Updated boundaries: ",
+                                                            html.Code([""], id="updated_boundaries"),
+                                                        ],
+                                                        className="card-text",
+                                                    ),
+                                                    dbc.Button(
+                                                        "Reset boundaries",
+                                                        id="reset-boundaries-button",
+                                                        className="mr-2",
+                                                    ),
+                                                ]
+                                            ),
+                                        ]
+                                    )
+                                ),
+                            ],
+                            className="mb-4",
+                        ),
+                    ]
+                ),
+                id="collapse-menu-boundaries",
+            ),
+            dbc.Collapse(
+                dbc.Row(
+                    [
+                        dbc.Col(),
+                        dbc.Col(
+                            [
+                                dbc.Col(
+                                    dbc.Card(
+                                        [
+                                            dbc.CardHeader("Save versions"),
+                                            dbc.CardBody(
+                                                [
+                                                    html.P(
+                                                        [
+                                                            "TODO",
+                                                        ],
+                                                        className="card-text",
+                                                    ),
+                                                ]
+                                            ),
+                                        ]
+                                    )
+                                ),
+                            ],
+                            className="mb-4",
+                        ),
+                    ]
+                ),
+                id="collapse-menu-save-versions",
+            ),
+            dbc.Collapse(
+                dbc.Row(
+                    [
+                        dbc.Col(),
+                        dbc.Col(
+                            [
+                                dbc.Col(
+                                    dbc.Card(
+                                        [
+                                            dbc.CardHeader("Model Performance"),
+                                            dbc.CardBody(
+                                                [
+                                                    html.P(
+                                                        [
+                                                            "TODO",
+                                                        ],
+                                                        className="card-text",
+                                                    ),
+                                                ]
+                                            ),
+                                        ]
+                                    )
+                                ),
+                            ],
+                            className="mb-4",
+                        ),
+                    ]
+                ),
+                id="collapse-menu-model-performance",
+            ),
             dbc.Row([dbc.Col(dcc.Graph(id="graph-prebucket")), dbc.Col(dcc.Graph(id="graph-bucket"))]),
             dbc.Row(
                 [
@@ -119,8 +220,6 @@ def get_layout(column_options=[]):
                                     },
                                     editable=True,
                                 ),
-                                html.P(["Original boundaries: ", html.Code([""], id="original_boundaries")]),
-                                html.P(["Updated boundaries: ", html.Code([""], id="updated_boundaries")]),
                             ],
                             style={"padding": "0 1em 0 1em", "width": "100%"},
                         ),
