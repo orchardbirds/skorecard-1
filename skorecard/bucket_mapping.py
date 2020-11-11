@@ -160,9 +160,21 @@ class BucketMapping:
             v[0] = "empty map"
         else:
             for key, value in sorted(mapping.items()):
+                if not isinstance(key, str):
+                    key = str(key)
                 v.setdefault(value, []).append(key)
         v[other_value] = "other"
         sorted_v = {key: v[key] for key in sorted(v)}
+
+        # transfrom it all to a string like format
+        for k, v in sorted_v.items():
+            if isinstance(v, list):
+                if len(v) == 1:
+                    v = v[0]
+                else:
+                    v = ", ".join(v)
+            sorted_v[k] = v
+
         self.labels = sorted_v
 
         return new
