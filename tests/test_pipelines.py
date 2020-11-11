@@ -104,7 +104,7 @@ def test_get_features_bucket_mapping(df):
     nested_pipeline.fit(X, y)
     bm = get_features_bucket_mapping(nested_pipeline)
     assert bm.get("EDUCATION") == BucketMapping(
-        feature_name="EDUCATION", type="categorical", map={2: 1, 1: 2, 3: 3}, right=True
+        feature_name="EDUCATION", type="categorical", map={2: 0, 1: 1, 3: 2}, right=True
     )
 
 

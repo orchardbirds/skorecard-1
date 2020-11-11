@@ -121,7 +121,7 @@ def test_optimal_binning_categorical(df):
         type="categorical",
         map={1: 0, 3: 1, 2: 2, 5: 3, 4: 3, 6: 3, 0: 3},
         right=False,
-        labels=["other", [1], [3], [2], [0, 4, 5, 6]],
+        labels=[[1], [3], [2], [0, 4, 5, 6], "other"],
     )
 
     optb = OptimalBinning(
