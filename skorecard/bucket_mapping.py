@@ -113,10 +113,6 @@ class BucketMapping:
             buckets = np.where(np.isnan(x), ix, buckets)
             self.labels[ix] = "Missing"
 
-        if isinstance(buckets, np.ndarray):
-            buckets = pd.Series(buckets)
-        if isinstance(buckets, list):
-            buckets = pd.Series(buckets)
         return buckets
 
     def _transform_cat(self, x):

@@ -84,7 +84,7 @@ def test_labels():
     """Test that the labels are correct in different scenarios."""
     x = ["car", "motorcycle", "boat", "truck", "truck", np.nan]
     bucket = BucketMapping("feature1", "categorical", map={"car": 0, "boat": 0}, specials={"special": ["truck"]})
-    bins = bucket.transform(x)
+    bins = pd.Series(bucket.transform(x))
 
     in_series = pd.Series(x)
 
@@ -97,7 +97,7 @@ def test_labels():
     # Limited map with NA's
     x = [310, 311, 312, 313, 313, np.nan]
     bucket = BucketMapping("feature1", "categorical", map={310: 0, 311: 1, 312: 2}, specials={"special": [313]})
-    bins = bucket.transform(x)
+    bins = pd.Series(bucket.transform(x))
 
     in_series = pd.Series(x)
 
@@ -110,7 +110,7 @@ def test_labels():
     # test numerical labels
     x = [0, 1, 2, 3, 4, 5, 2, np.nan]
     bucket = BucketMapping("feature1", "numerical", map=[3, 4], specials={"special": [2]})
-    bins = bucket.transform(x)
+    bins = pd.Series(bucket.transform(x))
     in_series = pd.Series(x)
 
     labels = bins.map(bucket.labels)
