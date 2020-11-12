@@ -228,7 +228,19 @@ def get_layout(column_options=[]):
                     dbc.Col(
                         html.Div(
                             [
-                                html.H4(children="bucketing table"),
+                                html.H4(
+                                    [
+                                        "bucketing table",
+                                    ]
+                                ),
+                                dbc.Collapse(
+                                    dbc.Badge("is not monotonic", color="danger", className="mr-1"),
+                                    id="is_not_monotonic_badge",
+                                ),
+                                dbc.Collapse(
+                                    dbc.Badge("one or more buckets <5% obs", color="danger", className="mr-1"),
+                                    id="has_5perc_badge",
+                                ),
                                 dash_table.DataTable(
                                     id="bucket_table",
                                     style_data={"whiteSpace": "normal", "height": "auto"},

@@ -19,6 +19,7 @@ X, y = datasets.load_uci_credit_card(return_X_y=True)
 
 import copy
 import pandas as pd
+import numpy as np
 from sklearn.pipeline import Pipeline, make_pipeline
 from sklearn.metrics import roc_auc_score
 
@@ -199,6 +200,24 @@ class ManualBucketerApp(object):
             if n:
                 return not is_open
             return is_open
+
+        @app.callback(
+            Output("is_not_monotonic_badge", "is_open"),
+            [Input("bucket_table", "data")],
+        )
+        def badge_is_monotonic(bucket_table):
+            event_rates = [x.get("Event Rate") for x in bucket_table]
+            dx = np.diff(event_rates)
+            monotonic = np.all(dx <= 0) or np.all(dx >= 0)
+            return not monotonic
+
+        @app.callback(
+            Output("has_5perc_badge", "is_open"),
+            [Input("bucket_table", "data")],
+        )
+        def badge_is_has_5perc(bucket_table):
+            event_perc = [x.get("count %") for x in bucket_table]
+            return not all([x >= 5 for x in event_perc])
 
         @app.callback(
             Output("original_boundaries", "children"),
