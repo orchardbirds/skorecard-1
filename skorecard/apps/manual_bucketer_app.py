@@ -217,7 +217,7 @@ class ManualBucketerApp(object):
         )
         def badge_is_has_5perc(bucket_table):
             event_perc = [x.get("count %") for x in bucket_table]
-            return not all([x >= 5 for x in event_perc])
+            return not all([float(x) >= 5 for x in event_perc])
 
         @app.callback(
             Output("original_boundaries", "children"),
@@ -316,6 +316,7 @@ class ManualBucketerApp(object):
                 {
                     "bucket": [int(row.get("bucket")) for row in data],
                     "counts": [int(row.get("count")) for row in data],
+                    "counts %": [float(row.get("count %")) for row in data],
                     "Event Rate": [row.get("Event Rate") for row in data],
                 }
             )
@@ -324,7 +325,7 @@ class ManualBucketerApp(object):
             fig = make_subplots(specs=[[{"secondary_y": True}]])
             # Add traces
             fig.add_trace(
-                go.Bar(x=plotdf["bucket"], y=plotdf["counts"], name="counts"),
+                go.Bar(x=plotdf["bucket"], y=plotdf["counts %"], name="counts (%)"),
                 secondary_y=False,
             )
             fig.add_trace(
@@ -335,7 +336,7 @@ class ManualBucketerApp(object):
             fig.update_layout(showlegend=False)
             fig.update_layout(xaxis_title="Bucket")
             # Set y-axes titles
-            fig.update_yaxes(title_text="counts", secondary_y=False)
+            fig.update_yaxes(title_text="counts (%)", secondary_y=False)
             fig.update_yaxes(title_text="event rate (%)", secondary_y=True)
             fig.update_layout(title="Bucketed")
             fig.update_xaxes(type="category")

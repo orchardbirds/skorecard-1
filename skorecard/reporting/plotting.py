@@ -16,7 +16,10 @@ def plot_bins(X, y, col):
 
     # Create plotting df
     val_counts = X[col].value_counts()
-    plotdf = pd.DataFrame({"bucket": val_counts.index, "counts": val_counts.values})
+    val_counts_normalized = X[col].value_counts(normalize=True)
+    plotdf = pd.DataFrame(
+        {"bucket": val_counts.index, "counts": val_counts.values, "counts %": val_counts_normalized.values}
+    )
 
     # Add event rates
     ref = pd.DataFrame()
@@ -33,7 +36,7 @@ def plot_bins(X, y, col):
 
     # Add traces
     fig.add_trace(
-        go.Bar(x=plotdf["bucket"], y=plotdf["counts"], name="Bucket counts"),
+        go.Bar(x=plotdf["bucket"], y=plotdf["counts %"] * 100, name="Bucket count percentage"),
         secondary_y=False,
     )
     fig.add_trace(
@@ -44,7 +47,7 @@ def plot_bins(X, y, col):
     fig.update_layout(showlegend=False)
     fig.update_layout(xaxis_title="Bucket")
     # Set y-axes titles
-    fig.update_yaxes(title_text="counts", secondary_y=False)
+    fig.update_yaxes(title_text="counts (%)", secondary_y=False)
     fig.update_yaxes(title_text="event rate (%)", secondary_y=True)
     fig.update_layout(title="Bucketed")
     fig.update_xaxes(type="category")
