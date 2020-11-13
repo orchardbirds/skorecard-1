@@ -433,13 +433,7 @@ class DecisionTreeBucketer(BaseBucketer):
         self.binners = {}
 
         for feature in self.variables:
-            binner = DecisionTreeClassifier(
-                max_leaf_nodes=self.max_n_bins,
-                min_samples_leaf=self.min_bin_size,
-                random_state=self.random_state,
-                **self.kwargs,
-            )
-            self.binners[feature] = binner
+
 
             if feature in self.specials.keys():
                 special = self.specials[feature]
@@ -447,6 +441,19 @@ class DecisionTreeBucketer(BaseBucketer):
             else:
                 X_flt, y_flt = X[feature], y
                 special = {}
+            frac_left = X_flt.shape[0]/X.shape[0]
+
+            min_bin_size = self.min_bin_size/frac_left
+            if min_bin_size>0.5:
+                min_bin_size=0.5
+
+            binner = DecisionTreeClassifier(
+                max_leaf_nodes=self.max_n_bins,
+                min_samples_leaf=min_bin_size,
+                random_state=self.random_state,
+                **self.kwargs,
+            )
+            self.binners[feature] = binner
 
             binner.fit(X_flt.values.reshape(-1, 1), y_flt)
 
