@@ -22,21 +22,16 @@ def create_report(X, y, column, bucketer, epsilon=0.00001, verbose=False):
     X_transform = bucketer.transform(X)[[column]]
     X_transform = X_transform.rename(columns={column: "Bucket_id"})
 
+    X_transform["Event"] = y
 
-    X_transform['Event'] = y
-
-    stats = (
-                X_transform.groupby("Bucket_id", as_index=False)
-                    .agg( def_rate = pd.NamedAgg(column='Event', aggfunc='mean'),
-                          Event = pd.NamedAgg(column='Event', aggfunc='sum'),
-                          Count = pd.NamedAgg(column='Bucket_id', aggfunc='count'),
-                          )
+    stats = X_transform.groupby("Bucket_id", as_index=False).agg(
+        def_rate=pd.NamedAgg(column="Event", aggfunc="mean"),
+        Event=pd.NamedAgg(column="Event", aggfunc="sum"),
+        Count=pd.NamedAgg(column="Bucket_id", aggfunc="count"),
     )
 
-    stats['bin_labels'] = stats["Bucket_id"].map(bucket_mapping.labels)
-    stats["Count (%)"] = (stats['Count']/stats['Count'].sum()).apply(lambda x: np.round(x*100,2))
-
-
+    stats["bin_labels"] = stats["Bucket_id"].map(bucket_mapping.labels)
+    stats["Count (%)"] = (stats["Count"] / stats["Count"].sum()).apply(lambda x: np.round(x * 100, 2))
 
     stats["Non Event"] = stats["Count"] - stats["Event"]
     # Default rates
@@ -52,6 +47,17 @@ def create_report(X, y, column, bucketer, epsilon=0.00001, verbose=False):
     if verbose:
         iv_total = stats["IV"].sum()
         print(f"IV for {column} = {np.round(iv_total, 4)}")
-    columns = ["Bucket_id","bin_labels","Count","Count (%)","Event","% Event","Non Event",
-               "% Non Event","Event Rate","WoE","IV"]
+    columns = [
+        "Bucket_id",
+        "bin_labels",
+        "Count",
+        "Count (%)",
+        "Event",
+        "% Event",
+        "Non Event",
+        "% Non Event",
+        "Event Rate",
+        "WoE",
+        "IV",
+    ]
     return stats.sort_values(by="Bucket_id")[columns]
