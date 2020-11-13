@@ -440,6 +440,8 @@ class DecisionTreeBucketer(BaseBucketer):
             else:
                 X_flt, y_flt = X[feature], y
                 special = {}
+
+            # If the specials are excluded, make sure that the bin size is rescaled.
             frac_left = X_flt.shape[0] / X.shape[0]
 
             min_bin_size = self.min_bin_size / frac_left
