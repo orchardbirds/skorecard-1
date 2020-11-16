@@ -413,7 +413,8 @@ class DecisionTreeBucketer(BaseBucketer):
             specials (dict): dictionary of special values that require their own binning.
             min_bin_size: Minimum fraction of observations in a bucket. Passed directly to min_samples_leaf.
             max_n_bins: Maximum numbers of bins to return. Passed directly to max_leaf_nodes.
-            impurity_decrease:
+            impurity_decrease: minimum impurity decrease, as defined in the DecisionTreeClassifier. If >0, it does not
+                perform further splits if the decrease in impurity is not above the threshold.
             random_state: The random state, Passed directly to DecisionTreeClassifier
             kwargs: Other parameters passed to DecisionTreeClassifier
         """
