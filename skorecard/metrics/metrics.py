@@ -59,7 +59,7 @@ def _IV_score(y_test, y_pred, epsilon=0.0001, digits = None):
         y_pred: (np.array), predictions, indices of the buckets where the IV should be computed
         epsilon (float): Amount to be added to relative counts in order to avoid division by zero in the WOE
             calculation.
-        digits: (int): number of decimal digits to consider in the 
+        digits: (int): number of decimal digits to consider in the
 
     Returns:
         iv (float): information value
