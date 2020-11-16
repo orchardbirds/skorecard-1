@@ -404,8 +404,16 @@ class DecisionTreeBucketer(BaseBucketer):
     ```
     """
 
-    def __init__(self, variables=[], specials={}, max_n_bins=100, min_bin_size=0.05, min_impurity_decrease = 0,
-                 random_state=42, **kwargs) -> None:
+    def __init__(
+        self,
+        variables=[],
+        specials={},
+        max_n_bins=100,
+        min_bin_size=0.05,
+        min_impurity_decrease=0,
+        random_state=42,
+        **kwargs,
+    ) -> None:
         """Init the class.
 
         Args:
@@ -413,8 +421,8 @@ class DecisionTreeBucketer(BaseBucketer):
             specials (dict): dictionary of special values that require their own binning.
             min_bin_size: Minimum fraction of observations in a bucket. Passed directly to min_samples_leaf.
             max_n_bins: Maximum numbers of bins to return. Passed directly to max_leaf_nodes.
-            impurity_decrease: minimum impurity decrease, as defined in the DecisionTreeClassifier. If >0, it does not
-                perform further splits if the decrease in impurity is not above the threshold.
+            min_impurity_decrease: minimum impurity decrease, as defined in the DecisionTreeClassifier. If >0, it does
+                not perform further splits if the decrease in impurity is not above the threshold.
             random_state: The random state, Passed directly to DecisionTreeClassifier
             kwargs: Other parameters passed to DecisionTreeClassifier
         """
@@ -438,8 +446,11 @@ class DecisionTreeBucketer(BaseBucketer):
 
         for feature in self.variables:
 
+            n_special_bins = 0
             if feature in self.specials.keys():
                 special = self.specials[feature]
+                n_special_bins = len(special)
+
                 X_flt, y_flt = self._filter_specials_for_fit(X=X[feature], y=y, specials=special)
             else:
                 X_flt, y_flt = X[feature], y
@@ -453,9 +464,9 @@ class DecisionTreeBucketer(BaseBucketer):
                 min_bin_size = 0.5
 
             binner = DecisionTreeClassifier(
-                max_leaf_nodes=self.max_n_bins,
+                max_leaf_nodes=(self.max_n_bins - n_special_bins),
                 min_samples_leaf=min_bin_size,
-                min_impurity_decrease = self.min_impurity_decrease,
+                min_impurity_decrease=self.min_impurity_decrease,
                 random_state=self.random_state,
                 **self.kwargs,
             )
