@@ -109,7 +109,7 @@ class BucketMapping:
             buckets = self._assign_specials(x, buckets)
 
         if np.isnan(x).any():
-            ix = buckets.max() + 1
+            ix = int(buckets.max()) + 1
             buckets = np.where(np.isnan(x), ix, buckets)
             self.labels[ix] = "Missing"
 
@@ -141,7 +141,7 @@ class BucketMapping:
 
         if x.isna().any():
             # new = np.where(np.isnan(x), np.nan, new)
-            ix = new.max() + 1
+            ix = int(new.max()) + 1
             new = pd.Series(np.where(x.isna(), ix, new))
             self.labels[ix] = "Missing"
 
@@ -170,9 +170,16 @@ class BucketMapping:
 
         # transfrom it all to a string like format
         for k, v in sorted_v.items():
+
+            # if k is of type int32, it will create weird caracters if exported to files
+            # if self.type=='categorical':
+            if isinstance(k, np.int32):
+                k = int(k)
             if isinstance(v, list):
                 if len(v) == 1:
                     v = v[0]
+                    if not isinstance(v, str):
+                        v = str(v)
                 else:
                     v = ", ".join(v)
             sorted_v[k] = v
@@ -225,11 +232,11 @@ class BucketMapping:
             (np.array), buckets
 
         """
-        max_bucket = buckets.max()
+        max_bucket = int(buckets.max())
         for k, v in self.specials.items():
             max_bucket += 1
             buckets = np.where(x.isin(v), max_bucket, buckets)
-            self.labels[max_bucket] = k
+            self.labels[max_bucket] = str(k)
         return buckets
 
 
