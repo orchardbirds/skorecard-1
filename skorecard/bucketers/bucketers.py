@@ -404,7 +404,8 @@ class DecisionTreeBucketer(BaseBucketer):
     ```
     """
 
-    def __init__(self, variables=[], specials={}, max_n_bins=100, min_bin_size=0.05, random_state=42, **kwargs) -> None:
+    def __init__(self, variables=[], specials={}, max_n_bins=100, min_bin_size=0.05, min_impurity_decrease = 0,
+                 random_state=42, **kwargs) -> None:
         """Init the class.
 
         Args:
@@ -412,6 +413,7 @@ class DecisionTreeBucketer(BaseBucketer):
             specials (dict): dictionary of special values that require their own binning.
             min_bin_size: Minimum fraction of observations in a bucket. Passed directly to min_samples_leaf.
             max_n_bins: Maximum numbers of bins to return. Passed directly to max_leaf_nodes.
+            impurity_decrease:
             random_state: The random state, Passed directly to DecisionTreeClassifier
             kwargs: Other parameters passed to DecisionTreeClassifier
         """
@@ -422,6 +424,7 @@ class DecisionTreeBucketer(BaseBucketer):
         self.kwargs = kwargs
         self.max_n_bins = max_n_bins
         self.min_bin_size = min_bin_size
+        self.min_impurity_decrease = min_impurity_decrease
         self.random_state = random_state
 
     def fit(self, X, y):
@@ -451,6 +454,7 @@ class DecisionTreeBucketer(BaseBucketer):
             binner = DecisionTreeClassifier(
                 max_leaf_nodes=self.max_n_bins,
                 min_samples_leaf=min_bin_size,
+                min_impurity_decrease = self.min_impurity_decrease,
                 random_state=self.random_state,
                 **self.kwargs,
             )

@@ -66,7 +66,7 @@ class BaseBucketer(BaseEstimator, TransformerMixin):
 
         return X
 
-    def predict(self, X, y=None):
+    def predict(self, X):
         """Applies the transform method. To be used for the grid searches.
 
         Args:
@@ -75,7 +75,7 @@ class BaseBucketer(BaseEstimator, TransformerMixin):
         Returns:
             np.array of the transformed X, such that the values of X are replaced by the corresponding bucket numbers
         """
-        return self.transform(X, y)
+        return self.transform(X)
 
 
 # def _check_contains_na(X, variables):
