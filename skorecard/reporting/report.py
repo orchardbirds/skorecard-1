@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
-
-from skorecard.bucket_mapping import FeaturesBucketMapping
+import skorecard
 
 
 def create_report(X, y, column, bucketer, epsilon=0.00001, verbose=False):
@@ -20,10 +19,12 @@ def create_report(X, y, column, bucketer, epsilon=0.00001, verbose=False):
     """
     X = X.copy()
 
-    if isinstance(bucketer, FeaturesBucketMapping):
-        bucketer = bucketer.map
+    if isinstance(bucketer, skorecard.bucketers.bucketers.UserInputBucketer):
+        bucket_dict = bucketer.features_bucket_mapping_.maps
+    else:
+        bucket_dict = bucketer.features_bucket_mapping_
 
-    bucket_mapping = bucketer.features_bucket_mapping_[column]
+    bucket_mapping = bucket_dict[column]
     X_transform = bucketer.transform(X)[[column]]
     X_transform = X_transform.rename(columns={column: "Bucket_id"})
 
