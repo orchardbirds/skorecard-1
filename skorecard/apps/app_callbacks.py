@@ -31,10 +31,11 @@ except ModuleNotFoundError:
     px = NotInstalledError("plotly", "reporting")
 
 
-def add_callbacks(app, self):
+def add_callbacks(self):
     """
     Single place where all callbacks for the dash app are defined.
     """
+    app = self.app
 
     @app.callback(
         Output("collapse-menu-boundaries", "is_open"),
@@ -238,5 +239,3 @@ def add_callbacks(app, self):
             height=350,
         )
         return fig
-
-    return app

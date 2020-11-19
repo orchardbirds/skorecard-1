@@ -1,6 +1,6 @@
 import pandas as pd
 from skorecard.bucket_mapping import BucketMapping
-from skorecard.apps.manual_bucketer_app import determine_boundaries
+from skorecard.apps.app_utils import determine_boundaries
 
 
 def test_determine_boundaries():

@@ -1,10 +1,12 @@
 import copy
 import pandas as pd
+import numpy as np
 from sklearn.pipeline import Pipeline, make_pipeline
 
 from skorecard.utils.exceptions import NotInstalledError
-from skorecard.pipeline import split_pipeline
-from skorecard.apps.app_layout import get_layout
+from skorecard.pipeline import find_coarse_classing_step, get_features_bucket_mapping
+from skorecard.bucketers import UserInputBucketer
+from skorecard.apps.app_layout import add_layout
 from skorecard.apps.app_callbacks import add_callbacks
 
 # JupyterDash
@@ -14,49 +16,103 @@ except ModuleNotFoundError:
     JupyterDash = NotInstalledError("jupyter-dash", "dashboard")
 
 
-class ManualBucketerApp(object):
-    """Dash App for manual bucketing.
+class BucketTweakerApp(object):
+    """Tweak bucketing in a sklearn pipeline manually using a Dash web app.
 
-    Class that contains a Dash app
+    Example:
+
+    ```python
+    from skorecard import datasets
+    from skorecard.bucketers import DecisionTreeBucketer, OptimalBucketer
+    from skorecard.pipeline import make_coarse_classing_pipeline
+    from skorecard.apps import BucketTweakerApp
+    from sklearn.pipeline import make_pipeline
+    from sklearn.preprocessing import OneHotEncoder
+    from sklearn.linear_model import LogisticRegression
+
+    df = datasets.load_uci_credit_card(as_frame=True)
+    X = df.drop(columns=["default"])
+    y = df["default"]
+
+    num_cols = ["LIMIT_BAL", "BILL_AMT1"]
+    cat_cols = ["EDUCATION", "MARRIAGE"]
+
+    pipeline = make_pipeline(
+        DecisionTreeBucketer(variables=num_cols, max_n_bins=100, min_bin_size=0.05),
+        make_coarse_classing_pipeline(
+            OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
+            OptimalBucketer(variables=cat_cols, max_n_bins=10, min_bin_size=0.05),
+        ),
+        OneHotEncoder(),
+        LogisticRegression()
+    )
+
+    pipeline.fit(X, y)
+    tweaker = BucketTweakerApp(pipeline, X, y)
+    #tweaker.run_server()
+    #tweaker.stop_server()
+    tweaker.pipeline # or tweaker.get_pipeline()
+    ```
     """
 
-    def __init__(self, pipeline: Pipeline, X: pd.DataFrame, y):
-        """Create new dash app.
+    def __init__(self, pipeline: Pipeline, X: pd.DataFrame, y: np.array) -> None:
+        """Setup for being able to run the dash app.
 
         Args:
+            pipeline (Pipeline): fitted sklearn pipeline object
             X (pd.DataFrame): input dataframe
             y (np.array): target array
-            features_bucket_mapping: Class with bucketing information for features
-
-
-        Returns:
-            dash: Dash app
         """
         assert isinstance(X, pd.DataFrame), "X must be pd.DataFrame"
 
-        self.pipeline = pipeline
+        # Make sure we don't change instance of input pipeline
+        pipeline = copy.deepcopy(pipeline)
         self.X = X
         self.y = y
 
-        self.prebucketing_pipeline, self.ui_bucketer, self.postbucketing_pipeline = split_pipeline(pipeline)
+        # Split pipeline into different parts
+        index_bucket_pipeline = find_coarse_classing_step(pipeline)
+        self.prebucketing_pipeline = Pipeline(pipeline.steps[:index_bucket_pipeline])
+        self.postbucketing_pipeline = Pipeline(pipeline.steps[index_bucket_pipeline + 1 :])
+
+        # Here is the real trick
+        # We replace the bucketing (coarse classing) pipeline step with a UserInputBucketer
+        # Now we can tweak the FeatureMapping in the UserInputBucketer
+        # Obviously that means you cannot re-fit, but you shouldn't want to if you made manual changes.
+        self.original_feature_mapping = get_features_bucket_mapping(pipeline[index_bucket_pipeline])
+        self.ui_bucketer = UserInputBucketer(self.original_feature_mapping)
+
+        self.pipeline = make_pipeline(self.prebucketing_pipeline, self.ui_bucketer, self.postbucketing_pipeline)
+
+        # Now get the prebucketed features
         self.X_prebucketed = self.prebucketing_pipeline.transform(self.X)
 
-        self.original_feature_mapping = copy.deepcopy(self.ui_bucketer.features_bucket_mapping)
+        # Checks on prebucketed data
+        assert isinstance(self.X_prebucketed, pd.DataFrame)
+        # Prebucketed features should have at most 100 unique values.
+        # otherwise app prebinning table is too big.
+        for feature in self.X_prebucketed.columns:
+            if len(self.X_prebucketed[feature].unique()) > 100:
+                raise AssertionError(f"{feature} has >100 values. Did you pre-bucket?")
 
-        app = JupyterDash(__name__)
-        self.app = app
-
-        # Get columns
-        column_options = [{"label": o, "value": o} for o in self.X_prebucketed.columns]
-        # Add the layout
-        app.layout = get_layout(column_options=column_options)
-        # Add the callbacks
-        app = add_callbacks(app, self)
+        # Initialize the Dash app, with layout and callbacks
+        self.app = JupyterDash(__name__)
+        add_layout(self)
+        add_callbacks(self)
 
     def run_server(self, *args, **kwargs):
         """Start a dash server.
 
-        Passes arguments to app.run_server()
+        Passes arguments to app.run_server().
+
+        Note we are using a [jupyterdash](https://medium.com/plotly/introducing-jupyterdash-811f1f57c02e) app,
+        which supports 3 different modes:
+
+        - 'external' (default): Start dash server and print URL
+        - 'inline': Start dash app inside an Iframe in the jupyter notebook
+        - 'jupyterlab': Start dash app as a new tab inside jupyterlab
+
+        Use like `run_server(mode='inline')`
         """
         return self.app.run_server(*args, **kwargs)
 
@@ -68,6 +124,10 @@ class ManualBucketerApp(object):
         [More info](https://community.plotly.com/t/how-to-shutdown-a-jupyterdash-app-in-external-mode/41292/3)
         """
         self.app._terminate_server_for_port("localhost", 8050)
+
+    def get_pipeline(self):
+        """Returns pipeline object."""
+        return self.pipeline
 
 
 # This section is here to help debug the Dash app
@@ -102,9 +162,8 @@ if __name__ == "__main__":
 
     pipeline.fit(X, y)
 
-    from skorecard.pipeline import UserInputPipeline
+    tweaker = BucketTweakerApp(pipeline, X, y)
+    tweaker.run_server()
 
-    uipipe = UserInputPipeline(pipeline, X, y)
-
-    application = uipipe.mb_app.app.server
+    application = tweaker.app.server
     application.run(debug=True)

@@ -17,7 +17,12 @@ from skorecard.bucketers import (
     DecisionTreeBucketer,
     OptimalBucketer,
 )
-from skorecard.pipeline import get_features_bucket_mapping, KeepPandas, make_coarse_classing_pipeline
+from skorecard.pipeline import (
+    get_features_bucket_mapping,
+    KeepPandas,
+    make_coarse_classing_pipeline,
+    find_coarse_classing_step,
+)
 from skorecard.bucket_mapping import BucketMapping
 
 
@@ -27,13 +32,17 @@ def test_keep_pandas(df, caplog):
     y = df["default"].values
     X = df.drop(columns=["default", "pet_ownership"])
 
-    bucket_pipeline = make_pipeline(StandardScaler(), EqualWidthBucketer(bins=5, variables=["LIMIT_BAL", "BILL_AMT1"]),)
+    bucket_pipeline = make_pipeline(
+        StandardScaler(),
+        EqualWidthBucketer(bins=5, variables=["LIMIT_BAL", "BILL_AMT1"]),
+    )
     # Doesn't work, input should be a pandas dataframe.
     with pytest.raises(TypeError):
         bucket_pipeline.fit(X, y)
 
     bucket_pipeline = make_pipeline(
-        KeepPandas(StandardScaler()), EqualWidthBucketer(bins=5, variables=["LIMIT_BAL", "BILL_AMT1"]),
+        KeepPandas(StandardScaler()),
+        EqualWidthBucketer(bins=5, variables=["LIMIT_BAL", "BILL_AMT1"]),
     )
 
     with pytest.raises(NotFittedError):
@@ -88,6 +97,22 @@ def test_bucketing_pipeline(df):
     pipe.fit_transform(X, y)
 
 
+def test_find_coarse_classing_step(df):
+    """Tests coarse classing step."""
+    num_cols = ["LIMIT_BAL", "BILL_AMT1"]
+    cat_cols = ["EDUCATION", "MARRIAGE"]
+
+    prebucket_pipeline = make_pipeline(DecisionTreeBucketer(variables=num_cols, max_n_bins=100, min_bin_size=0.05))
+
+    bucket_pipeline = make_coarse_classing_pipeline(
+        OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
+        OptimalBucketer(variables=cat_cols, max_n_bins=10, min_bin_size=0.05),
+    )
+
+    pipe = make_pipeline(prebucket_pipeline, bucket_pipeline)
+    assert find_coarse_classing_step(pipe) == 1
+
+
 def test_get_features_bucket_mapping(df):
     """Test retrieving info from sklearn pipeline."""
     y = df["default"].values
@@ -118,7 +143,8 @@ def test_make_pipeline(df):
     X = df.drop(columns=["default"])
 
     pipe = make_pipeline(
-        EqualWidthBucketer(bins=4, variables=["LIMIT_BAL"]), EqualFrequencyBucketer(bins=7, variables=["BILL_AMT1"]),
+        EqualWidthBucketer(bins=4, variables=["LIMIT_BAL"]),
+        EqualFrequencyBucketer(bins=7, variables=["BILL_AMT1"]),
     )
     new_X = pipe.fit_transform(X, y)
     assert isinstance(new_X, pd.DataFrame)

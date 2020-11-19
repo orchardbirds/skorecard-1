@@ -24,11 +24,10 @@ import skorecard.utils
 # List of all classes and functions we want tested
 MODULES_TO_TEST = [skorecard.apps.manual_bucketer_app]
 CLASSES_TO_TEST = [
-    skorecard.apps.ManualBucketerApp,
+    skorecard.apps.BucketTweakerApp,
     skorecard.linear_model.LogisticRegression,
     skorecard.pipeline.KeepPandas,
     skorecard.pipeline.make_coarse_classing_pipeline,
-    skorecard.pipeline.tweak_buckets,
     skorecard.pipeline.get_features_bucket_mapping,
     skorecard.bucketers.OptimalBucketer,
     skorecard.bucketers.EqualWidthBucketer,
@@ -49,14 +48,12 @@ FUNCTIONS_TO_TEST = [
 
 
 def get_public_methods(cls_ref):
-    """Helper test function, gets all public methods in a class.
-    """
+    """Helper test function, gets all public methods in a class."""
     return [m for m in dir(cls_ref) if m == "__init__" or not m.startswith("_")]
 
 
 def get_test_pairs(classes_to_test):
-    """Helper test function, get tuples with class and public method.
-    """
+    """Helper test function, get tuples with class and public method."""
     test_pairs = []
     for cls_ref in classes_to_test:
         for meth_ref in get_public_methods(cls_ref):

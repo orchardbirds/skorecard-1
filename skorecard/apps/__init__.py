@@ -1,3 +1,3 @@
-from .manual_bucketer_app import ManualBucketerApp
+from .manual_bucketer_app import BucketTweakerApp
 
-__all__ = ["ManualBucketerApp"]
+__all__ = ["BucketTweakerApp"]

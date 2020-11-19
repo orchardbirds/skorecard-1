@@ -24,10 +24,12 @@ except ModuleNotFoundError:
 from skorecard.apps.app_utils import perc_data_bars, colorize_cell
 
 
-def get_layout(column_options=[]):
+def add_layout(self):
     """
     Returns a dash layout for the bucketing app.
     """
+    column_options = [{"label": o, "value": o} for o in self.X_prebucketed.columns]
+
     navbar = dbc.NavbarSimple(
         children=[
             dbc.Button("AUC: t.b.d.", color="primary", className="mr-1", id="menu-model-performance"),
@@ -52,7 +54,7 @@ def get_layout(column_options=[]):
         fixed="top",
     )
 
-    return html.Div(
+    self.app.layout = html.Div(
         children=[
             dbc.Row(navbar, style={"padding-bottom": "3em"}),
             dbc.Collapse(
