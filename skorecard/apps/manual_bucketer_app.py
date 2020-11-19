@@ -1,22 +1,3 @@
-"""Ideas for improving the app.
-
-- Buttons for running 1d bucket transformers
-- Sidebar so you can view report over all features https://dash-bootstrap-components.opensource.faculty.ai/examples/
-- datatable https://dash.plotly.com/datatable
-- plotly dark theme + dash dark theme? https://plotly.com/python/templates/
-
-```python
-from skorecard import datasets
-from skorecard.apps import ManualBucketerApp
-
-X, y = datasets.load_uci_credit_card(return_X_y=True)
-
-#app = ManualBucketerApp(X)
-# app.run_server(mode="external")
-# app.stop_server()
-```
-"""
-
 import copy
 import pandas as pd
 import numpy as np
@@ -87,55 +68,6 @@ except ModuleNotFoundError:
     dbc = NotInstalledError("dash_bootstrap_components", "dashboard")
 
 
-# try:
-#     import plotly.figure_factory as ff
-# except ModuleNotFoundError:
-#     ff = NotInstalledError("plotly", "reporting")
-
-
-# TODO make this internal to the package
-# external_stylesheets = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
-external_stylesheets = [
-    # "https://codepen.io/your-codepen-name/pen/your-pen-identifier.css",
-    dbc.themes.UNITED
-]
-
-PLOTLY_LOGO = "https://images.plot.ly/logo/new-branding/plotly-logomark.png"
-
-# menu_bar = dbc.Row(
-#     [
-#         dbc.Col(dbc.Badge("AUC: 0.98", className="ml-1", color="light", id="auc-badge2")),
-#         dbc.Col(
-#             dbc.Button("Search", color="primary", className="ml-2"),
-#             width="auto",
-#         ),
-#     ],
-#     no_gutters=True,
-#     className="ml-auto flex-nowrap mt-3 mt-md-0",
-#     align="center",
-# )
-
-
-# navbar = dbc.Navbar(
-#     [
-#         # Use row and col to control vertical alignment of logo / brand
-#         dbc.Row(
-#             [
-#                 dbc.Col(html.A(html.Img(src=PLOTLY_LOGO, height="30px"), href="https://www.google.nl")),
-#                 dbc.Col(dbc.NavbarBrand("Skorecard | Bucketer App", className="ml-2")),
-#             ],
-#             align="center",
-#             no_gutters=True,
-#         ),
-#         dbc.NavbarToggler(id="navbar-toggler"),
-#         dbc.Collapse(menu_bar, id="navbar-collapse", navbar=True),
-#     ],
-#     color="dark",
-#     dark=True,
-#     style={'width': '100%'}
-# )
-
-
 class ManualBucketerApp(object):
     """Dash App for manual bucketing.
 
@@ -165,7 +97,7 @@ class ManualBucketerApp(object):
 
         self.original_feature_mapping = copy.deepcopy(self.ui_bucketer.features_bucket_mapping)
 
-        app = JupyterDash(__name__, external_stylesheets=external_stylesheets)
+        app = JupyterDash(__name__)
         self.app = app
 
         # Get columns
@@ -174,7 +106,6 @@ class ManualBucketerApp(object):
         app.layout = get_layout(column_options=column_options)
 
         # Add all the callbacks
-
         @app.callback(
             Output("collapse-menu-boundaries", "is_open"),
             [Input("menu-boundaries", "n_clicks")],
