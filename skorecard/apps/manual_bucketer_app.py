@@ -180,6 +180,18 @@ class ManualBucketerApp(object):
             return str(self.ui_bucketer.features_bucket_mapping.get(col).map)
 
         @app.callback(
+            Output("input_column", "value"),
+            [Input("reset-boundaries-button", "n_clicks")],
+            State("input_column", "value"),
+        )
+        def reset_boundaries(n_clicks, col):
+            original_map = self.original_feature_mapping.get(col).map
+            self.ui_bucketer.features_bucket_mapping.get(col).map = original_map
+            # update same column to input_colum
+            # this will trigger other components to update
+            return col
+
+        @app.callback(
             Output("prebucket_table", "data"),
             [Input("input_column", "value")],
         )

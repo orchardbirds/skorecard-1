@@ -43,16 +43,6 @@ def get_layout(column_options=[]):
                     "min-width": "250px",
                 },
             ),
-            # dbc.DropdownMenu(
-            #     children=[
-            #         dbc.DropdownMenuItem("More pages", header=True),
-            #         dbc.DropdownMenuItem("Page 2", href="#"),
-            #         dbc.DropdownMenuItem("Page 3", href="#"),
-            #     ],
-            #     nav=True,
-            #     in_navbar=True,
-            #     label="More",
-            # ),
         ],
         brand="Skorecard | Manual Bucketing App",
         brand_href="#",
@@ -90,6 +80,7 @@ def get_layout(column_options=[]):
                                                     dbc.Button(
                                                         "Reset boundaries",
                                                         id="reset-boundaries-button",
+                                                        color="primary",
                                                         className="mr-2",
                                                     ),
                                                 ]
