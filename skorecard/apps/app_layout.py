@@ -198,14 +198,21 @@ def get_layout(column_options=[]):
                                             "if": {"column_editable": True},
                                             "backgroundColor": "rgb(46,139,87)",
                                             "color": "white",
+                                            "border": "1px solid black",
                                         },
                                         {
-                                            "if": {"state": "active"},  # 'active' | 'selected'
+                                            "if": {"state": "active"},
                                             "backgroundColor": "rgba(0, 116, 217, 0.3)",
                                             "border": "1px solid rgb(0, 116, 217)",
                                         },
                                     ]
                                     + colorize_cell("bucket"),
+                                    style_header_conditional=[
+                                        {
+                                            "if": {"column_editable": True},
+                                            "border": "1px solid black",
+                                        }
+                                    ],
                                     style_header={
                                         "backgroundColor": "rgb(230, 230, 230)",
                                     },
