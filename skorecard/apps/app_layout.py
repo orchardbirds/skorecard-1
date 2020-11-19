@@ -37,7 +37,7 @@ def get_layout(column_options=[]):
             dcc.Dropdown(
                 id="input_column",
                 options=column_options,
-                value=column_options[0],
+                value=column_options[0].get("label"),
                 style={
                     "max-width": "300px",
                     "min-width": "250px",

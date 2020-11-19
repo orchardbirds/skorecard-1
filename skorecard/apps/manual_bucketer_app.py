@@ -64,6 +64,29 @@ except ModuleNotFoundError:
     px = NotInstalledError("plotly", "reporting")
 
 
+from skorecard.utils.exceptions import NotInstalledError
+
+# Dash + dependencies
+try:
+    import dash_core_components as dcc
+    import dash_html_components as html
+    from dash.dependencies import Input, Output, State
+    import dash_table
+except ModuleNotFoundError:
+    dcc = NotInstalledError("dash_core_components", "dashboard")
+    html = NotInstalledError("dash_html_components", "dashboard")
+    Input = NotInstalledError("dash", "dashboard")
+    Output = NotInstalledError("dash", "dashboard")
+    State = NotInstalledError("dash", "dashboard")
+    dash_table = NotInstalledError("dash_table", "dashboard")
+
+# Dash Bootstrap
+try:
+    import dash_bootstrap_components as dbc
+except ModuleNotFoundError:
+    dbc = NotInstalledError("dash_bootstrap_components", "dashboard")
+
+
 # try:
 #     import plotly.figure_factory as ff
 # except ModuleNotFoundError:
@@ -149,13 +172,6 @@ class ManualBucketerApp(object):
         column_options = [{"label": o, "value": o} for o in self.X_prebucketed.columns]
         # Add the layout
         app.layout = get_layout(column_options=column_options)
-
-        @app.callback(
-            Output("input_column", "value"),
-            [Input("input_column", "options")],
-        )
-        def set_column_selector_default(options):
-            return options[1]
 
         # Add all the callbacks
 
