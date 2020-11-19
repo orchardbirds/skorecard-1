@@ -121,7 +121,7 @@ def make_coarse_classing_pipeline(*steps, **kwargs):
     return pipeline
 
 
-class UserInputPipeline(BaseEstimator, TransformerMixin):
+class UserInputPipeline:
     """Class."""
 
     def __init__(self, pipe: Pipeline, X: pd.DataFrame, y: np.ndarray):
@@ -206,6 +206,11 @@ class UserInputPipeline(BaseEstimator, TransformerMixin):
     def run_server(self, *args, **kwargs):
         """Starts the server."""
         self.mb_app.run_server(*args, **kwargs)
+
+    @property
+    def pipeline(self):
+        """Returns pipeline object."""
+        return self.pipe
 
 
 def tweak_buckets(pipe: Pipeline, X: pd.DataFrame, y: np.ndarray) -> Pipeline:
