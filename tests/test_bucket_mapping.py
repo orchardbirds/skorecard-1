@@ -121,3 +121,13 @@ def test_labels():
     assert labels[in_series > 4].equals(labels[labels == "(4.0, inf)"])
 
     # raise NotImplementedError("Implement tests for labels on numerical and categorical")
+
+
+def test_error_is_raised_if_wrong_specials():
+    """Self explanatory."""
+    # Test that is the values of the dictionary
+    with pytest.raises(AssertionError):
+        BucketMapping("feature1", "numerical", map=[3, 4], specials={"special": 2})
+    #
+    with pytest.raises(AssertionError):
+        BucketMapping("feature1", "numerical", map=[3, 4], specials={0: [2]})

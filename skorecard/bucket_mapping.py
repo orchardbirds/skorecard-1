@@ -49,6 +49,13 @@ class BucketMapping:
             None: nothing
         """
         assert self.type in ["numerical", "categorical", "woe"]
+        assert all(
+            [isinstance(k, str) for k in self.specials.keys()]
+        ), f"The keys of the special dicionary must be \
+        strings, got {self.specials.keys()} instead."
+        assert all(
+            [isinstance(k, list) for k in self.specials.values()]
+        ), f"The keys of the special dicionary must be a list of elements, got {self.specials}instead."
 
     def transform(self, x):
         """Applies bucketing to and array.
