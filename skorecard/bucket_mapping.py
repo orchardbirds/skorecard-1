@@ -213,9 +213,17 @@ class BucketMapping:
         for bucket in np.unique(buckets):
             bucket_str = f"{map_[int(bucket)]}, {map_[int(bucket) + 1]}"
             if self.right:
-                bucket_str = f"({bucket_str}]"
+                # The infinite edge should not be inclusive
+                if not bucket_str.endswith("inf"):
+                    bucket_str = f"({bucket_str}]"
+                else:
+                    bucket_str = f"({bucket_str})"
+
             else:
-                bucket_str = f"[{bucket_str})"
+                if not bucket_str.startswith("-inf"):
+                    bucket_str = f"[{bucket_str})"
+                else:
+                    bucket_str = f"({bucket_str})"
 
             self.labels[bucket] = bucket_str
 
