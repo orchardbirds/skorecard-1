@@ -59,7 +59,12 @@ class OptimalBucketer(BaseBucketer):
         
         Args:
             variables: List of variables to bucket.
-            specials: dictionary of special values that require their own binning.
+            specials: (nested) dictionary of special values that require their own binning.
+                The dictionary has the following format:
+                 {"<column name>" : {"name of special bucket" : <list with 1 or more values>}}
+                For every feature that needs a special value, a dictionary must be passed as value.
+                This dictionary contains a name of a bucket (key) and an array of unique values that should be put
+                in that bucket.
             variables_type: Type of the variables
             min_bin_size: Minimum fraction of observations in a bucket. Passed to optbinning.OptimalBinning.
             max_n_bins: Maximum numbers of bins to return. Passed to optbinning.OptimalBinning.
@@ -166,8 +171,10 @@ class EqualWidthBucketer(BaseBucketer):
     from skorecard import datasets
     from skorecard.bucketers import EqualWidthBucketer
 
+    specials = {"LIMIT_BAL": {"=50000": [50000], "in [20001,30000]": [20000, 30000]}}
+
     X, y = datasets.load_uci_credit_card(return_X_y=True)
-    bucketer = EqualWidthBucketer(bins = 10, variables = ['LIMIT_BAL'])
+    bucketer = EqualWidthBucketer(bins = 10, variables = ['LIMIT_BAL'], specials= specials)
     bucketer.fit_transform(X)
     bucketer.fit_transform(X)['LIMIT_BAL'].value_counts()
     ```
@@ -179,7 +186,12 @@ class EqualWidthBucketer(BaseBucketer):
         Args:
             bins (int): Number of bins to create.
             variables (list): The features to bucket. Uses all features if not defined.
-            specials (dict): dictionary of special values that require their own binning.
+            specials: (dict) of special values that require their own binning.
+                The dictionary has the following format:
+                 {"<column name>" : {"name of special bucket" : <list with 1 or more values>}}
+                For every feature that needs a special value, a dictionary must be passed as value.
+                This dictionary contains a name of a bucket (key) and an array of unique values that should be put
+                in that bucket.
         """
         assert isinstance(variables, list)
         assert isinstance(bins, int)
@@ -234,8 +246,10 @@ class AgglomerativeClusteringBucketer(BaseBucketer):
     from skorecard import datasets
     from skorecard.bucketers import AgglomerativeClusteringBucketer
 
+    specials = {"LIMIT_BAL": {"=50000": [50000], "in [20001,30000]": [20000, 30000]}}
+
     X, y = datasets.load_uci_credit_card(return_X_y=True)
-    bucketer = AgglomerativeClusteringBucketer(bins = 10, variables=['LIMIT_BAL'])
+    bucketer = AgglomerativeClusteringBucketer(bins = 10, variables=['LIMIT_BAL'], specials=specials)
     bucketer.fit_transform(X)
     bucketer.fit_transform(X)['LIMIT_BAL'].value_counts()
     ```
@@ -247,7 +261,12 @@ class AgglomerativeClusteringBucketer(BaseBucketer):
         Args:
             bins (int): Number of bins to create.
             variables (list): The features to bucket. Uses all features if not defined.
-            specials (dict): dictionary of special values that require their own binning.
+            specials: (dict) of special values that require their own binning.
+                The dictionary has the following format:
+                 {"<column name>" : {"name of special bucket" : <list with 1 or more values>}}
+                For every feature that needs a special value, a dictionary must be passed as value.
+                This dictionary contains a name of a bucket (key) and an array of unique values that should be put
+                in that bucket.
         """
         assert isinstance(variables, list)
         assert isinstance(bins, int)
@@ -316,7 +335,12 @@ class EqualFrequencyBucketer(BaseBucketer):
         Args:
             bins (int): Number of bins to create.
             variables (list): The features to bucket. Uses all features if not defined.
-             specials (dict): dictionary of special values that require their own binning.
+            specials: (nested) dictionary of special values that require their own binning.
+                The dictionary has the following format:
+                 {"<column name>" : {"name of special bucket" : <list with 1 or more values>}}
+                For every feature that needs a special value, a dictionary must be passed as value.
+                This dictionary contains a name of a bucket (key) and an array of unique values that should be put
+                in that bucket.
         """
         assert isinstance(variables, list)
         assert isinstance(bins, int)
@@ -411,7 +435,12 @@ class DecisionTreeBucketer(BaseBucketer):
 
         Args:
             variables (list): The features to bucket. Uses all features if not defined.
-            specials (dict): dictionary of special values that require their own binning.
+            specials (dict):  dictionary of special values that require their own binning.
+                The dictionary has the following format:
+                 {"<column name>" : {"name of special bucket" : <list with 1 or more values>}}
+                For every feature that needs a special value, a dictionary must be passed as value.
+                This dictionary contains a name of a bucket (key) and an array of unique values that should be put
+                in that bucket.
             min_bin_size: Minimum fraction of observations in a bucket. Passed directly to min_samples_leaf.
             max_n_bins: Maximum numbers of bins to return. Passed directly to max_leaf_nodes.
             random_state: The random state, Passed directly to DecisionTreeClassifier
@@ -546,7 +575,12 @@ class OrdinalCategoricalBucketer(BaseBucketer):
                 If None, all categories with frequency above the tolerance (tol) will be
                 considered.
             variables (list): The features to bucket. Uses all features if not defined.
-            specials (dict): dictionary of special values that require their own binning.
+            specials: (nested) dictionary of special values that require their own binning.
+                The dictionary has the following format:
+                 {"<column name>" : {"name of special bucket" : <list with 1 or more values>}}
+                For every feature that needs a special value, a dictionary must be passed as value.
+                This dictionary contains a name of a bucket (key) and an array of unique values that should be put
+                in that bucket.
             encoding_method (string): encoding method.
                 - "frequency" (default): orders the buckets based on the frequency of observations in the bucket.
                     The lower the number of the bucket the most frequent are the observations in that bucket.
