@@ -8,11 +8,34 @@ def create_report(X, y, column, bucketer, epsilon=0.00001, verbose=False):
 
     This report currently works for just 1 column at a time.
 
+    ``python
+    from skorecard import datasets
+    from skorecard.bucketers import DecisionTreeBucketer
+    X, y = datasets.load_uci_credit_card(return_X_y=True)
+
+    # make sure that those cases
+    specials = {
+        "LIMIT_BAL":{
+            "=50000":[50000],
+            "in [20001,30000]":[20000,30000],
+            }
+    }
+
+    dt_bucketer = DecisionTreeBucketer(variables=['LIMIT_BAL'], specials = specials)
+    dt_bucketer.fit(X, y)
+    dt_bucketer.transform(X)
+
+    df_report = create_report(X,y,column="LIMIT_BAL", bucketer= dt_bucketer)
+
+    ```
+
     Args:
          X (np.array): features
          y (np.array): target
          column (str): column for which you want the report
          bucketer: Skorecard bucket object
+         epsilon(float):
+         verbose(boolean)
 
     Returns:
         df (pandas DataFrame): reporting df
