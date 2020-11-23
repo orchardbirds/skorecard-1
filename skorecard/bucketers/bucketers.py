@@ -65,6 +65,7 @@ class OptimalBucketer(BaseBucketer):
                 For every feature that needs a special value, a dictionary must be passed as value.
                 This dictionary contains a name of a bucket (key) and an array of unique values that should be put
                 in that bucket.
+                When special values are passed, they are not considered in the fitting procedure.
             variables_type: Type of the variables
             min_bin_size: Minimum fraction of observations in a bucket. Passed to optbinning.OptimalBinning.
             max_n_bins: Maximum numbers of bins to return. Passed to optbinning.OptimalBinning.
@@ -192,6 +193,7 @@ class EqualWidthBucketer(BaseBucketer):
                 For every feature that needs a special value, a dictionary must be passed as value.
                 This dictionary contains a name of a bucket (key) and an array of unique values that should be put
                 in that bucket.
+                When special values are defined, they are not considered in the fitting procedure.
         """
         assert isinstance(variables, list)
         assert isinstance(bins, int)
@@ -267,6 +269,8 @@ class AgglomerativeClusteringBucketer(BaseBucketer):
                 For every feature that needs a special value, a dictionary must be passed as value.
                 This dictionary contains a name of a bucket (key) and an array of unique values that should be put
                 in that bucket.
+                When special values are defined, they are not considered in the fitting procedure.
+
         """
         assert isinstance(variables, list)
         assert isinstance(bins, int)
@@ -341,6 +345,8 @@ class EqualFrequencyBucketer(BaseBucketer):
                 For every feature that needs a special value, a dictionary must be passed as value.
                 This dictionary contains a name of a bucket (key) and an array of unique values that should be put
                 in that bucket.
+                When special values are defined, they are not considered in the fitting procedure.
+
         """
         assert isinstance(variables, list)
         assert isinstance(bins, int)
@@ -441,6 +447,7 @@ class DecisionTreeBucketer(BaseBucketer):
                 For every feature that needs a special value, a dictionary must be passed as value.
                 This dictionary contains a name of a bucket (key) and an array of unique values that should be put
                 in that bucket.
+                When special values are defined, they are not considered in the fitting procedure.
             min_bin_size: Minimum fraction of observations in a bucket. Passed directly to min_samples_leaf.
             max_n_bins: Maximum numbers of bins to return. Passed directly to max_leaf_nodes.
             random_state: The random state, Passed directly to DecisionTreeClassifier
@@ -581,6 +588,7 @@ class OrdinalCategoricalBucketer(BaseBucketer):
                 For every feature that needs a special value, a dictionary must be passed as value.
                 This dictionary contains a name of a bucket (key) and an array of unique values that should be put
                 in that bucket.
+                When special values are defined, they are not considered in the fitting procedure.
             encoding_method (string): encoding method.
                 - "frequency" (default): orders the buckets based on the frequency of observations in the bucket.
                     The lower the number of the bucket the most frequent are the observations in that bucket.
