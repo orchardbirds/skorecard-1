@@ -47,6 +47,12 @@ class BaseBucketer(BaseEstimator, TransformerMixin):
             y_out = y
         return X_out, y_out
 
+    @staticmethod
+    def _verify_specials_variables(specials, variables):
+        diff = set(specials.keys()).difference(set(variables))
+        if len(diff) > 0:
+            raise ValueError(f"Features {diff} are defined in the specials dictionary, but not in the variables.")
+
     def transform(self, X, y=None):
         """Transforms an array into the corresponding buckets fitted by the Transformer.
 

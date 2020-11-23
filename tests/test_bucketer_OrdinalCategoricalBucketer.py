@@ -1,7 +1,6 @@
 from skorecard.bucketers import OrdinalCategoricalBucketer
 
-# from sklearn.pipeline import Pipeline, FeatureUnion
-# from skorecard.pipeline import ColumnSelector
+
 import numpy as np
 import pytest
 
@@ -73,17 +72,17 @@ def test_specials(df):
     y = df["default"]
 
     ocb = OrdinalCategoricalBucketer(
-        tol=0.03, variables=["EDUCATION"], encoding_method="ordered", specials={"ed 0": [1]}
+        tol=0.03, variables=["EDUCATION"], encoding_method="ordered", specials={"EDUCATION": {"ed 0": [1]}}
     )
     ocb.fit(X, y)
 
     X_transform = ocb.transform(X)
-    assert np.unique(X_transform[X["EDUCATION"] == 1].values)[0] == 4
+    assert np.unique(X_transform[X["EDUCATION"] == 1].values)[0] == 3
 
     ocb = OrdinalCategoricalBucketer(
-        tol=0.03, variables=["EDUCATION"], encoding_method="frequency", specials={"ed 0": [1]}
+        tol=0.03, variables=["EDUCATION"], encoding_method="frequency", specials={"EDUCATION": {"ed 0": [1]}}
     )
     ocb.fit(X, y)
 
     X_transform = ocb.transform(X)
-    assert np.unique(X_transform[X["EDUCATION"] == 1].values)[0] == 4
+    assert np.unique(X_transform[X["EDUCATION"] == 1].values)[0] == 3

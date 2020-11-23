@@ -89,6 +89,9 @@ class OptimalBucketer(BaseBucketer):
         assert "min_prebin_size" not in self.kwargs, "You need to do pre-binning yourself, see skorecard docs"
         assert "max_n_prebins" not in self.kwargs, "You need to do pre-binning yourself, see skorecard docs"
 
+        # not tested right now
+        self._verify_specials_variables(self.specials, self.variables)
+
     def fit(self, X, y):
         """Fit X, y."""
         X = self._is_dataframe(X)
@@ -202,6 +205,8 @@ class EqualWidthBucketer(BaseBucketer):
         self.bins = bins
         self.specials = specials
 
+        self._verify_specials_variables(self.specials, self.variables)
+
     def fit(self, X, y=None):
         """Fit X, y."""
         X = self._is_dataframe(X)
@@ -279,6 +284,8 @@ class AgglomerativeClusteringBucketer(BaseBucketer):
         self.bins = bins
         self.specials = specials
 
+        self._verify_specials_variables(self.specials, self.variables)
+
     def fit(self, X, y=None):
         """Fit X, y."""
         X = self._is_dataframe(X)
@@ -354,6 +361,8 @@ class EqualFrequencyBucketer(BaseBucketer):
         self.variables = variables
         self.bins = bins
         self.specials = specials
+
+        self._verify_specials_variables(self.specials, self.variables)
 
     def fit(self, X, y=None):
         """Fit X, y.
@@ -461,6 +470,8 @@ class DecisionTreeBucketer(BaseBucketer):
         self.max_n_bins = max_n_bins
         self.min_bin_size = min_bin_size
         self.random_state = random_state
+
+        self._verify_specials_variables(self.specials, self.variables)
 
     def fit(self, X, y):
         """Fit X,y."""
@@ -610,6 +621,8 @@ class OrdinalCategoricalBucketer(BaseBucketer):
         self.specials = specials
         self.encoding_method = encoding_method
 
+        self._verify_specials_variables(self.specials, self.variables)
+
     def fit(self, X, y=None):
         """Init the class."""
         X = self._is_dataframe(X)
@@ -661,8 +674,10 @@ class OrdinalCategoricalBucketer(BaseBucketer):
             # Note we start at 1, to be able to encode missings as 0.
             mapping = dict(zip(normalized_counts.index, range(0, len(normalized_counts))))
 
+            print(self.specials)
+
             self.features_bucket_mapping_[var] = BucketMapping(
-                feature_name=var, type="categorical", map=mapping, specials=self.specials
+                feature_name=var, type="categorical", map=mapping, specials=special
             )
 
         return self

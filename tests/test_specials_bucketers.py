@@ -47,6 +47,12 @@ def test_specials_tree_bucketer(df):
         tbt.features_bucket_mapping_["LIMIT_BAL"].labels[4].endswith([key for key in specials["LIMIT_BAL"].keys()][1])
     )
 
+    # Assert a value error is raised if the specials contains features not defied in the bucketer.
+    specials = {"LIMIT_BAL": {"=50000": [50000], "in [20001,30000]": [20000, 30000]}, "Undefinedfeature": {"1": [2]}}
+
+    with pytest.raises(ValueError):
+        DecisionTreeBucketer(variables=["LIMIT_BAL", "BILL_AMT1"], random_state=1, max_n_bins=3, specials=specials)
+
 
 def test_specials_equal_width_bucketer(df):
     """Test that when adding specials,the binner performs as expected.
@@ -84,6 +90,12 @@ def test_specials_equal_width_bucketer(df):
         ebt.features_bucket_mapping_["LIMIT_BAL"].labels[4].endswith([key for key in specials["LIMIT_BAL"].keys()][1])
     )
 
+    # Assert a value error is raised if the specials contains features not defied in the bucketer.
+    specials = {"LIMIT_BAL": {"=50000": [50000], "in [20001,30000]": [20000, 30000]}, "Undefinedfeature": {"1": [2]}}
+
+    with pytest.raises(ValueError):
+        EqualWidthBucketer(variables=["LIMIT_BAL", "BILL_AMT1"], bins=3, specials=specials)
+
 
 def test_specials_equal_frequency_bucketer(df):
     """Test that when adding specials,the binner performs as expected.
@@ -120,6 +132,12 @@ def test_specials_equal_frequency_bucketer(df):
     assert (
         ebt.features_bucket_mapping_["LIMIT_BAL"].labels[4].endswith([key for key in specials["LIMIT_BAL"].keys()][1])
     )
+
+    # Assert a value error is raised if the specials contains features not defied in the bucketer.
+    specials = {"LIMIT_BAL": {"=50000": [50000], "in [20001,30000]": [20000, 30000]}, "Undefinedfeature": {"1": [2]}}
+
+    with pytest.raises(ValueError):
+        EqualFrequencyBucketer(variables=["LIMIT_BAL", "BILL_AMT1"], bins=3, specials=specials)
 
 
 def _test_specials_optimal_bucketer(df):
