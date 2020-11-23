@@ -76,6 +76,8 @@ class OptimalBucketer(BaseBucketer):
         self.cat_cutoff = cat_cutoff
         self.time_limit = time_limit
         self.kwargs = kwargs
+        if len(specials) > 0:
+            raise NotImplementedError("Specials are currently not implemented for the Optimal bucketer")
 
         assert variables_type in ["numerical", "categorical"]
         assert "min_prebin_size" not in self.kwargs, "You need to do pre-binning yourself, see skorecard docs"
