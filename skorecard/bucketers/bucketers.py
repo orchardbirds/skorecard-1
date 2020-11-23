@@ -674,8 +674,6 @@ class OrdinalCategoricalBucketer(BaseBucketer):
             # Note we start at 1, to be able to encode missings as 0.
             mapping = dict(zip(normalized_counts.index, range(0, len(normalized_counts))))
 
-            print(self.specials)
-
             self.features_bucket_mapping_[var] = BucketMapping(
                 feature_name=var, type="categorical", map=mapping, specials=special
             )
