@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import pytest
 from skorecard.metrics import metrics
 
@@ -15,7 +16,8 @@ def X_y():
 def test_iv_on_array(X_y):
     """Test the IV calculation for two arrays."""
     X, y = X_y
+    X = pd.DataFrame(X, columns=["0", "1"])
 
-    np.testing.assert_almost_equal(metrics._IV_score(y, X[:, 0]), 5.307, decimal=2)
+    np.testing.assert_almost_equal(metrics._IV_score(y, X["0"]), 5.307, decimal=2)
 
-    np.testing.assert_almost_equal(metrics._IV_score(y, X[:, 1]), 4.635, decimal=2)
+    np.testing.assert_almost_equal(metrics._IV_score(y, X["1"]), 4.635, decimal=2)

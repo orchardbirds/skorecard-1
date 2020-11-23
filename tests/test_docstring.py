@@ -16,6 +16,7 @@ import skorecard.apps
 import skorecard.linear_model
 import skorecard.bucketers
 import skorecard.pipeline
+import skorecard.preprocessing
 import skorecard.metrics
 import skorecard.bucket_mapping
 import skorecard.utils
@@ -36,7 +37,7 @@ CLASSES_TO_TEST = [
     skorecard.bucketers.DecisionTreeBucketer,
     skorecard.bucketers.OrdinalCategoricalBucketer,
     skorecard.bucketers.UserInputBucketer,
-    skorecard.bucketers.WoEBucketer,
+    skorecard.preprocessing.WoeEncoder,
     skorecard.bucket_mapping.FeaturesBucketMapping,
     skorecard.bucket_mapping.BucketMapping,
 ]
