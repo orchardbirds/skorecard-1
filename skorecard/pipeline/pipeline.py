@@ -75,15 +75,15 @@ class KeepPandas(BaseEstimator, TransformerMixin):
         return self.columns_
 
 
-def make_coarse_classing_pipeline(*steps, **kwargs):
-    """Identity sklearn pipeline steps as coarse classing.
+def make_prebucketing_pipeline(*steps, **kwargs):
+    """Helps to identify a (series of)sklearn pipeline steps as the bucketing steps.
 
-    Very simple wrapper of sklearn.pipeline.make_pipeline()
+    Very simple wrapper of sklearn.pipeline.make_pipeline() that just adds an ID.
 
     ```python
     from skorecard import datasets
     from skorecard.bucketers import DecisionTreeBucketer, OptimalBucketer
-    from skorecard.pipeline import make_coarse_classing_pipeline
+    from skorecard.pipeline import make_prebucketing_pipeline, make_bucketing_pipeline
     from sklearn.pipeline import make_pipeline
 
     df = datasets.load_uci_credit_card(as_frame=True)
@@ -94,8 +94,10 @@ def make_coarse_classing_pipeline(*steps, **kwargs):
     cat_cols = ["EDUCATION", "MARRIAGE"]
 
     pipeline = make_pipeline(
-        DecisionTreeBucketer(variables=num_cols, max_n_bins=100, min_bin_size=0.05),
-        make_coarse_classing_pipeline(
+        make_prebucketing_pipeline(
+            DecisionTreeBucketer(variables=num_cols, max_n_bins=100, min_bin_size=0.05),
+        ),
+        make_bucketing_pipeline(
             OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
             OptimalBucketer(variables=cat_cols, max_n_bins=10, min_bin_size=0.05),
         )
@@ -105,7 +107,50 @@ def make_coarse_classing_pipeline(*steps, **kwargs):
     ```
     """
     for step in steps:
-        msg = "All coarse classing steps must be skorecard bucketers"
+        msg = "All bucketing steps must be skorecard bucketers"
+        assert "skorecard.bucketers" in str(type(step)), msg
+
+    pipeline = make_pipeline(*steps, **kwargs)
+
+    # Identifier, to make it easy to find this Pipeline step in a pipeline structure
+    pipeline.name = "prebucketing_pipeline"
+
+    return pipeline
+
+
+def make_bucketing_pipeline(*steps, **kwargs):
+    """Helps to identify a (series of)sklearn pipeline steps as the bucketing steps.
+
+    Very simple wrapper of sklearn.pipeline.make_pipeline() that just adds an ID.
+
+    ```python
+    from skorecard import datasets
+    from skorecard.bucketers import DecisionTreeBucketer, OptimalBucketer
+    from skorecard.pipeline import make_prebucketing_pipeline, make_bucketing_pipeline
+    from sklearn.pipeline import make_pipeline
+
+    df = datasets.load_uci_credit_card(as_frame=True)
+    y = df["default"]
+    X = df.drop(columns=["default"])
+
+    num_cols = ["LIMIT_BAL", "BILL_AMT1"]
+    cat_cols = ["EDUCATION", "MARRIAGE"]
+
+    pipeline = make_pipeline(
+        make_prebucketing_pipeline(
+            DecisionTreeBucketer(variables=num_cols, max_n_bins=100, min_bin_size=0.05),
+        ),
+        make_bucketing_pipeline(
+            OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
+            OptimalBucketer(variables=cat_cols, max_n_bins=10, min_bin_size=0.05),
+        )
+    )
+
+    pipeline.fit(X, y)
+    ```
+    """
+    for step in steps:
+        msg = "All bucketing steps must be skorecard bucketers"
         assert "skorecard.bucketers" in str(type(step)), msg
 
     pipeline = make_pipeline(*steps, **kwargs)
@@ -116,30 +161,32 @@ def make_coarse_classing_pipeline(*steps, **kwargs):
     return pipeline
 
 
-def find_coarse_classing_step(pipeline: Pipeline):
+def find_bucketing_step(pipeline: Pipeline, identifier: str = "bucketing_pipeline"):
     """
     Finds the bucketing (course classing) step in a pipeline object.
 
-    This pipeline needs to have been defined using skorecard.pipeline.make_coarse_classing_pipeline
+    This pipeline needs to have been defined using skorecard.pipeline.make_bucketing_pipeline
 
     Args:
         pipeline (sklearn.pipeline.Pipeline): sklearn pipeline
+        identifier (str): the attribute used to find the pipeline step
 
     Returns:
         index (int): position of bucketing step in pipeline.steps
     """
     # Find the bucketing pipeline step
-    bucket_pipes = [s for s in pipeline.steps if getattr(s[1], "name", "") == "bucketing_pipeline"]
+    bucket_pipes = [s for s in pipeline.steps if getattr(s[1], "name", "") == identifier]
 
     # Raise error if missing
     if len(bucket_pipes) == 0:
         msg = """
         Did not find a bucketing pipeline step. Identity the bucketing pipeline step
-        using skorecard.pipeline.make_coarse_classing_pipeline. Example:
+        using skorecard.pipeline.make_bucketing_pipeline or skorecard.pipeline.make_prebucketing_pipeline.
+        Example:
         
         ```python
-        from skorecard.pipeline import make_coarse_classing_pipeline
-        bucket_pipeline = make_coarse_classing_pipeline(
+        from skorecard.pipeline import make_bucketing_pipeline
+        bucket_pipeline = make_bucketing_pipeline(
             OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
             OptimalBucketer(variables=cat_cols, max_n_bins=10, min_bin_size=0.05),
         )
@@ -149,13 +196,14 @@ def find_coarse_classing_step(pipeline: Pipeline):
 
     if len(bucket_pipes) > 1:
         msg = """
-        You need to identity only the bucketing step, using skorecard.pipeline.make_coarse_classing_pipeline only once.
+        You need to identity only the bucketing step,
+        using skorecard.pipeline.make_bucketing_pipeline and skorecard.pipeline.make_prebucketing_pipeline only once.
         
         Example:
         
         ```python
-        from skorecard.pipeline import make_coarse_classing_pipeline
-        bucket_pipeline = make_coarse_classing_pipeline(
+        from skorecard.pipeline import make_bucketing_pipeline
+        bucket_pipeline = make_bucketing_pipeline(
             OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
             OptimalBucketer(variables=cat_cols, max_n_bins=10, min_bin_size=0.05),
         )

@@ -20,8 +20,8 @@ from skorecard.bucketers import (
 from skorecard.pipeline import (
     get_features_bucket_mapping,
     KeepPandas,
-    make_coarse_classing_pipeline,
-    find_coarse_classing_step,
+    make_bucketing_pipeline,
+    find_bucketing_step,
 )
 from skorecard.bucket_mapping import BucketMapping
 
@@ -82,7 +82,7 @@ def test_bucketing_pipeline(df):
 
     prebucket_pipeline = make_pipeline(DecisionTreeBucketer(variables=num_cols, max_n_bins=100, min_bin_size=0.05))
 
-    bucket_pipeline = make_coarse_classing_pipeline(
+    bucket_pipeline = make_bucketing_pipeline(
         OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
         OptimalBucketer(variables=cat_cols, max_n_bins=10, min_bin_size=0.05),
     )
@@ -104,13 +104,13 @@ def test_find_coarse_classing_step(df):
 
     prebucket_pipeline = make_pipeline(DecisionTreeBucketer(variables=num_cols, max_n_bins=100, min_bin_size=0.05))
 
-    bucket_pipeline = make_coarse_classing_pipeline(
+    bucket_pipeline = make_bucketing_pipeline(
         OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
         OptimalBucketer(variables=cat_cols, max_n_bins=10, min_bin_size=0.05),
     )
 
     pipe = make_pipeline(prebucket_pipeline, bucket_pipeline)
-    assert find_coarse_classing_step(pipe) == 1
+    assert find_bucketing_step(pipe) == 1
 
 
 def test_get_features_bucket_mapping(df):

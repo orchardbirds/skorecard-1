@@ -4,7 +4,7 @@ import numpy as np
 from sklearn.pipeline import Pipeline, make_pipeline
 
 from skorecard.utils.exceptions import NotInstalledError
-from skorecard.pipeline import find_coarse_classing_step, get_features_bucket_mapping
+from skorecard.pipeline import find_bucketing_step, get_features_bucket_mapping
 from skorecard.bucketers import UserInputBucketer
 from skorecard.apps.app_layout import add_layout
 from skorecard.apps.app_callbacks import add_callbacks
@@ -24,7 +24,7 @@ class BucketTweakerApp(object):
     ```python
     from skorecard import datasets
     from skorecard.bucketers import DecisionTreeBucketer, OptimalBucketer
-    from skorecard.pipeline import make_coarse_classing_pipeline
+    from skorecard.pipeline import make_bucketing_pipeline
     from skorecard.apps import BucketTweakerApp
     from sklearn.pipeline import make_pipeline
     from sklearn.preprocessing import OneHotEncoder
@@ -39,7 +39,7 @@ class BucketTweakerApp(object):
 
     pipeline = make_pipeline(
         DecisionTreeBucketer(variables=num_cols, max_n_bins=100, min_bin_size=0.05),
-        make_coarse_classing_pipeline(
+        make_bucketing_pipeline(
             OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
             OptimalBucketer(variables=cat_cols, max_n_bins=10, min_bin_size=0.05),
         ),
@@ -71,7 +71,7 @@ class BucketTweakerApp(object):
         self.y = y
 
         # Split pipeline into different parts
-        index_bucket_pipeline = find_coarse_classing_step(pipeline)
+        index_bucket_pipeline = find_bucketing_step(pipeline)
         self.prebucketing_pipeline = Pipeline(pipeline.steps[:index_bucket_pipeline])
         self.postbucketing_pipeline = Pipeline(pipeline.steps[index_bucket_pipeline + 1 :])
 
@@ -139,7 +139,7 @@ if __name__ == "__main__":
 
     from skorecard import datasets
     from skorecard.bucketers import DecisionTreeBucketer, OptimalBucketer
-    from skorecard.pipeline import make_coarse_classing_pipeline
+    from skorecard.pipeline import make_bucketing_pipeline
     from sklearn.preprocessing import OneHotEncoder
     from sklearn.linear_model import LogisticRegression
 
@@ -151,8 +151,14 @@ if __name__ == "__main__":
     cat_cols = ["EDUCATION", "MARRIAGE"]
 
     pipeline = make_pipeline(
+        # encoding missing values
+        # make_prebucketing_pipeline(
+        #     # inere
+        #     # if not present, give error, with suggestion to leave it empty
+        # )
+        # check nothing in between here.
         DecisionTreeBucketer(variables=num_cols, max_n_bins=100, min_bin_size=0.05),
-        make_coarse_classing_pipeline(
+        make_bucketing_pipeline(
             OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
             OptimalBucketer(variables=cat_cols, max_n_bins=10, min_bin_size=0.05),
         ),

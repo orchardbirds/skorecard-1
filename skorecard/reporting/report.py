@@ -92,6 +92,7 @@ def create_report(
     ``python
     from skorecard import datasets
     from skorecard.bucketers import DecisionTreeBucketer
+    from skorecard.reporting import create_report
     X, y = datasets.load_uci_credit_card(return_X_y=True)
 
     # make sure that those cases
