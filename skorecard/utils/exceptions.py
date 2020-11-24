@@ -10,6 +10,18 @@ class NotPreBucketedError(Exception):
         self.message = message
 
 
+class BucketingPipelineError(Exception):
+    """Raise this when there is something wrong with sklearn pipeline with bucketing inside."""
+
+    def __init__(self, message):
+        """Raise this when there is something wrong with sklearn pipeline with bucketing inside.
+
+        Args:
+            message: (str) message when exception is raised
+        """
+        self.message = message
+
+
 class DimensionalityError(Exception):
     """Raise this when the Dimension of the numpy array or pandas DataFrame is wrong."""
 
@@ -61,7 +73,7 @@ class NotInstalledError:
 
     def __init__(self, tool, dep=None):
         """Initialize error with missing package and reference to conditional install package.
-        
+
         Args:
             tool (str): The name of the pypi package that is missing
             dep (str): The name of the extra_imports set (defined in setup.py) where the package is present. (optional)

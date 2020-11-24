@@ -5,7 +5,10 @@ from skorecard.bucket_mapping import BucketMapping
 
 def determine_boundaries(df: pd.DataFrame, bucket_mapping: BucketMapping) -> list:
     """
-    Example.
+    Determine mapping boundaries.
+
+    Given a dataframe with pre_bucket and bucket column, determine the boundaries
+    that can be passed to the bucket_mapping.
 
     ```python
     import pandas as pd

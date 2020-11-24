@@ -3,7 +3,7 @@ import pandas as pd
 from sklearn.pipeline import make_pipeline
 from sklearn.metrics import roc_auc_score
 
-from skorecard.reporting import plot_bins, bucket_table
+from skorecard.reporting import plot_bins, bucket_table, create_report
 from skorecard.apps.app_utils import determine_boundaries, get_bucket_colors
 from skorecard.utils.exceptions import NotInstalledError
 
@@ -102,7 +102,7 @@ def add_callbacks(self):
         [Input("input_column", "value")],
     )
     def update_original_boundaries(col):
-        return str(self.original_feature_mapping.get(col).map)
+        return str(self.original_bucket_feature_mapping.get(col).map)
 
     @app.callback(
         Output("updated_boundaries", "children"), [Input("bucket_table", "data")], State("input_column", "value")
@@ -116,7 +116,7 @@ def add_callbacks(self):
         State("input_column", "value"),
     )
     def reset_boundaries(n_clicks, col):
-        original_map = self.original_feature_mapping.get(col).map
+        original_map = self.original_bucket_feature_mapping.get(col).map
         self.ui_bucketer.features_bucket_mapping.get(col).map = original_map
         # update same column to input_colum
         # this will trigger other components to update
@@ -127,8 +127,15 @@ def add_callbacks(self):
         [Input("input_column", "value")],
     )
     def get_prebucket_table(col):
-        table = bucket_table(x_original=self.X[col], x_bucketed=self.X_prebucketed[col], y=self.y)
-        table = table.rename(columns={"bucket": "pre-bucket"})
+
+        table = create_report(
+            self.X, self.y, column=col, bucket_mapping=self.original_prebucket_feature_mapping.get(col)
+        )
+
+        # table['Count %'] = table['Count %'] * 100
+        table["Event Rate"] = round(table["Event Rate"] * 100, 2)
+        # table = bucket_table(x_original=self.X[col], x_bucketed=self.X_prebucketed[col], y=self.y)
+        table = table.rename(columns={"bucket_id": "pre-bucket"})
 
         # Apply bucket mapping
         bucket_mapping = self.ui_bucketer.features_bucket_mapping.get(col)

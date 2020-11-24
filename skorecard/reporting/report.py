@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from typing import Union, Optional
+import warnings
 
 from skorecard.bucket_mapping import BucketMapping
 from skorecard.bucketers import UserInputBucketer
@@ -80,8 +81,8 @@ def create_report(
     X: pd.DataFrame,
     y: np.array,
     column: str,
-    bucketer,
-    # bucketmapping: Optional[BucketMapping] = None,
+    bucketer=None,
+    bucket_mapping: Optional[BucketMapping] = None,
     epsilon=0.00001,
     verbose=False,
 ) -> pd.DataFrame:
@@ -108,67 +109,77 @@ def create_report(
     dt_bucketer.transform(X)
 
     df_report = create_report(X,y,column="LIMIT_BAL", bucketer= dt_bucketer)
-
+    df_report
     ```
 
     Args:
          X (pd.DataFrame): features
          y (np.array): target
          column (str): column for which you want the report
-         bucketer: Skorecard bucket object
-         epsilon(float):
-         verbose(boolean)
+         bucketer: (optional) Skorecard.bucketing bucketer object. Ignored if bucket_mapping is specified.
+         bucket_mapping: (optional) Skorecard.bucket_mapping BucketMapping object
+         epsilon(float): small value to prevent zero division error for WoE
+         verbose(boolean): be verbose
 
     Returns:
         df (pandas DataFrame): reporting df
     """
     X = X.copy()
 
-    if isinstance(bucketer, UserInputBucketer):
-        bucket_dict = bucketer.features_bucket_mapping_.maps
-    else:
-        bucket_dict = bucketer.features_bucket_mapping_
+    if bucket_mapping and bucketer:
+        warnings.warn("Both bucket_mapping and bucketer specified. Ignoring bucketer.")
 
-    bucket_mapping = bucket_dict[column]
-    X_transform = bucketer.transform(X)[[column]]
-    X_transform = X_transform.rename(columns={column: "Bucket_id"})
+    if not bucket_mapping and not bucketer:
+        raise Exception("Specify either bucket_mapping or bucketer")
+
+    if bucket_mapping and not bucketer:
+        col_bucket_mapping = bucket_mapping
+
+    if not bucket_mapping and bucketer:
+        if isinstance(bucketer, UserInputBucketer):
+            bucket_dict = bucketer.features_bucket_mapping_.maps
+        else:
+            bucket_dict = bucketer.features_bucket_mapping_
+
+        col_bucket_mapping = bucket_dict[column]
+
+    # In case no bucket_mapping and no bucketer specified,use values as-is
+    X_transform = pd.DataFrame(data={"bucket_id": col_bucket_mapping.transform(X[column])})
 
     X_transform["Event"] = y
 
-    stats = X_transform.groupby("Bucket_id", as_index=False).agg(
+    stats = X_transform.groupby("bucket_id", as_index=False).agg(
         def_rate=pd.NamedAgg(column="Event", aggfunc="mean"),
         Event=pd.NamedAgg(column="Event", aggfunc="sum"),
-        Count=pd.NamedAgg(column="Bucket_id", aggfunc="count"),
+        Count=pd.NamedAgg(column="bucket_id", aggfunc="count"),
     )
 
-    stats["bin_labels"] = stats["Bucket_id"].map(bucket_mapping.labels)
+    stats["label"] = stats["bucket_id"].map(col_bucket_mapping.labels)
     stats["Count (%)"] = (stats["Count"] / stats["Count"].sum()).apply(lambda x: np.round(x * 100, 2))
 
-    stats["Non Event"] = stats["Count"] - stats["Event"]
+    stats["Non-event"] = stats["Count"] - stats["Event"]
     # Default rates
-    stats["Event Rate"] = stats["Event"] / stats["Count"]  # todo: can we divide by 0 accidentally?
+    stats["Event Rate"] = stats["Event"] / stats["Count"]  # TODO: can we divide by 0 accidentally?
 
     stats["% Event"] = stats["Event"] / stats["Event"].sum()
-    stats["% Non Event"] = stats["Non Event"] / stats["Non Event"].sum()
+    stats["% Non-event"] = stats["Non-event"] / stats["Non-event"].sum()
 
-    stats["WoE"] = ((stats["% Event"] + epsilon) / (stats["% Non Event"] + epsilon)).apply(lambda x: np.log(x))
-
-    stats["IV"] = (stats["% Event"] - stats["% Non Event"]) * stats["WoE"]
+    stats["WoE"] = ((stats["% Event"] + epsilon) / (stats["% Non-event"] + epsilon)).apply(lambda x: np.log(x))
+    stats["IV"] = (stats["% Event"] - stats["% Non-event"]) * stats["WoE"]
 
     if verbose:
         iv_total = stats["IV"].sum()
         print(f"IV for {column} = {np.round(iv_total, 4)}")
+
     columns = [
-        "Bucket_id",
-        "bin_labels",
+        "bucket_id",
+        "label",
         "Count",
         "Count (%)",
+        "Non-event",
         "Event",
-        "% Event",
-        "Non Event",
-        "% Non Event",
         "Event Rate",
         "WoE",
         "IV",
     ]
-    return stats.sort_values(by="Bucket_id")[columns]
+    return stats.sort_values(by="bucket_id")[columns]

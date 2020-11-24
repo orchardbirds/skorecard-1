@@ -302,6 +302,8 @@ class FeaturesBucketMapping:
     features_bucket_mapping.load_dict(features_dict)
     # Or directly from dict
     FeaturesBucketMapping(features_dict)
+    # See columns
+    features_bucket_mapping.columns
     ```
     """
 
@@ -390,6 +392,11 @@ class FeaturesBucketMapping:
             dict: Data in class
         """
         return {k: dataclasses.asdict(v) for k, v in self.maps.items()}
+
+    @property
+    def columns(self):
+        """Returns the columns that have a bucket_mapping."""
+        return list(self.as_dict().keys())
 
 
 class MissingDict(dict):

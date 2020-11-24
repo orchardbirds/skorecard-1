@@ -182,13 +182,22 @@ def find_bucketing_step(pipeline: Pipeline, identifier: str = "bucketing_pipelin
         msg = """
         Did not find a bucketing pipeline step. Identity the bucketing pipeline step
         using skorecard.pipeline.make_bucketing_pipeline or skorecard.pipeline.make_prebucketing_pipeline.
+
+        Note that the pipeline should always have a skorecard.pipeline.make_prebucketing_pipeline defined.
+        If you do not need prebucketing simply leave it empty.
+
         Example:
         
         ```python
-        from skorecard.pipeline import make_bucketing_pipeline
-        bucket_pipeline = make_bucketing_pipeline(
-            OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
-            OptimalBucketer(variables=cat_cols, max_n_bins=10, min_bin_size=0.05),
+        from sklearn.pipeline import make_pipeline
+        from skorecard.pipeline import make_bucketing_pipeline, make_prebucketing_pipeline
+
+        pipeline = make_pipeline(
+            make_prebucketing_pipeline(),
+            make_bucketing_pipeline(
+                    OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
+                    OptimalBucketer(variables=cat_cols, max_n_bins=10, min_bin_size=0.05),
+            )
         )
         ```
         """

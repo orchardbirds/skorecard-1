@@ -1,13 +1,15 @@
 import copy
+from skorecard.bucketers.bucketers import OrdinalCategoricalBucketer
 import pandas as pd
 import numpy as np
 from sklearn.pipeline import Pipeline, make_pipeline
 
-from skorecard.utils.exceptions import NotInstalledError
+from skorecard.utils.exceptions import NotInstalledError, BucketingPipelineError
 from skorecard.pipeline import find_bucketing_step, get_features_bucket_mapping
 from skorecard.bucketers import UserInputBucketer
 from skorecard.apps.app_layout import add_layout
 from skorecard.apps.app_callbacks import add_callbacks
+
 
 # JupyterDash
 try:
@@ -70,18 +72,29 @@ class BucketTweakerApp(object):
         self.X = X
         self.y = y
 
-        # Split pipeline into different parts
+        # Identify the bucketing steps in the pipeline
+        index_prebucket_pipeline = find_bucketing_step(pipeline, identifier="prebucketing_pipeline")
         index_bucket_pipeline = find_bucketing_step(pipeline)
+
+        if index_bucket_pipeline != index_prebucket_pipeline + 1:
+            msg = "The prebucketing step (make_prebucket_pipeline) should be defined"
+            msg += "right before the bucketing step (make_bucket_pipeline)"
+            raise ValueError(msg)
+
+        # Extract the features bucket mapping information
+        self.original_prebucket_feature_mapping = get_features_bucket_mapping(pipeline[index_prebucket_pipeline])
+        self.original_bucket_feature_mapping = get_features_bucket_mapping(pipeline[index_bucket_pipeline])
+
+        # Split pipeline into different parts
         self.prebucketing_pipeline = Pipeline(pipeline.steps[:index_bucket_pipeline])
         self.postbucketing_pipeline = Pipeline(pipeline.steps[index_bucket_pipeline + 1 :])
 
         # Here is the real trick
-        # We replace the bucketing (coarse classing) pipeline step with a UserInputBucketer
+        # We replace the bucketing pipeline step with a UserInputBucketer
         # Now we can tweak the FeatureMapping in the UserInputBucketer
-        # Obviously that means you cannot re-fit, but you shouldn't want to if you made manual changes.
-        self.original_feature_mapping = get_features_bucket_mapping(pipeline[index_bucket_pipeline])
-        self.ui_bucketer = UserInputBucketer(self.original_feature_mapping)
-
+        # Obviously that means you cannot re-fit,
+        # but you shouldn't want/need to if you made manual changes.
+        self.ui_bucketer = UserInputBucketer(self.original_bucket_feature_mapping)
         self.pipeline = make_pipeline(self.prebucketing_pipeline, self.ui_bucketer, self.postbucketing_pipeline)
 
         # Now get the prebucketed features
@@ -93,7 +106,15 @@ class BucketTweakerApp(object):
         # otherwise app prebinning table is too big.
         for feature in self.X_prebucketed.columns:
             if len(self.X_prebucketed[feature].unique()) > 100:
-                raise AssertionError(f"{feature} has >100 values. Did you pre-bucket?")
+                raise AssertionError(f"{feature} has >100 values. Did you apply pre-bucketing?")
+
+        # All columns should have a prebucketing step defined
+        features_prebucket_mapping = get_features_bucket_mapping(self.prebucketing_pipeline)
+        missing_columns = [c for c in X.columns if c not in features_prebucket_mapping.columns]
+        if len(missing_columns) > 0:
+            raise BucketingPipelineError(
+                "The following columns do not have a pre-bucketer assigned: %s" % missing_columns
+            )
 
         # Initialize the Dash app, with layout and callbacks
         self.app = JupyterDash(__name__)
@@ -139,7 +160,7 @@ if __name__ == "__main__":
 
     from skorecard import datasets
     from skorecard.bucketers import DecisionTreeBucketer, OptimalBucketer
-    from skorecard.pipeline import make_bucketing_pipeline
+    from skorecard.pipeline import make_bucketing_pipeline, make_prebucketing_pipeline
     from sklearn.preprocessing import OneHotEncoder
     from sklearn.linear_model import LogisticRegression
 
@@ -151,13 +172,10 @@ if __name__ == "__main__":
     cat_cols = ["EDUCATION", "MARRIAGE"]
 
     pipeline = make_pipeline(
-        # encoding missing values
-        # make_prebucketing_pipeline(
-        #     # inere
-        #     # if not present, give error, with suggestion to leave it empty
-        # )
-        # check nothing in between here.
-        DecisionTreeBucketer(variables=num_cols, max_n_bins=100, min_bin_size=0.05),
+        make_prebucketing_pipeline(
+            DecisionTreeBucketer(variables=num_cols, max_n_bins=100, min_bin_size=0.05),
+            OrdinalCategoricalBucketer(variables=cat_cols),
+        ),
         make_bucketing_pipeline(
             OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
             OptimalBucketer(variables=cat_cols, max_n_bins=10, min_bin_size=0.05),

@@ -182,9 +182,9 @@ def add_layout(self):
                                     page_size=20,
                                     columns=[
                                         {"name": "pre-bucket", "id": "pre-bucket", "editable": False},
-                                        {"name": "range", "id": "range", "editable": False},
-                                        {"name": "count", "id": "count", "editable": False},
-                                        {"name": "count %", "id": "count %", "editable": False},
+                                        {"name": "label", "id": "label", "editable": False},
+                                        {"name": "Count", "id": "Count", "editable": False},
+                                        {"name": "Count (%)", "id": "Count (%)", "editable": False},
                                         {"name": "Non-event", "id": "Non-event", "editable": False},
                                         {"name": "Event", "id": "Event", "editable": False},
                                         {"name": "Event Rate", "id": "Event Rate", "editable": False},
@@ -192,7 +192,7 @@ def add_layout(self):
                                         {"name": "IV", "id": "IV", "editable": False},
                                         {"name": "bucket", "id": "bucket", "editable": True},
                                     ],
-                                    style_data_conditional=perc_data_bars("count %")
+                                    style_data_conditional=perc_data_bars("Count (%)")
                                     + perc_data_bars("Event Rate")
                                     + [
                                         {"if": {"row_index": "odd"}, "backgroundColor": "rgb(248, 248, 248)"},
