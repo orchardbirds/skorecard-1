@@ -446,7 +446,14 @@ class DecisionTreeBucketer(BaseBucketer):
     """
 
     def __init__(
-        self, variables=[], specials={}, max_n_bins=100, min_bin_size=0.05, random_state=42, **kwargs,
+        self,
+        variables=[],
+        specials={},
+        max_n_bins=100,
+        min_bin_size=0.05,
+        rescale_max_n_bins=False,
+        random_state=42,
+        **kwargs,
     ) -> None:
         """Init the class.
 
@@ -461,6 +468,11 @@ class DecisionTreeBucketer(BaseBucketer):
                 When special values are defined, they are not considered in the fitting procedure.
             min_bin_size: Minimum fraction of observations in a bucket. Passed directly to min_samples_leaf.
             max_n_bins: Maximum numbers of bins to return. Passed directly to max_leaf_nodes.
+                Note that this number must always be >= (number pf special bins + 2) if rescale_max_n_bins = True,
+                otherwise must be >=2.
+            rescale_max_n_bins (boolean): boolean flag to reduce keep the cap on the number of bins to the maximum
+                defined by max_n_bins if special values are passed.
+                If true, it will define max_leaf_nodes = max_n_bins - (number of special bins).
             random_state: The random state, Passed directly to DecisionTreeClassifier
             kwargs: Other parameters passed to DecisionTreeClassifier
         """
@@ -471,6 +483,7 @@ class DecisionTreeBucketer(BaseBucketer):
         self.kwargs = kwargs
         self.max_n_bins = max_n_bins
         self.min_bin_size = min_bin_size
+        self.rescale_max_n_bins = rescale_max_n_bins
         self.random_state = random_state
 
         self._verify_specials_variables(self.specials, self.variables)
@@ -488,7 +501,15 @@ class DecisionTreeBucketer(BaseBucketer):
             n_special_bins = 0
             if feature in self.specials.keys():
                 special = self.specials[feature]
-                n_special_bins = len(special)
+
+                if self.rescale_max_n_bins:
+                    n_special_bins = len(special)
+
+                if (self.max_n_bins - n_special_bins) <= 1:
+                    raise ValueError(
+                        f"max_n_bins must be at least = the number of special bins + 2: set a value "
+                        f"max_n_bins>= {n_special_bins+2} (currently max_n_bins={self.max_n_bins})"
+                    )
 
                 X_flt, y_flt = self._filter_specials_for_fit(X=X[feature], y=y, specials=special)
             else:
