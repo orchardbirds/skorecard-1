@@ -82,8 +82,12 @@ class BucketTweakerApp(object):
             raise ValueError(msg)
 
         # Extract the features bucket mapping information
-        self.original_prebucket_feature_mapping = get_features_bucket_mapping(pipeline[index_prebucket_pipeline])
-        self.original_bucket_feature_mapping = get_features_bucket_mapping(pipeline[index_bucket_pipeline])
+        self.original_prebucket_feature_mapping = copy.deepcopy(
+            get_features_bucket_mapping(pipeline[index_prebucket_pipeline])
+        )
+        self.original_bucket_feature_mapping = copy.deepcopy(
+            get_features_bucket_mapping(pipeline[index_bucket_pipeline])
+        )
 
         # Split pipeline into different parts
         self.prebucketing_pipeline = Pipeline(pipeline.steps[:index_bucket_pipeline])
@@ -94,7 +98,7 @@ class BucketTweakerApp(object):
         # Now we can tweak the FeatureMapping in the UserInputBucketer
         # Obviously that means you cannot re-fit,
         # but you shouldn't want/need to if you made manual changes.
-        self.ui_bucketer = UserInputBucketer(self.original_bucket_feature_mapping)
+        self.ui_bucketer = UserInputBucketer(copy.deepcopy(self.original_bucket_feature_mapping))
         self.pipeline = make_pipeline(self.prebucketing_pipeline, self.ui_bucketer, self.postbucketing_pipeline)
 
         # Now get the prebucketed features
