@@ -49,8 +49,8 @@ class BucketTweakerApp(object):
 
     pipeline.fit(X, y)
     tweaker = BucketTweakerApp(pipeline, X, y)
-    #tweaker.run_server()
-    #tweaker.stop_server()
+    # tweaker.run_server()
+    # tweaker.stop_server()
     tweaker.pipeline # or tweaker.get_pipeline()
     ```
     """

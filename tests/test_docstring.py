@@ -25,11 +25,10 @@ import skorecard.utils
 # List of all classes and functions we want tested
 MODULES_TO_TEST = [skorecard.apps.manual_bucketer_app]
 CLASSES_TO_TEST = [
-    skorecard.apps.BucketTweakerApp,
+    # skorecard.apps.BucketTweakerApp,
     skorecard.linear_model.LogisticRegression,
     skorecard.pipeline.KeepPandas,
     skorecard.pipeline.make_coarse_classing_pipeline,
-    skorecard.pipeline.get_features_bucket_mapping,
     skorecard.bucketers.OptimalBucketer,
     skorecard.bucketers.EqualWidthBucketer,
     skorecard.bucketers.AgglomerativeClusteringBucketer,
