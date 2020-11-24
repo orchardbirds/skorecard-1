@@ -117,7 +117,11 @@ def test_optimal_binning_categorical(df):
     assert len(X_trans["EDUCATION"].unique()) == 4
 
     assert obt.features_bucket_mapping_.get("EDUCATION") == BucketMapping(
-        feature_name="EDUCATION", type="categorical", map={1: 0, 3: 1, 2: 2, 5: 3, 4: 3, 6: 3, 0: 3}, right=False,
+        feature_name="EDUCATION",
+        type="categorical",
+        map={1: 0, 3: 1, 2: 2, 5: 3, 4: 3, 6: 3, 0: 3},
+        right=False,
+        labels={0: "1", 1: "3", 2: "2", 3: "0, 4, 5, 6", 4: "other"},
     )
 
     optb = OptimalBinning(
@@ -125,4 +129,18 @@ def test_optimal_binning_categorical(df):
     )
     optb.fit(X["EDUCATION"], y)
     ref = optb.transform(X["EDUCATION"], metric="indices")
-    X_trans["EDUCATION"].equals(pd.Series(ref))
+    assert X_trans["EDUCATION"].equals(pd.Series(ref))
+
+
+def _test_optimal_binning_categorical_specials(df):
+    """Test categoricals with specials."""
+    # WIP - currently not implemented yet
+    X = df[["LIMIT_BAL", "BILL_AMT1", "EDUCATION"]]
+    y = df["default"].values
+
+    obt = OptimalBucketer(variables=["EDUCATION"], variables_type="categorical", specials={"special_one": [0]})
+    obt.fit(X, y)
+    X_trans = obt.transform(X)
+    assert len(X_trans["EDUCATION"].unique()) == 5
+
+    assert obt.transform(X)["EDUCATION"][X["EDUCATION"] == 0].shape[0] == 1

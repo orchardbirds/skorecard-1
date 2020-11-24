@@ -16,7 +16,7 @@ class BucketMapping:
     from skorecard.bucket_mapping import BucketMapping
 
     # Manually a new bucket mapping for a feature
-    bucket = BucketMapping('feature1', 'numerical', map = [2,3,4,5])
+    bucket = BucketMapping('feature1', 'numerical', map = [2,3,4,5], specials={"special 0": [0]})
     print(bucket)
 
     # You can work with these classes as dicts as well
@@ -32,12 +32,18 @@ class BucketMapping:
         type (str): Type of feature, one of ['categorical','numerical']
         map (list or dict): The info needed to create the buckets (boundaries or cats)
         right (bool): parameter to np.digitize, used when map='numerical'.
+        specials (dict): dictionary of special values to bin separately. The key is used for the bin index,
+        labels (dict): dictionary containing special values. It must be of the format:
+            - keys: strings, containing the name (that will be used as labels) for the special values
+            - values: lists, containing the special values
     """
 
     feature_name: str
     type: str
     map: Union[Dict, List] = field(default_factory=lambda: [])
     right: bool = True
+    specials: Dict = field(default_factory=lambda: {})
+    labels: Dict = field(default_factory=lambda: {})
 
     def __post_init__(self) -> None:
         """Do input validation.
@@ -45,7 +51,14 @@ class BucketMapping:
         Returns:
             None: nothing
         """
-        assert self.type in ["numerical", "categorical"]
+        assert self.type in ["numerical", "categorical", "woe"]
+        assert all(
+            [isinstance(k, str) for k in self.specials.keys()]
+        ), f"The keys of the special dicionary must be \
+        strings, got {self.specials.keys()} instead."
+        assert all(
+            [isinstance(k, list) for k in self.specials.values()]
+        ), f"The keys of the special dicionary must be a list of elements, got {self.specials}instead."
 
     def get_map(self):
         """Pretty form of the boundaries.
@@ -74,8 +87,24 @@ class BucketMapping:
         assert len(self.map) is not None, "Please set a 'map' first"
         if self.type == "numerical":
             return self._transform_num(x)
+
         if self.type == "categorical":
+            self._validate_categorical_map()
             return self._transform_cat(x)
+
+        if self.type == "woe":
+            return self._transform_cat(x)
+
+    def _validate_categorical_map(self):
+        """Assure that the provided mapping starts at 0 and that is tas an incremental trend."""
+        values = [v for v in self.map.values()]
+        if len(values) > 0:
+            if not np.array_equal(np.unique(values), np.arange(max(values) + 1)):
+                err_msg = (
+                    f"Mapping dictionary must start at 0 and be incremental. "
+                    f"Found the following mappings {np.unique(values)}, and expected {np.arange(max(values) + 1)}"
+                )
+                raise ValueError(err_msg)
 
     def _transform_num(self, x):
         """
@@ -92,9 +121,22 @@ class BucketMapping:
         np.where(np.isnan(x), np.nan, new)
         ```
         """
-        buckets = np.digitize(x, self.map, right=self.right)
-        buckets = buckets.astype(int)
-        buckets = np.where(np.isnan(x), np.nan, buckets)
+        self.labels = {}
+        if isinstance(x, np.ndarray):
+            x = pd.Series(x)
+        if isinstance(x, list):
+            x = pd.Series(x)
+
+        buckets = self._apply_num_mapping(x)
+
+        if len(self.specials) > 0:
+            buckets = self._assign_specials(x, buckets)
+
+        if np.isnan(x).any():
+            ix = int(buckets.max()) + 1
+            buckets = np.where(np.isnan(x), ix, buckets)
+            self.labels[ix] = "Missing"
+
         return buckets
 
     def _transform_cat(self, x):
@@ -116,17 +158,57 @@ class BucketMapping:
         if isinstance(x, list):
             x = pd.Series(x)
 
+        new = self._apply_cat_mapping(x)
+
+        if len(self.specials) > 0:
+            new = self._assign_specials(x, new)
+
+        if x.isna().any():
+            # new = np.where(np.isnan(x), np.nan, new)
+            ix = int(new.max()) + 1
+            new = pd.Series(np.where(x.isna(), ix, new))
+            self.labels[ix] = "Missing"
+
+        return new
+
+    def _apply_cat_mapping(self, x):
+        other_value = 1 if len(self.map.values()) == 0 else max(self.map.values()) + 1
         mapping = MissingDict(self.map)
-        mapping.set_missing_value(-1)  # This was 'other' but you cannot mix integers and strings
+        mapping.set_missing_value(other_value)  # This was 'other' but you cannot mix integers and strings
 
         new = x.map(mapping)
 
-        # Put back NA's
-        new = new.where(~x.isna(), np.nan)
+        # define the labels
+        v = {}
 
-        # if x.hasnans:
-        #     msg = f"Feature {self.feature_name} has a new, unseen category that causes NaNs."
-        #     raise UnknownCategoryError(msg)
+        # create a dictionary that groups by the
+        if 0 not in mapping.values():
+            v[0] = "empty map"
+        else:
+            for key, value in sorted(mapping.items()):
+                if not isinstance(key, str):
+                    key = str(key)
+                v.setdefault(value, []).append(key)
+        v[other_value] = "other"
+        sorted_v = {key: v[key] for key in sorted(v)}
+
+        # transfrom it all to a string like format
+        for k, v in sorted_v.items():
+
+            # if k is of type int32, it will create weird caracters if exported to files
+            # if self.type=='categorical':
+            if isinstance(k, np.int32):
+                k = int(k)
+            if isinstance(v, list):
+                if len(v) == 1:
+                    v = v[0]
+                    if not isinstance(v, str):
+                        v = str(v)
+                else:
+                    v = ", ".join(v)
+            sorted_v[k] = v
+
+        self.labels = sorted_v
 
         return new
 
@@ -137,6 +219,57 @@ class BucketMapping:
             dict: data in class
         """
         return dataclasses.asdict(self)
+
+    def _apply_num_mapping(self, x):
+        """Apply numerical bucketing and stores the labels for the buckets.
+
+        Args:
+            x (np.array): feature
+
+        Returns:
+            (np.array), buckets
+        """
+        buckets = np.digitize(x, self.map, right=self.right)
+        buckets = buckets.astype(int)
+
+        map_ = np.hstack([-np.inf, self.map, np.inf])
+
+        for bucket in np.unique(buckets):
+            bucket_str = f"{map_[int(bucket)]}, {map_[int(bucket) + 1]}"
+            if self.right:
+                # The infinite edge should not be inclusive
+                if not bucket_str.endswith("inf"):
+                    bucket_str = f"({bucket_str}]"
+                else:
+                    bucket_str = f"({bucket_str})"
+
+            else:
+                if not bucket_str.startswith("-inf"):
+                    bucket_str = f"[{bucket_str})"
+                else:
+                    bucket_str = f"({bucket_str})"
+
+            self.labels[bucket] = bucket_str
+
+        return buckets
+
+    def _assign_specials(self, x, buckets):
+        """Assign the special buckets as defined in the specials dictionary.
+
+        Args:
+            x (np.array): feature
+            buckets (np.array): buckets for the feature x
+
+        Returns:
+            (np.array), buckets
+
+        """
+        max_bucket = int(buckets.max())
+        for k, v in self.specials.items():
+            max_bucket += 1
+            buckets = np.where(x.isin(v), max_bucket, buckets)
+            self.labels[max_bucket] = str(k)
+        return buckets
 
 
 class FeaturesBucketMapping:

@@ -3,8 +3,7 @@ import numpy as np
 from typing import Union, Optional
 
 from skorecard.bucket_mapping import BucketMapping
-
-# TODO: missing should be a separate row
+from skorecard.bucketers import UserInputBucketer
 
 
 def bucket_table(
@@ -90,64 +89,85 @@ def create_report(
 
     This report currently works for just 1 column at a time.
 
+    ``python
+    from skorecard import datasets
+    from skorecard.bucketers import DecisionTreeBucketer
+    X, y = datasets.load_uci_credit_card(return_X_y=True)
+
+    # make sure that those cases
+    specials = {
+        "LIMIT_BAL":{
+            "=50000":[50000],
+            "in [20001,30000]":[20000,30000],
+            }
+    }
+
+    dt_bucketer = DecisionTreeBucketer(variables=['LIMIT_BAL'], specials = specials)
+    dt_bucketer.fit(X, y)
+    dt_bucketer.transform(X)
+
+    df_report = create_report(X,y,column="LIMIT_BAL", bucketer= dt_bucketer)
+
+    ```
+
     Args:
          X (pd.DataFrame): features
          y (np.array): target
          column (str): column for which you want the report
          bucketer: Skorecard bucket object
+         epsilon(float):
+         verbose(boolean)
 
     Returns:
         df (pandas DataFrame): reporting df
     """
     X = X.copy()
-    X_transform = bucketer.transform(X)
-    bucket_mapping = bucketer.features_bucket_mapping_[column]
 
-    if bucket_mapping.type != "numerical":
-        raise NotImplementedError("Currently supporting only numerical buckets")
+    if isinstance(bucketer, UserInputBucketer):
+        bucket_dict = bucketer.features_bucket_mapping_.maps
+    else:
+        bucket_dict = bucketer.features_bucket_mapping_
 
-    thresholds = np.hstack([-np.inf, bucket_mapping.map, np.inf])
-    thresh_mins = thresholds[:-1]
-    thresh_max = thresholds[1:]
+    bucket_mapping = bucket_dict[column]
+    X_transform = bucketer.transform(X)[[column]]
+    X_transform = X_transform.rename(columns={column: "Bucket_id"})
 
-    bins = np.sort(X_transform[column].unique())
+    X_transform["Event"] = y
 
-    df = pd.DataFrame(
-        {
-            "Bin id": bins,
-            "Min bin": thresh_mins,
-            "Max bin": thresh_max,
-            "Count": X_transform[column].value_counts().loc[bins].values,
-            "Count (%)": X_transform[column].value_counts(normalize=True).loc[bins].values,
-        }
+    stats = X_transform.groupby("Bucket_id", as_index=False).agg(
+        def_rate=pd.NamedAgg(column="Event", aggfunc="mean"),
+        Event=pd.NamedAgg(column="Event", aggfunc="sum"),
+        Count=pd.NamedAgg(column="Bucket_id", aggfunc="count"),
     )
 
-    X_transform["target"] = y
+    stats["bin_labels"] = stats["Bucket_id"].map(bucket_mapping.labels)
+    stats["Count (%)"] = (stats["Count"] / stats["Count"].sum()).apply(lambda x: np.round(x * 100, 2))
 
-    # Default statistics
-    tmp = (
-        X_transform.groupby([column])["target"]
-        .sum()
-        .reset_index()
-        .rename(columns={column: "Bin id", "target": "Event"})
-    )
-
-    # Merge defaults
-    df = df.merge(tmp, how="left", on="Bin id")
-
-    df["Non Event"] = df["Count"] - df["Event"]
+    stats["Non Event"] = stats["Count"] - stats["Event"]
     # Default rates
-    df["Event Rate"] = df["Event"] / df["Count"]  # todo: can we divide by 0 accidentally?
+    stats["Event Rate"] = stats["Event"] / stats["Count"]  # todo: can we divide by 0 accidentally?
 
-    df["% Event"] = df["Event"] / df["Event"].sum()
-    df["% Non Event"] = df["Non Event"] / df["Non Event"].sum()
+    stats["% Event"] = stats["Event"] / stats["Event"].sum()
+    stats["% Non Event"] = stats["Non Event"] / stats["Non Event"].sum()
 
-    df["WoE"] = ((df["% Event"] + epsilon) / (df["% Non Event"] + epsilon)).apply(lambda x: np.log(x))
+    stats["WoE"] = ((stats["% Event"] + epsilon) / (stats["% Non Event"] + epsilon)).apply(lambda x: np.log(x))
 
-    df["IV"] = (df["% Event"] - df["% Non Event"]) * df["WoE"]
+    stats["IV"] = (stats["% Event"] - stats["% Non Event"]) * stats["WoE"]
 
     if verbose:
-        iv_total = df["IV"].sum()
+        iv_total = stats["IV"].sum()
         print(f"IV for {column} = {np.round(iv_total, 4)}")
-
-    return df.sort_values(by="Bin id")
+    columns = [
+        "Bucket_id",
+        "bin_labels",
+        "Count",
+        "Count (%)",
+        "Event",
+        "% Event",
+        "Non Event",
+        "% Non Event",
+        "Event Rate",
+        "WoE",
+        "IV",
+    ]
+    return stats.sort_values(by="Bucket_id")[columns]

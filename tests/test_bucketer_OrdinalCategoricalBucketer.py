@@ -1,7 +1,6 @@
 from skorecard.bucketers import OrdinalCategoricalBucketer
 
-# from sklearn.pipeline import Pipeline, FeatureUnion
-# from skorecard.pipeline import ColumnSelector
+
 import numpy as np
 import pytest
 
@@ -38,7 +37,7 @@ def test_correct_output(df):
     cbt = OrdinalCategoricalBucketer(tol=0.5, variables=["EDUCATION"])
     cbt.fit(X, y)
     X_trans = cbt.transform(X)
-    assert X_trans["EDUCATION"].unique() == np.array([-1])
+    assert X_trans["EDUCATION"].unique() == np.array([1])
 
 
 def test_mapping_dict(df):
@@ -59,9 +58,31 @@ def test_encoding_method(df):
     ocb = OrdinalCategoricalBucketer(tol=0.03, variables=["EDUCATION"], encoding_method="frequency")
     ocb.fit(X, y)
 
-    assert ocb.features_bucket_mapping_["EDUCATION"].map == {2: 1, 1: 2, 3: 3}
+    assert ocb.features_bucket_mapping_["EDUCATION"].map == {2: 0, 1: 1, 3: 2}
 
     ocb = OrdinalCategoricalBucketer(tol=0.03, variables=["EDUCATION"], encoding_method="ordered")
     ocb.fit(X, y)
 
-    assert ocb.features_bucket_mapping_["EDUCATION"].map == {1: 1, 3: 2, 2: 3}
+    assert ocb.features_bucket_mapping_["EDUCATION"].map == {1: 0, 3: 1, 2: 2}
+
+
+def test_specials(df):
+    """Test specials get assigned to the highest bin."""
+    X = df[["EDUCATION"]]
+    y = df["default"]
+
+    ocb = OrdinalCategoricalBucketer(
+        tol=0.03, variables=["EDUCATION"], encoding_method="ordered", specials={"EDUCATION": {"ed 0": [1]}}
+    )
+    ocb.fit(X, y)
+
+    X_transform = ocb.transform(X)
+    assert np.unique(X_transform[X["EDUCATION"] == 1].values)[0] == 3
+
+    ocb = OrdinalCategoricalBucketer(
+        tol=0.03, variables=["EDUCATION"], encoding_method="frequency", specials={"EDUCATION": {"ed 0": [1]}}
+    )
+    ocb.fit(X, y)
+
+    X_transform = ocb.transform(X)
+    assert np.unique(X_transform[X["EDUCATION"] == 1].values)[0] == 3

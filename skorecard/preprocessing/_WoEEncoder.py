@@ -68,9 +68,7 @@ class WoeEncoder(BaseBucketer):
 
             t = woe_1d(X[var], y, epsilon=self.epsilon)
 
-            self.features_bucket_mapping_[var] = BucketMapping(
-                feature_name=var, type="categorical", map=t["woe"].to_dict()
-            )
+            self.features_bucket_mapping_[var] = BucketMapping(feature_name=var, type="woe", map=t["woe"].to_dict())
 
         return self
 
