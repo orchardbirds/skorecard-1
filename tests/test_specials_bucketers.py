@@ -21,6 +21,15 @@ def test_specials_tree_bucketer(df):
 
     specials = {"LIMIT_BAL": {"=50000": [50000], "in [20001,30000]": [20000, 30000]}}
 
+    # Because 2 special buckets are defined, but the max_n_bins is set to True, the decision tree
+    # will be fitted with max_leaf_nodes=1. This will create a crash in the sklearn implementation.
+    # In this case, Skorecard raises an exception with a clear recommendation to the user when the fit method is called.
+    tbt = DecisionTreeBucketer(
+        variables=["LIMIT_BAL", "BILL_AMT1"], random_state=1, max_n_bins=3, rescale_max_n_bins=True, specials=specials
+    )
+    with pytest.raises(ValueError):
+        tbt.fit_transform(X, y)
+
     tbt = DecisionTreeBucketer(variables=["LIMIT_BAL", "BILL_AMT1"], random_state=1, max_n_bins=3, specials=specials)
     X_bins = tbt.fit_transform(X, y)
 
