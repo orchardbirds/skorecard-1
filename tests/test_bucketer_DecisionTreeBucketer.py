@@ -56,3 +56,21 @@ def test_running_twice(df):
     X_bucketed = tbt3.transform(X_prebucketed)
 
     assert X_prebucketed["BILL_AMT1"].value_counts().equals(X_bucketed["BILL_AMT1"].value_counts())
+
+
+def test_specials_filters(df):
+    """Test that when adding specials,the binner performs as expected.
+
+    Context: special values should be binned in their own bin.
+    """
+    X = df[["LIMIT_BAL", "BILL_AMT1"]]
+    y = df["default"]
+
+    specials = {"LIMIT_BAL": {"=50000": [50000], "in [20001,30000]": [20000, 30000]}}
+
+    f = DecisionTreeBucketer._filter_specials_for_fit
+
+    X_flt, y_flt = f(X["LIMIT_BAL"], y, specials=specials["LIMIT_BAL"])
+
+    assert X_flt[X_flt.isin([20000, 30000, 50000])].shape[0] == 0
+    assert y_flt.equals(y[~X["LIMIT_BAL"].isin([20000, 30000, 50000])])
