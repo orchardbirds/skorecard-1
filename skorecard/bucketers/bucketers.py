@@ -59,7 +59,13 @@ class OptimalBucketer(BaseBucketer):
         
         Args:
             variables: List of variables to bucket.
-            specials: dictionary of special values that require their own binning.
+            specials: (nested) dictionary of special values that require their own binning.
+                The dictionary has the following format:
+                 {"<column name>" : {"name of special bucket" : <list with 1 or more values>}}
+                For every feature that needs a special value, a dictionary must be passed as value.
+                This dictionary contains a name of a bucket (key) and an array of unique values that should be put
+                in that bucket.
+                When special values are passed, they are not considered in the fitting procedure.
             variables_type: Type of the variables
             min_bin_size: Minimum fraction of observations in a bucket. Passed to optbinning.OptimalBinning.
             max_n_bins: Maximum numbers of bins to return. Passed to optbinning.OptimalBinning.
@@ -76,10 +82,15 @@ class OptimalBucketer(BaseBucketer):
         self.cat_cutoff = cat_cutoff
         self.time_limit = time_limit
         self.kwargs = kwargs
+        if len(specials) > 0:
+            raise NotImplementedError("Specials are currently not implemented for the Optimal bucketer")
 
         assert variables_type in ["numerical", "categorical"]
         assert "min_prebin_size" not in self.kwargs, "You need to do pre-binning yourself, see skorecard docs"
         assert "max_n_prebins" not in self.kwargs, "You need to do pre-binning yourself, see skorecard docs"
+
+        # not tested right now
+        self._verify_specials_variables(self.specials, self.variables)
 
     def fit(self, X, y):
         """Fit X, y."""
@@ -164,8 +175,10 @@ class EqualWidthBucketer(BaseBucketer):
     from skorecard import datasets
     from skorecard.bucketers import EqualWidthBucketer
 
+    specials = {"LIMIT_BAL": {"=50000": [50000], "in [20001,30000]": [20000, 30000]}}
+
     X, y = datasets.load_uci_credit_card(return_X_y=True)
-    bucketer = EqualWidthBucketer(bins = 10, variables = ['LIMIT_BAL'])
+    bucketer = EqualWidthBucketer(bins = 10, variables = ['LIMIT_BAL'], specials= specials)
     bucketer.fit_transform(X)
     bucketer.fit_transform(X)['LIMIT_BAL'].value_counts()
     ```
@@ -177,7 +190,13 @@ class EqualWidthBucketer(BaseBucketer):
         Args:
             bins (int): Number of bins to create.
             variables (list): The features to bucket. Uses all features if not defined.
-            specials (dict): dictionary of special values that require their own binning.
+            specials: (dict) of special values that require their own binning.
+                The dictionary has the following format:
+                 {"<column name>" : {"name of special bucket" : <list with 1 or more values>}}
+                For every feature that needs a special value, a dictionary must be passed as value.
+                This dictionary contains a name of a bucket (key) and an array of unique values that should be put
+                in that bucket.
+                When special values are defined, they are not considered in the fitting procedure.
         """
         assert isinstance(variables, list)
         assert isinstance(bins, int)
@@ -185,6 +204,8 @@ class EqualWidthBucketer(BaseBucketer):
         self.variables = variables
         self.bins = bins
         self.specials = specials
+
+        self._verify_specials_variables(self.specials, self.variables)
 
     def fit(self, X, y=None):
         """Fit X, y."""
@@ -232,8 +253,10 @@ class AgglomerativeClusteringBucketer(BaseBucketer):
     from skorecard import datasets
     from skorecard.bucketers import AgglomerativeClusteringBucketer
 
+    specials = {"LIMIT_BAL": {"=50000": [50000], "in [20001,30000]": [20000, 30000]}}
+
     X, y = datasets.load_uci_credit_card(return_X_y=True)
-    bucketer = AgglomerativeClusteringBucketer(bins = 10, variables=['LIMIT_BAL'])
+    bucketer = AgglomerativeClusteringBucketer(bins = 10, variables=['LIMIT_BAL'], specials=specials)
     bucketer.fit_transform(X)
     bucketer.fit_transform(X)['LIMIT_BAL'].value_counts()
     ```
@@ -245,7 +268,14 @@ class AgglomerativeClusteringBucketer(BaseBucketer):
         Args:
             bins (int): Number of bins to create.
             variables (list): The features to bucket. Uses all features if not defined.
-            specials (dict): dictionary of special values that require their own binning.
+            specials: (dict) of special values that require their own binning.
+                The dictionary has the following format:
+                 {"<column name>" : {"name of special bucket" : <list with 1 or more values>}}
+                For every feature that needs a special value, a dictionary must be passed as value.
+                This dictionary contains a name of a bucket (key) and an array of unique values that should be put
+                in that bucket.
+                When special values are defined, they are not considered in the fitting procedure.
+
         """
         assert isinstance(variables, list)
         assert isinstance(bins, int)
@@ -253,6 +283,8 @@ class AgglomerativeClusteringBucketer(BaseBucketer):
         self.variables = variables
         self.bins = bins
         self.specials = specials
+
+        self._verify_specials_variables(self.specials, self.variables)
 
     def fit(self, X, y=None):
         """Fit X, y."""
@@ -314,7 +346,14 @@ class EqualFrequencyBucketer(BaseBucketer):
         Args:
             bins (int): Number of bins to create.
             variables (list): The features to bucket. Uses all features if not defined.
-             specials (dict): dictionary of special values that require their own binning.
+            specials: (nested) dictionary of special values that require their own binning.
+                The dictionary has the following format:
+                 {"<column name>" : {"name of special bucket" : <list with 1 or more values>}}
+                For every feature that needs a special value, a dictionary must be passed as value.
+                This dictionary contains a name of a bucket (key) and an array of unique values that should be put
+                in that bucket.
+                When special values are defined, they are not considered in the fitting procedure.
+
         """
         assert isinstance(variables, list)
         assert isinstance(bins, int)
@@ -322,6 +361,8 @@ class EqualFrequencyBucketer(BaseBucketer):
         self.variables = variables
         self.bins = bins
         self.specials = specials
+
+        self._verify_specials_variables(self.specials, self.variables)
 
     def fit(self, X, y=None):
         """Fit X, y.
@@ -418,7 +459,13 @@ class DecisionTreeBucketer(BaseBucketer):
 
         Args:
             variables (list): The features to bucket. Uses all features if not defined.
-            specials (dict): dictionary of special values that require their own binning.
+            specials (dict):  dictionary of special values that require their own binning.
+                The dictionary has the following format:
+                 {"<column name>" : {"name of special bucket" : <list with 1 or more values>}}
+                For every feature that needs a special value, a dictionary must be passed as value.
+                This dictionary contains a name of a bucket (key) and an array of unique values that should be put
+                in that bucket.
+                When special values are defined, they are not considered in the fitting procedure.
             min_bin_size: Minimum fraction of observations in a bucket. Passed directly to min_samples_leaf.
             max_n_bins: Maximum numbers of bins to return. Passed directly to max_leaf_nodes.
             min_impurity_decrease: minimum impurity decrease, as defined in the DecisionTreeClassifier. If >0, it does
@@ -435,6 +482,8 @@ class DecisionTreeBucketer(BaseBucketer):
         self.min_bin_size = min_bin_size
         self.min_impurity_decrease = min_impurity_decrease
         self.random_state = random_state
+
+        self._verify_specials_variables(self.specials, self.variables)
 
     def fit(self, X, y):
         """Fit X,y."""
@@ -560,7 +609,13 @@ class OrdinalCategoricalBucketer(BaseBucketer):
                 If None, all categories with frequency above the tolerance (tol) will be
                 considered.
             variables (list): The features to bucket. Uses all features if not defined.
-            specials (dict): dictionary of special values that require their own binning.
+            specials: (nested) dictionary of special values that require their own binning.
+                The dictionary has the following format:
+                 {"<column name>" : {"name of special bucket" : <list with 1 or more values>}}
+                For every feature that needs a special value, a dictionary must be passed as value.
+                This dictionary contains a name of a bucket (key) and an array of unique values that should be put
+                in that bucket.
+                When special values are defined, they are not considered in the fitting procedure.
             encoding_method (string): encoding method.
                 - "frequency" (default): orders the buckets based on the frequency of observations in the bucket.
                     The lower the number of the bucket the most frequent are the observations in that bucket.
@@ -581,6 +636,8 @@ class OrdinalCategoricalBucketer(BaseBucketer):
         self.variables = variables
         self.specials = specials
         self.encoding_method = encoding_method
+
+        self._verify_specials_variables(self.specials, self.variables)
 
     def fit(self, X, y=None):
         """Init the class."""
@@ -634,7 +691,7 @@ class OrdinalCategoricalBucketer(BaseBucketer):
             mapping = dict(zip(normalized_counts.index, range(0, len(normalized_counts))))
 
             self.features_bucket_mapping_[var] = BucketMapping(
-                feature_name=var, type="categorical", map=mapping, specials=self.specials
+                feature_name=var, type="categorical", map=mapping, specials=special
             )
 
         return self

@@ -66,13 +66,13 @@ def test_specials_numerical():
     bucket = BucketMapping("feature1", "numerical", map=[3, 4], specials={"special": [2]})
     assert all(np.equal(bucket.transform(x), np.array([0, 0, 3, 0, 1, 2, 3])))
 
-    assert bucket.labels == {0: "(-inf, 3.0]", 1: "(3.0, 4.0]", 2: "(4.0, inf]", 3: "special"}
+    assert bucket.labels == {0: "(-inf, 3.0]", 1: "(3.0, 4.0]", 2: "(4.0, inf)", 3: "special"}
 
     # test that calling transform again does not change the labelling
     bucket.transform(x)
     bucket.transform(x)
 
-    assert bucket.labels == {0: "(-inf, 3.0]", 1: "(3.0, 4.0]", 2: "(4.0, inf]", 3: "special"}
+    assert bucket.labels == {0: "(-inf, 3.0]", 1: "(3.0, 4.0]", 2: "(4.0, inf)", 3: "special"}
 
     # Test that if special is not in x, nothing happens
     x = [0, 1, 2, 3, 4, 5]
@@ -118,6 +118,16 @@ def test_labels():
     assert labels[(in_series <= 3) & (in_series != 2)].equals(labels[labels == "(-inf, 3.0]"])
     assert labels[(in_series <= 4) & (in_series > 3)].equals(labels[labels == "(3.0, 4.0]"])
     assert labels[in_series == 2].equals(labels[labels == "special"])
-    assert labels[in_series > 4].equals(labels[labels == "(4.0, inf]"])
+    assert labels[in_series > 4].equals(labels[labels == "(4.0, inf)"])
 
     # raise NotImplementedError("Implement tests for labels on numerical and categorical")
+
+
+def test_error_is_raised_if_wrong_specials():
+    """Self explanatory."""
+    # Test that is the values of the dictionary
+    with pytest.raises(AssertionError):
+        BucketMapping("feature1", "numerical", map=[3, 4], specials={"special": 2})
+    #
+    with pytest.raises(AssertionError):
+        BucketMapping("feature1", "numerical", map=[3, 4], specials={0: [2]})

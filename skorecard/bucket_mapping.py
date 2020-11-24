@@ -16,7 +16,7 @@ class BucketMapping:
     from skorecard.bucket_mapping import BucketMapping
 
     # Manually a new bucket mapping for a feature
-    bucket = BucketMapping('feature1', 'numerical', map = [2,3,4,5])
+    bucket = BucketMapping('feature1', 'numerical', map = [2,3,4,5], specials={"special 0": [0]})
     print(bucket)
 
     # You can work with these classes as dicts as well
@@ -33,6 +33,9 @@ class BucketMapping:
         map (list or dict): The info needed to create the buckets (boundaries or cats)
         right (bool): parameter to np.digitize, used when map='numerical'.
         specials (dict): dictionary of special values to bin separately. The key is used for the bin index,
+        labels (dict): dictionary containing special values. It must be of the format:
+            - keys: strings, containing the name (that will be used as labels) for the special values
+            - values: lists, containing the special values
     """
 
     feature_name: str
@@ -49,6 +52,13 @@ class BucketMapping:
             None: nothing
         """
         assert self.type in ["numerical", "categorical", "woe"]
+        assert all(
+            [isinstance(k, str) for k in self.specials.keys()]
+        ), f"The keys of the special dicionary must be \
+        strings, got {self.specials.keys()} instead."
+        assert all(
+            [isinstance(k, list) for k in self.specials.values()]
+        ), f"The keys of the special dicionary must be a list of elements, got {self.specials}instead."
 
     def transform(self, x):
         """Applies bucketing to and array.
@@ -213,9 +223,17 @@ class BucketMapping:
         for bucket in np.unique(buckets):
             bucket_str = f"{map_[int(bucket)]}, {map_[int(bucket) + 1]}"
             if self.right:
-                bucket_str = f"({bucket_str}]"
+                # The infinite edge should not be inclusive
+                if not bucket_str.endswith("inf"):
+                    bucket_str = f"({bucket_str}]"
+                else:
+                    bucket_str = f"({bucket_str})"
+
             else:
-                bucket_str = f"[{bucket_str})"
+                if not bucket_str.startswith("-inf"):
+                    bucket_str = f"[{bucket_str})"
+                else:
+                    bucket_str = f"({bucket_str})"
 
             self.labels[bucket] = bucket_str
 
