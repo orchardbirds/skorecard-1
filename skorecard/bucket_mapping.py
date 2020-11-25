@@ -268,7 +268,7 @@ class BucketMapping:
         for k, v in self.specials.items():
             max_bucket += 1
             buckets = np.where(x.isin(v), max_bucket, buckets)
-            self.labels[max_bucket] = str(k)
+            self.labels[max_bucket] = "Special: " + str(k)
         return buckets
 
 

@@ -174,10 +174,11 @@ if __name__ == "__main__":
 
     num_cols = ["LIMIT_BAL", "BILL_AMT1"]
     cat_cols = ["EDUCATION", "MARRIAGE"]
+    specials = {"LIMIT_BAL": {"=50000": [50000], "in [20001,30000]": [20000, 30000]}}
 
     pipeline = make_pipeline(
         make_prebucketing_pipeline(
-            DecisionTreeBucketer(variables=num_cols, max_n_bins=100, min_bin_size=0.05),
+            DecisionTreeBucketer(variables=num_cols, specials=specials, max_n_bins=100, min_bin_size=0.05),
             OrdinalCategoricalBucketer(variables=cat_cols),
         ),
         make_bucketing_pipeline(
