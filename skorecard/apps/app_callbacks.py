@@ -3,7 +3,7 @@ import pandas as pd
 from sklearn.pipeline import make_pipeline
 from sklearn.metrics import roc_auc_score
 
-from skorecard.reporting import plot_bins, bucket_table, create_report
+from skorecard.reporting import plot_bins, create_report
 from skorecard.apps.app_utils import determine_boundaries, get_bucket_colors
 from skorecard.utils.exceptions import NotInstalledError
 
@@ -94,7 +94,7 @@ def add_callbacks(self):
         [Input("bucket_table", "data")],
     )
     def badge_is_has_5perc(bucket_table):
-        event_perc = [x.get("count %") for x in bucket_table]
+        event_perc = [x.get("Count (%)") for x in bucket_table]
         return not all([float(x) >= 5 for x in event_perc])
 
     @app.callback(
@@ -165,10 +165,12 @@ def add_callbacks(self):
         boundaries = determine_boundaries(new_buckets, bucket_mapping)
         self.ui_bucketer.features_bucket_mapping.get(col).map = boundaries
 
-        X_bucketed = make_pipeline(self.prebucketing_pipeline, self.ui_bucketer).transform(self.X)
-        table = bucket_table(
-            x_original=self.X_prebucketed[col], x_bucketed=X_bucketed[col], y=self.y, bucket_mapping=bucket_mapping
+        table = create_report(
+            self.X_prebucketed, self.y, column=col, bucket_mapping=self.ui_bucketer.features_bucket_mapping.get(col)
         )
+        table = table.rename(columns={"bucket_id": "bucket"})
+        table["Event Rate"] = round(table["Event Rate"] * 100, 2)
+
         return table.to_dict("records"), error
 
     @app.callback(
@@ -212,8 +214,8 @@ def add_callbacks(self):
         plotdf = pd.DataFrame(
             {
                 "bucket": [int(row.get("bucket")) for row in data],
-                "counts": [int(row.get("count")) for row in data],
-                "counts %": [float(row.get("count %")) for row in data],
+                "counts": [int(row.get("Count")) for row in data],
+                "counts %": [float(row.get("Count (%)")) for row in data],
                 "Event Rate": [row.get("Event Rate") for row in data],
             }
         )

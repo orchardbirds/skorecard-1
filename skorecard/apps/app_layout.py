@@ -254,7 +254,7 @@ def add_layout(self):
                                     style_header={
                                         "backgroundColor": "rgb(230, 230, 230)",
                                     },
-                                    style_data_conditional=perc_data_bars("count %")
+                                    style_data_conditional=perc_data_bars("Count (%)")
                                     + perc_data_bars("Event Rate")
                                     + [
                                         {"if": {"row_index": "odd"}, "backgroundColor": "rgb(248, 248, 248)"},
@@ -268,15 +268,24 @@ def add_layout(self):
                                     style_as_list_view=True,
                                     page_size=20,
                                     columns=[
-                                        {"name": "bucket", "id": "bucket"},
-                                        {"name": "range", "id": "range"},
-                                        {"name": "count", "id": "count"},
-                                        {"name": "count %", "id": "count %"},
-                                        {"name": "Non-event", "id": "Non-event"},
-                                        {"name": "Event", "id": "Event"},
-                                        {"name": "Event Rate", "id": "Event Rate"},
-                                        {"name": "WoE", "id": "WoE"},
-                                        {"name": "IV", "id": "IV"},
+                                        {"name": "bucket", "id": "bucket", "editable": False},
+                                        {"name": "label", "id": "label", "editable": False},
+                                        {"name": "Count", "id": "Count", "editable": False},
+                                        {"name": "Count (%)", "id": "Count (%)", "editable": False},
+                                        {"name": "Non-event", "id": "Non-event", "editable": False},
+                                        {"name": "Event", "id": "Event", "editable": False},
+                                        {"name": "Event Rate", "id": "Event Rate", "editable": False},
+                                        {"name": "WoE", "id": "WoE", "editable": False},
+                                        {"name": "IV", "id": "IV", "editable": False},
+                                        # {"name": "bucket", "id": "bucket"},
+                                        # {"name": "range", "id": "range"},
+                                        # {"name": "count", "id": "count"},
+                                        # {"name": "count %", "id": "count %"},
+                                        # {"name": "Non-event", "id": "Non-event"},
+                                        # {"name": "Event", "id": "Event"},
+                                        # {"name": "Event Rate", "id": "Event Rate"},
+                                        # {"name": "WoE", "id": "WoE"},
+                                        # {"name": "IV", "id": "IV"},
                                     ],
                                     editable=False,
                                 ),

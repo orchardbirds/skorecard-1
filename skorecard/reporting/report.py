@@ -1,80 +1,10 @@
 import pandas as pd
 import numpy as np
-from typing import Union, Optional
+from typing import Optional
 import warnings
 
 from skorecard.bucket_mapping import BucketMapping
 from skorecard.bucketers import UserInputBucketer
-
-
-def bucket_table(
-    x_original: pd.Series,
-    x_bucketed: pd.Series,
-    y: Union[pd.Series, np.array],
-    bucket_mapping: Optional[BucketMapping] = None,
-    epsilon: float = 0.00001,
-) -> pd.DataFrame:
-    """Create a table with results of bucketing.
-
-    Example:
-
-    ```python
-    from skorecard import datasets
-    from skorecard.bucketers import DecisionTreeBucketer
-    from skorecard.reporting import bucket_table
-
-    X, y = datasets.load_uci_credit_card(return_X_y=True)
-    db = DecisionTreeBucketer(max_n_bins=7, min_bin_size=0.05)
-    X_trans = db.fit_transform(X, y)
-    x_original = X['BILL_AMT1']
-    x_bucketed = X_trans['BILL_AMT1']
-
-    bucket_table(x_original, x_bucketed, y)
-
-    # or with a bucket_mapping for nice bucket range printing
-    bucket_table(x_original, x_bucketed, y,
-        bucket_mapping = db.features_bucket_mapping_.get('BILL_AMT1')
-    )
-    ```
-    """
-    ref = pd.DataFrame()
-    ref["original"] = x_original
-    ref["bucket"] = x_bucketed
-    ref["y"] = y
-
-    table = ref.groupby("bucket")["original"].agg(["min", "max", "count"]).reset_index()
-    table["range"] = table["min"].astype(str) + " - " + table["max"].astype(str)
-    table = table.drop(columns=["min", "max"])
-    table = table[["bucket", "range", "count"]]
-
-    # Add bucket map as range, if available.
-    if bucket_mapping:
-        # note that the buckets are sorted, so we can use that order
-        table["range"] = table["bucket"].replace(table["bucket"].unique(), bucket_mapping.get_map())
-
-    # Add counts %
-    table["count %"] = round((table["count"] / table["count"].sum()) * 100, 2)
-    # table["count %"] = table["count %"].astype(str) + "%"
-
-    # Add event rates
-    er = ref.groupby(["bucket", "y"]).agg({"y": ["count"]}).reset_index()
-    er.columns = [" ".join(col).strip() for col in er.columns.values]
-    er = er.pivot(index="bucket", columns="y", values="y count")
-    er = er.rename(columns={0: "Non-event", 1: "Event"})
-    er["Event Rate"] = round((er["Event"] / (er["Event"] + er["Non-event"])) * 100, 2)
-    # er["Event Rate"] = er["Event Rate"].astype(str) + "%"
-    table = table.merge(er, how="left", on="bucket")
-
-    # Add WoE and IV
-    table["% Event"] = table["Event"] / table["Event"].sum()
-    table["% Non Event"] = table["Non-event"] / table["Non-event"].sum()
-    table["WoE"] = ((table["% Event"] + epsilon) / (table["% Non Event"] + epsilon)).apply(lambda x: np.log(x))
-    table["WoE"] = round(table["WoE"], 3)
-    table["IV"] = (table["% Event"] - table["% Non Event"]) * table["WoE"]
-    table["IV"] = round(table["IV"], 3)
-    table = table.drop(columns=["% Event", "% Non Event"])
-
-    return table
 
 
 def create_report(
@@ -124,6 +54,8 @@ def create_report(
     Returns:
         df (pandas DataFrame): reporting df
     """
+    assert column in X.columns
+
     X = X.copy()
 
     if bucket_mapping and bucketer:
@@ -131,6 +63,7 @@ def create_report(
 
     if not bucket_mapping and not bucketer:
         raise Exception("Specify either bucket_mapping or bucketer")
+        # TODO: In case no bucket_mapping and no bucketer specified,use values as-is
 
     if bucket_mapping and not bucketer:
         col_bucket_mapping = bucket_mapping
@@ -143,9 +76,7 @@ def create_report(
 
         col_bucket_mapping = bucket_dict[column]
 
-    # In case no bucket_mapping and no bucketer specified,use values as-is
     X_transform = pd.DataFrame(data={"bucket_id": col_bucket_mapping.transform(X[column])})
-
     X_transform["Event"] = y
 
     stats = X_transform.groupby("bucket_id", as_index=False).agg(
@@ -166,6 +97,9 @@ def create_report(
 
     stats["WoE"] = ((stats["% Event"] + epsilon) / (stats["% Non-event"] + epsilon)).apply(lambda x: np.log(x))
     stats["IV"] = (stats["% Event"] - stats["% Non-event"]) * stats["WoE"]
+
+    stats["WoE"] = round(stats["WoE"], 2)
+    stats["IV"] = round(stats["IV"], 2)
 
     if verbose:
         iv_total = stats["IV"].sum()

@@ -44,7 +44,6 @@ CLASSES_TO_TEST = [
 FUNCTIONS_TO_TEST = [
     skorecard.utils.reshape_1d_to_2d,
     skorecard.pipeline.get_features_bucket_mapping,
-    skorecard.reporting.bucket_table,
     skorecard.reporting.create_report,
 ]
 
