@@ -446,14 +446,7 @@ class DecisionTreeBucketer(BaseBucketer):
     """
 
     def __init__(
-        self,
-        variables=[],
-        specials={},
-        max_n_bins=100,
-        min_bin_size=0.05,
-        rescale_max_n_bins=False,
-        random_state=42,
-        **kwargs,
+        self, variables=[], specials={}, max_n_bins=100, min_bin_size=0.05, random_state=42, **kwargs,
     ) -> None:
         """Init the class.
 
@@ -467,12 +460,12 @@ class DecisionTreeBucketer(BaseBucketer):
                 in that bucket.
                 When special values are defined, they are not considered in the fitting procedure.
             min_bin_size: Minimum fraction of observations in a bucket. Passed directly to min_samples_leaf.
-            max_n_bins: Maximum numbers of bins to return. Passed directly to max_leaf_nodes.
-                Note that this number must always be >= (number pf special bins + 2) if rescale_max_n_bins = True,
+            max_n_bins: Maximum numbers of after the bucketing. Passed directly to max_leaf_nodes of the
+                DecisionTreeClassifier.
+                If specials are defined, max_leaf_nodes will be redifined to max_n_bins - (number of special bins).
+                The DecisionTreeClassifier requires max_leaf_nodes>=2:
+                therefore, max_n_bins  must always be >= (number of special bins + 2) if specials are defined,
                 otherwise must be >=2.
-            rescale_max_n_bins (boolean): boolean flag to reduce keep the cap on the number of bins to the maximum
-                defined by max_n_bins if special values are passed.
-                If true, it will define max_leaf_nodes = max_n_bins - (number of special bins).
             random_state: The random state, Passed directly to DecisionTreeClassifier
             kwargs: Other parameters passed to DecisionTreeClassifier
         """
@@ -483,7 +476,6 @@ class DecisionTreeBucketer(BaseBucketer):
         self.kwargs = kwargs
         self.max_n_bins = max_n_bins
         self.min_bin_size = min_bin_size
-        self.rescale_max_n_bins = rescale_max_n_bins
         self.random_state = random_state
 
         self._verify_specials_variables(self.specials, self.variables)
@@ -502,8 +494,7 @@ class DecisionTreeBucketer(BaseBucketer):
             if feature in self.specials.keys():
                 special = self.specials[feature]
 
-                if self.rescale_max_n_bins:
-                    n_special_bins = len(special)
+                n_special_bins = len(special)
 
                 if (self.max_n_bins - n_special_bins) <= 1:
                     raise ValueError(

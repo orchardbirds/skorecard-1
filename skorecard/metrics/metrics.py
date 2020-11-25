@@ -59,7 +59,7 @@ def _IV_score(y_test, y_pred, epsilon=0.0001, digits=None):
         y_pred: (np.array), predictions, indices of the buckets where the IV should be computed
         epsilon (float): Amount to be added to relative counts in order to avoid division by zero in the WOE
             calculation.
-        digits: (int): number of decimal digits to consider in the
+        digits: (int): number of significant decimal digits in the IV calculation
 
     Returns:
         iv (float): information value
@@ -68,7 +68,10 @@ def _IV_score(y_test, y_pred, epsilon=0.0001, digits=None):
     df = woe_1d(y_pred, y_test, epsilon=epsilon)
 
     iv = ((df["non_target"] - df["target"]) * df["woe"]).sum()
-    if isinstance(digits, int):
+
+    if digits:
+        assert isinstance(digits, int), f"Digits must be an integer! Passed a {type(int)} variable"
+
         iv = np.round(iv, digits)
     return iv
 
