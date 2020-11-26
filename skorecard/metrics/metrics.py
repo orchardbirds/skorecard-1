@@ -51,7 +51,7 @@ def woe_1d(X, y, epsilon=0):
     return t
 
 
-def _IV_score(y_test, y_pred, epsilon=0.0001):
+def _IV_score(y_test, y_pred, epsilon=0.0001, digits=None):
     """Using the unique values in y_pred, calculates the information value for the specific np.array.
 
     Args:
@@ -59,6 +59,7 @@ def _IV_score(y_test, y_pred, epsilon=0.0001):
         y_pred: (np.array), predictions, indices of the buckets where the IV should be computed
         epsilon (float): Amount to be added to relative counts in order to avoid division by zero in the WOE
             calculation.
+        digits: (int): number of significant decimal digits in the IV calculation
 
     Returns:
         iv (float): information value
@@ -68,12 +69,16 @@ def _IV_score(y_test, y_pred, epsilon=0.0001):
 
     iv = ((df["non_target"] - df["target"]) * df["woe"]).sum()
 
+    if digits:
+        assert isinstance(digits, int), f"Digits must be an integer! Passed a {type(int)} variable"
+
+        iv = np.round(iv, digits)
     return iv
 
 
 @make_scorer
 def IV_scorer(y_test, y_pred):
-    """Decorated version. Makse the  IV score usable for sklearn grid search pipelines.
+    """Decorated version. Makes the  IV score usable for sklearn grid search pipelines.
 
     Using the unique values in y_pred, calculates the information value for the specific np.array.
 
@@ -85,4 +90,4 @@ def IV_scorer(y_test, y_pred):
         iv (float): information value
 
     """
-    return _IV_score(y_test, y_pred)
+    return _IV_score(y_test, y_pred, digits=3)
