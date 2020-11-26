@@ -157,7 +157,9 @@ def add_layout(self):
                 ),
                 id="collapse-menu-model-performance",
             ),
-            dbc.Row([dbc.Col(dcc.Graph(id="graph-prebucket")), dbc.Col(dcc.Graph(id="graph-bucket"))]),
+            dbc.Row(
+                [dbc.Col(dcc.Graph(id="graph-prebucket"), width=6), dbc.Col(dcc.Graph(id="graph-bucket"), width=6)]
+            ),
             dbc.Row(
                 [
                     dbc.Col(

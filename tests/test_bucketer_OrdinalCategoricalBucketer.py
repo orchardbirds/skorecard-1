@@ -1,8 +1,7 @@
-from skorecard.bucketers import OrdinalCategoricalBucketer
-
-
 import numpy as np
 import pytest
+
+from skorecard.bucketers import OrdinalCategoricalBucketer
 
 
 def test_threshold_min(df) -> None:
@@ -77,7 +76,8 @@ def test_specials(df):
     ocb.fit(X, y)
 
     X_transform = ocb.transform(X)
-    assert np.unique(X_transform[X["EDUCATION"] == 1].values)[0] == 3
+    # Make sure value 1 is assigned bucket 4
+    assert np.unique(X_transform[X["EDUCATION"] == 1].values)[0] == 4
 
     ocb = OrdinalCategoricalBucketer(
         tol=0.03, variables=["EDUCATION"], encoding_method="frequency", specials={"EDUCATION": {"ed 0": [1]}}
@@ -85,4 +85,5 @@ def test_specials(df):
     ocb.fit(X, y)
 
     X_transform = ocb.transform(X)
-    assert np.unique(X_transform[X["EDUCATION"] == 1].values)[0] == 3
+    # Make sure value 1 is assigned bucket 4
+    assert np.unique(X_transform[X["EDUCATION"] == 1].values)[0] == 4

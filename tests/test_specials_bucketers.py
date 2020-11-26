@@ -27,24 +27,24 @@ def test_specials_tree_bucketer(df):
     assert X_bins["BILL_AMT1"].nunique() == 3
     assert X_bins["LIMIT_BAL"].nunique() == 5  # maximum n_bins +2 coming from the specials
 
-    assert X_bins[X["LIMIT_BAL"] == 50000]["LIMIT_BAL"].unique() == np.array(3)
+    assert X_bins[X["LIMIT_BAL"] == 50000]["LIMIT_BAL"].unique() == np.array(4)
 
     # Test that tha labels are properly assigned. Because there are no specials in BILL_AMT1, there should be no extra
     # bins
-    assert len(tbt.features_bucket_mapping_["BILL_AMT1"].labels) == 3
+    assert len(tbt.features_bucket_mapping_["BILL_AMT1"].labels) == 4
     # check that the last label finishes with inf
     assert tbt.features_bucket_mapping_["BILL_AMT1"].labels[0].startswith("(-inf")
     assert tbt.features_bucket_mapping_["BILL_AMT1"].labels[2].endswith("inf)")
 
     # Test that tha labels are properly assigned. Because there are 2 specials in LIMIT_BAL, there should be 2 extra
     # bins
-    assert len(tbt.features_bucket_mapping_["LIMIT_BAL"].labels) == 5
+    assert len(tbt.features_bucket_mapping_["LIMIT_BAL"].labels) == 6
     # check that the labels match the specials dictionary
     assert (
-        tbt.features_bucket_mapping_["LIMIT_BAL"].labels[3].endswith([key for key in specials["LIMIT_BAL"].keys()][0])
+        tbt.features_bucket_mapping_["LIMIT_BAL"].labels[4].endswith([key for key in specials["LIMIT_BAL"].keys()][0])
     )
     assert (
-        tbt.features_bucket_mapping_["LIMIT_BAL"].labels[4].endswith([key for key in specials["LIMIT_BAL"].keys()][1])
+        tbt.features_bucket_mapping_["LIMIT_BAL"].labels[5].endswith([key for key in specials["LIMIT_BAL"].keys()][1])
     )
 
     # Assert a value error is raised if the specials contains features not defied in the bucketer.
@@ -70,24 +70,24 @@ def test_specials_equal_width_bucketer(df):
     assert X_bins["BILL_AMT1"].nunique() == 3
     assert X_bins["LIMIT_BAL"].nunique() == 5  # maximum n_bins +2 coming from the specials
 
-    assert X_bins[X["LIMIT_BAL"] == 50000]["LIMIT_BAL"].unique() == np.array(3)
+    assert X_bins[X["LIMIT_BAL"] == 50000]["LIMIT_BAL"].unique() == np.array(4)
 
     # Test that tha labels are properly assigned. Because there are no specials in BILL_AMT1, there should be no extra
     # bins
-    assert len(ebt.features_bucket_mapping_["BILL_AMT1"].labels) == 3
+    assert len(ebt.features_bucket_mapping_["BILL_AMT1"].labels) == 4
     # check that the last label finishes with inf
     assert ebt.features_bucket_mapping_["BILL_AMT1"].labels[0].startswith("(-inf")
     assert ebt.features_bucket_mapping_["BILL_AMT1"].labels[2].endswith("inf)")
 
     # Test that tha labels are properly assigned. Because there are 2 specials in LIMIT_BAL, there should be 2 extra
     # bins
-    assert len(ebt.features_bucket_mapping_["LIMIT_BAL"].labels) == 5
+    assert len(ebt.features_bucket_mapping_["LIMIT_BAL"].labels) == 6
     # check that the labels match the specials dictionary
     assert (
-        ebt.features_bucket_mapping_["LIMIT_BAL"].labels[3].endswith([key for key in specials["LIMIT_BAL"].keys()][0])
+        ebt.features_bucket_mapping_["LIMIT_BAL"].labels[4].endswith([key for key in specials["LIMIT_BAL"].keys()][0])
     )
     assert (
-        ebt.features_bucket_mapping_["LIMIT_BAL"].labels[4].endswith([key for key in specials["LIMIT_BAL"].keys()][1])
+        ebt.features_bucket_mapping_["LIMIT_BAL"].labels[5].endswith([key for key in specials["LIMIT_BAL"].keys()][1])
     )
 
     # Assert a value error is raised if the specials contains features not defied in the bucketer.
@@ -113,24 +113,24 @@ def test_specials_equal_frequency_bucketer(df):
     assert X_bins["BILL_AMT1"].nunique() == 3
     assert X_bins["LIMIT_BAL"].nunique() == 5  # maximum n_bins +2 coming from the specials
 
-    assert X_bins[X["LIMIT_BAL"] == 50000]["LIMIT_BAL"].unique() == np.array(3)
+    assert X_bins[X["LIMIT_BAL"] == 50000]["LIMIT_BAL"].unique() == np.array(4)
 
     # Test that tha labels are properly assigned. Because there are no specials in BILL_AMT1, there should be no extra
     # bins
-    assert len(ebt.features_bucket_mapping_["BILL_AMT1"].labels) == 3
+    assert len(ebt.features_bucket_mapping_["BILL_AMT1"].labels) == 4
     # check that the last label finishes with inf
     assert ebt.features_bucket_mapping_["BILL_AMT1"].labels[0].startswith("(-inf")
     assert ebt.features_bucket_mapping_["BILL_AMT1"].labels[2].endswith("inf)")
 
     # Test that tha labels are properly assigned. Because there are 2 specials in LIMIT_BAL, there should be 2 extra
     # bins
-    assert len(ebt.features_bucket_mapping_["LIMIT_BAL"].labels) == 5
+    assert len(ebt.features_bucket_mapping_["LIMIT_BAL"].labels) == 6
     # check that the labels match the specials dictionary
     assert (
-        ebt.features_bucket_mapping_["LIMIT_BAL"].labels[3].endswith([key for key in specials["LIMIT_BAL"].keys()][0])
+        ebt.features_bucket_mapping_["LIMIT_BAL"].labels[4].endswith([key for key in specials["LIMIT_BAL"].keys()][0])
     )
     assert (
-        ebt.features_bucket_mapping_["LIMIT_BAL"].labels[4].endswith([key for key in specials["LIMIT_BAL"].keys()][1])
+        ebt.features_bucket_mapping_["LIMIT_BAL"].labels[5].endswith([key for key in specials["LIMIT_BAL"].keys()][1])
     )
 
     # Assert a value error is raised if the specials contains features not defied in the bucketer.

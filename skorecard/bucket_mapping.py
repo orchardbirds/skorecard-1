@@ -129,13 +129,15 @@ class BucketMapping:
 
         buckets = self._apply_num_mapping(x)
 
-        if len(self.specials) > 0:
-            buckets = self._assign_specials(x, buckets)
-
+        max_bucket_number = int(buckets.max())
+        # Missings should always have their own bucket number
+        # and should come before specials
+        self.labels[max_bucket_number + 1] = "Missing"
         if np.isnan(x).any():
-            ix = int(buckets.max()) + 1
-            buckets = np.where(np.isnan(x), ix, buckets)
-            self.labels[ix] = "Missing"
+            buckets = np.where(np.isnan(x), max_bucket_number + 1, buckets)
+
+        if len(self.specials) > 0:
+            buckets = self._assign_specials(x, buckets, start_bucket_number=max_bucket_number + 1)
 
         return buckets
 
@@ -160,14 +162,15 @@ class BucketMapping:
 
         new = self._apply_cat_mapping(x)
 
-        if len(self.specials) > 0:
-            new = self._assign_specials(x, new)
-
+        max_bucket_number = int(max(self.labels.keys()))
+        # Missings should always have their own bucket number
+        # and should come before specials
+        self.labels[max_bucket_number + 1] = "Missing"
         if x.isna().any():
-            # new = np.where(np.isnan(x), np.nan, new)
-            ix = int(new.max()) + 1
-            new = pd.Series(np.where(x.isna(), ix, new))
-            self.labels[ix] = "Missing"
+            new = pd.Series(np.where(x.isna(), max_bucket_number + 1, new))
+
+        if len(self.specials) > 0:
+            new = self._assign_specials(x, new, start_bucket_number=max_bucket_number + 1)
 
         return new
 
@@ -253,22 +256,24 @@ class BucketMapping:
 
         return buckets
 
-    def _assign_specials(self, x, buckets):
+    def _assign_specials(self, x, buckets, start_bucket_number=None):
         """Assign the special buckets as defined in the specials dictionary.
 
         Args:
             x (np.array): feature
-            buckets (np.array): buckets for the feature x
+            buckets (np.array): the bucketed x
+            start_bucket_number (int): where to start numbering the
 
         Returns:
             (np.array), buckets
-
         """
-        max_bucket = int(buckets.max())
+        if not start_bucket_number:
+            start_bucket_number = int(buckets.max())
+
         for k, v in self.specials.items():
-            max_bucket += 1
-            buckets = np.where(x.isin(v), max_bucket, buckets)
-            self.labels[max_bucket] = "Special: " + str(k)
+            start_bucket_number += 1
+            buckets = np.where(x.isin(v), start_bucket_number, buckets)
+            self.labels[start_bucket_number] = "Special: " + str(k)
         return buckets
 
 

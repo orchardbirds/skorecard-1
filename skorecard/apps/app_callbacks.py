@@ -166,7 +166,11 @@ def add_callbacks(self):
         self.ui_bucketer.features_bucket_mapping.get(col).map = boundaries
 
         table = create_report(
-            self.X_prebucketed, self.y, column=col, bucket_mapping=self.ui_bucketer.features_bucket_mapping.get(col)
+            self.X_prebucketed,
+            self.y,
+            column=col,
+            bucket_mapping=self.ui_bucketer.features_bucket_mapping.get(col),
+            display_missing=False,
         )
         table = table.rename(columns={"bucket_id": "bucket"})
         table["Event Rate"] = round(table["Event Rate"] * 100, 2)

@@ -19,6 +19,7 @@ def test_bucket_mapping_numerical():
     x = [0, 1, np.nan, 3, 4, 5]
     bucket = BucketMapping("feature1", "numerical", map=[2, 3, 4])
     assert np.allclose(bucket.transform(x), np.array([0.0, 0.0, 4, 1.0, 2.0, 3.0]), equal_nan=True)
+    assert "Missing" in bucket.labels.values()
 
 
 def test_bucket_mapping_categorical():
@@ -84,53 +85,53 @@ def test_specials_numerical():
     """Test that the specials are put in a special bin."""
     # test that a special case
     x = [0, 1, 2, 3, 4, 5, 2]
-    bucket = BucketMapping("feature1", "numerical", map=[3, 4], specials={"special": [2]})
-    assert all(np.equal(bucket.transform(x), np.array([0, 0, 3, 0, 1, 2, 3])))
+    bucket = BucketMapping("feature1", "numerical", map=[3, 4], specials={"=2": [2]})
+    assert all(np.equal(bucket.transform(x), np.array([0, 0, 4, 0, 1, 2, 4])))
 
-    assert bucket.labels == {0: "(-inf, 3.0]", 1: "(3.0, 4.0]", 2: "(4.0, inf)", 3: "special"}
+    assert bucket.labels == {0: "(-inf, 3.0]", 1: "(3.0, 4.0]", 2: "(4.0, inf)", 3: "Missing", 4: "Special: =2"}
 
     # test that calling transform again does not change the labelling
     bucket.transform(x)
     bucket.transform(x)
 
-    assert bucket.labels == {0: "(-inf, 3.0]", 1: "(3.0, 4.0]", 2: "(4.0, inf)", 3: "special"}
+    assert bucket.labels == {0: "(-inf, 3.0]", 1: "(3.0, 4.0]", 2: "(4.0, inf)", 3: "Missing", 4: "Special: =2"}
 
     # Test that if special is not in x, nothing happens
     x = [0, 1, 2, 3, 4, 5]
-    bucket = BucketMapping("feature1", "numerical", map=[3, 4], specials={"special": [6]})
+    bucket = BucketMapping("feature1", "numerical", map=[3, 4], specials={"=6": [6]})
     assert all(np.equal(bucket.transform(x), np.digitize(x, [3, 4], right=True)))
 
 
 def test_labels():
     """Test that the labels are correct in different scenarios."""
     x = ["car", "motorcycle", "boat", "truck", "truck", np.nan]
-    bucket = BucketMapping("feature1", "categorical", map={"car": 0, "boat": 0}, specials={"special": ["truck"]})
+    bucket = BucketMapping("feature1", "categorical", map={"car": 0, "boat": 0}, specials={"is truck": ["truck"]})
     bins = pd.Series(bucket.transform(x))
 
     in_series = pd.Series(x)
 
     labels = bins.map(bucket.labels)
 
-    assert labels[in_series == "truck"].equals(labels[labels == "special"])
+    assert labels[in_series == "truck"].equals(labels[labels == "Special: is truck"])
     assert labels[(in_series.isin(["car", "boat"]))].equals(labels[labels == "boat, car"])
 
     # test with numerical categories
     # Limited map with NA's
     x = [310, 311, 312, 313, 313, np.nan]
-    bucket = BucketMapping("feature1", "categorical", map={310: 0, 311: 1, 312: 2}, specials={"special": [313]})
+    bucket = BucketMapping("feature1", "categorical", map={310: 0, 311: 1, 312: 2}, specials={"is 313": [313]})
     bins = pd.Series(bucket.transform(x))
 
     in_series = pd.Series(x)
 
     labels = bins.map(bucket.labels)
 
-    assert labels[in_series == 313].equals(labels[labels == "special"])
+    assert labels[in_series == 313].equals(labels[labels == "Special: is 313"])
     assert labels[in_series == 311].equals(labels[labels == "311"])
     assert labels[in_series.isna()].equals(labels[labels == "Missing"])
 
     # test numerical labels
     x = [0, 1, 2, 3, 4, 5, 2, np.nan]
-    bucket = BucketMapping("feature1", "numerical", map=[3, 4], specials={"special": [2]})
+    bucket = BucketMapping("feature1", "numerical", map=[3, 4], specials={"=2": [2]})
     bins = pd.Series(bucket.transform(x))
     in_series = pd.Series(x)
 
@@ -138,10 +139,8 @@ def test_labels():
 
     assert labels[(in_series <= 3) & (in_series != 2)].equals(labels[labels == "(-inf, 3.0]"])
     assert labels[(in_series <= 4) & (in_series > 3)].equals(labels[labels == "(3.0, 4.0]"])
-    assert labels[in_series == 2].equals(labels[labels == "special"])
+    assert labels[in_series == 2].equals(labels[labels == "Special: =2"])
     assert labels[in_series > 4].equals(labels[labels == "(4.0, inf)"])
-
-    # raise NotImplementedError("Implement tests for labels on numerical and categorical")
 
 
 def test_error_is_raised_if_wrong_specials():
