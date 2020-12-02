@@ -1,5 +1,6 @@
 from skorecard import datasets
 from skorecard.bucketers import DecisionTreeBucketer
+import pandas as pd
 
 import pytest
 
@@ -74,3 +75,19 @@ def test_specials_filters(df):
 
     assert X_flt[X_flt.isin([20000, 30000, 50000])].shape[0] == 0
     assert y_flt.equals(y[~X["LIMIT_BAL"].isin([20000, 30000, 50000])])
+
+
+def test_all_data_is_special(df):
+    """Test that when all the data is in the special buckets, the code does not crash."""
+    X = df[["LIMIT_BAL", "BILL_AMT1"]]
+    y = df["default"]
+
+    X["all_zeros"] = pd.Series([999 for i in range(X.shape[0])])
+    specials = {"all_zeros": {"=999": [999]}}
+
+    tbt = DecisionTreeBucketer(variables=["all_zeros"], specials=specials)
+    tbt.fit(X, y)
+    X_prebucketed = tbt.transform(X)
+
+    # Bucket 0 will still be a potential value, everything else is bucket to the next bucket, which are the specials.
+    assert X_prebucketed["all_zeros"].unique() == 1
