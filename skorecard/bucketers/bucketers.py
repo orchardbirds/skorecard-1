@@ -510,22 +510,29 @@ class DecisionTreeBucketer(BaseBucketer):
             # If the specials are excluded, make sure that the bin size is rescaled.
             frac_left = X_flt.shape[0] / X.shape[0]
 
-            min_bin_size = self.min_bin_size / frac_left
-            if min_bin_size > 0.5:
-                min_bin_size = 0.5
+            # in case everything is a special case, don't fit the tree.
+            if frac_left > 0:
 
-            binner = DecisionTreeClassifier(
-                max_leaf_nodes=(self.max_n_bins - n_special_bins),
-                min_samples_leaf=min_bin_size,
-                random_state=self.random_state,
-                **self.kwargs,
-            )
-            self.binners[feature] = binner
+                min_bin_size = self.min_bin_size / frac_left
 
-            binner.fit(X_flt.values.reshape(-1, 1), y_flt)
+                if min_bin_size > 0.5:
+                    min_bin_size = 0.5
 
-            # Extract fitted boundaries
-            splits = np.unique(binner.tree_.threshold[binner.tree_.feature != _tree.TREE_UNDEFINED])
+                binner = DecisionTreeClassifier(
+                    max_leaf_nodes=(self.max_n_bins - n_special_bins),
+                    min_samples_leaf=min_bin_size,
+                    random_state=self.random_state,
+                    **self.kwargs,
+                )
+                self.binners[feature] = binner
+
+                binner.fit(X_flt.values.reshape(-1, 1), y_flt)
+
+                # Extract fitted boundaries
+                splits = np.unique(binner.tree_.threshold[binner.tree_.feature != _tree.TREE_UNDEFINED])
+
+            else:
+                splits = []
 
             self.features_bucket_mapping_[feature] = BucketMapping(
                 feature_name=feature, type="numerical", map=splits, right=False, specials=special
