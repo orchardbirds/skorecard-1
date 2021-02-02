@@ -1,20 +1,16 @@
 import logging
 
 import pandas as pd
-import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.exceptions import NotFittedError
 from sklearn.pipeline import Pipeline, make_pipeline
 from sklearn.utils.validation import check_is_fitted
 
 from skorecard.bucket_mapping import FeaturesBucketMapping
-from skorecard.bucketers import UserInputBucketer
-from skorecard.apps import ManualBucketerApp
 
 
 class KeepPandas(BaseEstimator, TransformerMixin):
     """Keep pandas dataframe in a sklearn pipeline.
-   
+
     This is a helper class to turn sklearn transformations back to pandas.
 
     !!! warning
@@ -25,10 +21,10 @@ class KeepPandas(BaseEstimator, TransformerMixin):
     from skorecard.pipeline import KeepPandas
     from skorecard import datasets
     from skorecard.bucketers import EqualWidthBucketer
-    
+
     from sklearn.pipeline import make_pipeline
     from sklearn.preprocessing import StandardScaler
-    
+
     X, y = datasets.load_uci_credit_card(return_X_y=True)
 
     bucket_pipeline = make_pipeline(
@@ -79,17 +75,17 @@ class KeepPandas(BaseEstimator, TransformerMixin):
         return self.columns_
 
 
-def make_coarse_classing_pipeline(*steps, **kwargs):
-    """Identity sklearn pipeline steps as coarse classing.
-    
-    Very simple wrapper of sklearn.pipeline.make_pipeline()
-    
+def make_prebucketing_pipeline(*steps, **kwargs):
+    """Helps to identify a (series of)sklearn pipeline steps as the bucketing steps.
+
+    Very simple wrapper of sklearn.pipeline.make_pipeline() that just adds an ID.
+
     ```python
     from skorecard import datasets
     from skorecard.bucketers import DecisionTreeBucketer, OptimalBucketer
-    from skorecard.pipeline import make_coarse_classing_pipeline, tweak_buckets
+    from skorecard.pipeline import make_prebucketing_pipeline, make_bucketing_pipeline
     from sklearn.pipeline import make_pipeline
-    
+
     df = datasets.load_uci_credit_card(as_frame=True)
     y = df["default"]
     X = df.drop(columns=["default"])
@@ -98,18 +94,63 @@ def make_coarse_classing_pipeline(*steps, **kwargs):
     cat_cols = ["EDUCATION", "MARRIAGE"]
 
     pipeline = make_pipeline(
-        DecisionTreeBucketer(variables=num_cols, max_n_bins=100, min_bin_size=0.05),
-        make_coarse_classing_pipeline(
+        make_prebucketing_pipeline(
+            DecisionTreeBucketer(variables=num_cols, max_n_bins=100, min_bin_size=0.05),
+        ),
+        make_bucketing_pipeline(
             OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
             OptimalBucketer(variables=cat_cols, max_n_bins=10, min_bin_size=0.05),
         )
     )
-    
+
     pipeline.fit(X, y)
     ```
     """
     for step in steps:
-        msg = "All coarse classing steps must be skorecard bucketers"
+        msg = "All bucketing steps must be skorecard bucketers"
+        assert "skorecard.bucketers" in str(type(step)), msg
+
+    pipeline = make_pipeline(*steps, **kwargs)
+
+    # Identifier, to make it easy to find this Pipeline step in a pipeline structure
+    pipeline.name = "prebucketing_pipeline"
+
+    return pipeline
+
+
+def make_bucketing_pipeline(*steps, **kwargs):
+    """Helps to identify a (series of)sklearn pipeline steps as the bucketing steps.
+
+    Very simple wrapper of sklearn.pipeline.make_pipeline() that just adds an ID.
+
+    ```python
+    from skorecard import datasets
+    from skorecard.bucketers import DecisionTreeBucketer, OptimalBucketer
+    from skorecard.pipeline import make_prebucketing_pipeline, make_bucketing_pipeline
+    from sklearn.pipeline import make_pipeline
+
+    df = datasets.load_uci_credit_card(as_frame=True)
+    y = df["default"]
+    X = df.drop(columns=["default"])
+
+    num_cols = ["LIMIT_BAL", "BILL_AMT1"]
+    cat_cols = ["EDUCATION", "MARRIAGE"]
+
+    pipeline = make_pipeline(
+        make_prebucketing_pipeline(
+            DecisionTreeBucketer(variables=num_cols, max_n_bins=100, min_bin_size=0.05),
+        ),
+        make_bucketing_pipeline(
+            OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
+            OptimalBucketer(variables=cat_cols, max_n_bins=10, min_bin_size=0.05),
+        )
+    )
+
+    pipeline.fit(X, y)
+    ```
+    """
+    for step in steps:
+        msg = "All bucketing steps must be skorecard bucketers"
         assert "skorecard.bucketers" in str(type(step)), msg
 
     pipeline = make_pipeline(*steps, **kwargs)
@@ -120,107 +161,67 @@ def make_coarse_classing_pipeline(*steps, **kwargs):
     return pipeline
 
 
-def tweak_buckets(pipe: Pipeline, X: pd.DataFrame, y: np.ndarray) -> Pipeline:
-    """Tweak the bucket manually.
-    
-    ```python
-    from skorecard import datasets
-    from skorecard.bucketers import DecisionTreeBucketer, OptimalBucketer
-    from skorecard.pipeline import make_coarse_classing_pipeline, tweak_buckets
-    from sklearn.pipeline import make_pipeline
-    from sklearn.preprocessing import OneHotEncoder
-    from sklearn.linear_model import LogisticRegression
-    
-    df = datasets.load_uci_credit_card(as_frame=True)
-    X = df.drop(columns=["default"])
-    y = df["default"]
+def find_bucketing_step(pipeline: Pipeline, identifier: str = "bucketing_pipeline"):
+    """
+    Finds the bucketing (course classing) step in a pipeline object.
 
-    num_cols = ["LIMIT_BAL", "BILL_AMT1"]
-    cat_cols = ["EDUCATION", "MARRIAGE"]
+    This pipeline needs to have been defined using skorecard.pipeline.make_bucketing_pipeline
 
-    pipeline = make_pipeline(
-        DecisionTreeBucketer(variables=num_cols, max_n_bins=100, min_bin_size=0.05),
-        make_coarse_classing_pipeline(
-            OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
-            OptimalBucketer(variables=cat_cols, max_n_bins=10, min_bin_size=0.05),
-        ),
-        OneHotEncoder(),
-        LogisticRegression()
-    )
-     
-    pipeline.fit(X, y)
-    pipeline.predict_proba(X)
-    # pipe2 = tweak_buckets(pipeline, X, y) # not run - don't start server
-    ```
+    Args:
+        pipeline (sklearn.pipeline.Pipeline): sklearn pipeline
+        identifier (str): the attribute used to find the pipeline step
+
+    Returns:
+        index (int): position of bucketing step in pipeline.steps
     """
     # Find the bucketing pipeline step
-    bucket_pipes = [s for s in pipe.steps if getattr(s[1], "name", "") == "bucketing_pipeline"]
+    bucket_pipes = [s for s in pipeline.steps if getattr(s[1], "name", "") == identifier]
 
-    # Find the bucketing pipeline step
+    # Raise error if missing
     if len(bucket_pipes) == 0:
         msg = """
         Did not find a bucketing pipeline step. Identity the bucketing pipeline step
-        using skorecard.pipeline.make_coarse_classing_pipeline. Example:
+        using skorecard.pipeline.make_bucketing_pipeline or skorecard.pipeline.make_prebucketing_pipeline.
+
+        Note that the pipeline should always have a skorecard.pipeline.make_prebucketing_pipeline defined.
+        If you do not need prebucketing simply leave it empty.
+
+        Example:
         
         ```python
-        from skorecard.pipeline import set_as_bucketing_step
-        bucket_pipeline = make_coarse_classing_pipeline(
+        from sklearn.pipeline import make_pipeline
+        from skorecard.pipeline import make_bucketing_pipeline, make_prebucketing_pipeline
+
+        pipeline = make_pipeline(
+            make_prebucketing_pipeline(),
+            make_bucketing_pipeline(
+                    OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
+                    OptimalBucketer(variables=cat_cols, max_n_bins=10, min_bin_size=0.05),
+            )
+        )
+        ```
+        """
+        raise AssertionError(msg)
+
+    if len(bucket_pipes) > 1:
+        msg = """
+        You need to identity only the bucketing step,
+        using skorecard.pipeline.make_bucketing_pipeline and skorecard.pipeline.make_prebucketing_pipeline only once.
+        
+        Example:
+        
+        ```python
+        from skorecard.pipeline import make_bucketing_pipeline
+        bucket_pipeline = make_bucketing_pipeline(
             OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
             OptimalBucketer(variables=cat_cols, max_n_bins=10, min_bin_size=0.05),
         )
         ```
         """
         raise AssertionError(msg)
-    if len(bucket_pipes) > 1:
-        msg = """
-        You need to identity only the bucketing step. You can combine multiple bucketing steps
-        using sklearn.pipeline.make_pipeline(). Example:
-        
-        ```python
-        bucket_pipeline = make_coarse_classing_pipeline(
-            OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
-            OptimalBucketer(variables=cat_cols, max_n_bins=10, min_bin_size=0.05),
-        )
-        ```
-        """
 
-    index_bucket_pipeline = pipe.steps.index(bucket_pipes[0])
-
-    # Get the prebucketed, prepared features.
-    try:
-        X_prebucketed = Pipeline(pipe.steps[:index_bucket_pipeline]).transform(X)
-    except NotFittedError:
-        pipe.fit(X, y)
-        X_prebucketed = Pipeline(pipe.steps[:index_bucket_pipeline]).transform(X)
-
-    # Checks on prebucketed data
-    assert isinstance(X_prebucketed, pd.DataFrame)
-    # Prebucketed features should have at most 100 unique values.
-    # otherwise app prebinning table is too big.
-    for feature in X_prebucketed.columns:
-        if len(X_prebucketed[feature].unique()) > 100:
-            raise AssertionError(f"{feature} has >100 values. Did you pre-bucket?")
-
-    # Save the reference to feature_bucket_mapping_ instance
-    # This way, we can easily change the mapping for a feature manually
-    features_bucket_mapping = get_features_bucket_mapping(pipe[index_bucket_pipeline])
-
-    # Overwrite the pipeline
-    # This is the real 'trick'
-    # as it allows us to update with a
-    # (potentially tweaked) feature_bucket_mapping
-    pipe.steps.pop(index_bucket_pipeline)
-    pipe.steps.insert(index_bucket_pipeline, ["manual_coarse_classing", UserInputBucketer(features_bucket_mapping)])
-
-    # Start app
-    # app.stop_server()
-    app = ManualBucketerApp(pipe, X, X_prebucketed, y, index_bucket_pipeline)
-    app.run_server()
-
-    return pipe
-    # pipe[index_bucket_pipeline].pipeline.features_bucket_mapping_ = <from our app>
-    # bucketed_X = pipe.transform(X)
-    # binning_table(bucketed_X, y)
+    index_bucket_pipeline = pipeline.steps.index(bucket_pipes[0])
+    return index_bucket_pipeline
 
 
 def get_features_bucket_mapping(pipe: Pipeline) -> FeaturesBucketMapping:
@@ -248,11 +249,11 @@ def get_features_bucket_mapping(pipe: Pipeline) -> FeaturesBucketMapping:
         ('one-hot-encoding', OneHotEncoder()),
         ('lr', LogisticRegression())
     ])
-    
+
     pipe.fit(X, y)
     features_bucket_mapping = get_features_bucket_mapping(pipe)
     ```
-    
+
     Args:
         pipe (Pipeline): fitted scikitlearn pipeline with bucketing transformers
 

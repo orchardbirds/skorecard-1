@@ -6,20 +6,20 @@ from sklearn.pipeline import make_pipeline
 
 from skorecard.bucketers import OptimalBucketer, DecisionTreeBucketer
 from skorecard.bucket_mapping import BucketMapping
-from skorecard.pipeline import make_coarse_classing_pipeline
+from skorecard.pipeline import make_bucketing_pipeline
 from skorecard.utils import NotPreBucketedError
 
 
 def test_optimal_binning_prebinning(df):
     """Ensure we have prevented prebinning correctly.
-    
+
     optbinning.OptimalBinning() does pre-binning by default.
     In skorecard, we want more control, so force the user to do this explicitly.
-    
+
     Extracting only the optimizer from optbinning is quite involved.
     Instead, we'll let the prebinning (a DecisionTreeClassifier) use our user defined splits.
     These splits are simply the unique values from the prebucketed feature.
-    
+
     This tests checks the output is not changed.
     """
     X = df[["LIMIT_BAL", "BILL_AMT1"]]
@@ -55,7 +55,9 @@ def test_optimal_binning_prebinning(df):
 
     pipe = make_pipeline(
         DecisionTreeBucketer(variables=["BILL_AMT1"], max_n_bins=20, min_bin_size=0.05),
-        make_coarse_classing_pipeline(OptimalBucketer(variables=["BILL_AMT1"], max_n_bins=10, min_bin_size=0.05),),
+        make_bucketing_pipeline(
+            OptimalBucketer(variables=["BILL_AMT1"], max_n_bins=10, min_bin_size=0.05),
+        ),
     )
     new = pipe.fit_transform(X, y)["BILL_AMT1"]
 
@@ -121,7 +123,7 @@ def test_optimal_binning_categorical(df):
         type="categorical",
         map={1: 0, 3: 1, 2: 2, 5: 3, 4: 3, 6: 3, 0: 3},
         right=False,
-        labels={0: "1", 1: "3", 2: "2", 3: "0, 4, 5, 6", 4: "other"},
+        labels={0: "1", 1: "3", 2: "2", 3: "0, 4, 5, 6", 4: "other", 5: "Missing"},
     )
 
     optb = OptimalBinning(

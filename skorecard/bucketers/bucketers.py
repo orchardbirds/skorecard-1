@@ -11,6 +11,7 @@ from skorecard.utils import NotInstalledError, NotPreBucketedError
 
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.tree import _tree
+from sklearn.utils.validation import check_is_fitted
 
 try:
     from optbinning import OptimalBinning
@@ -20,20 +21,20 @@ except ModuleNotFoundError:
 
 class OptimalBucketer(BaseBucketer):
     """Find Optimal Buckets.
-    
+
     Bucket transformer that uses the [optbinning](http://gnpalencia.org/optbinning) package to find optimal buckets.
     This bucketers basically wraps optbinning.OptimalBinning to be consistent with skorecard.
 
     This bucketer uses pre-binning to bucket a feature into max 100 bins. It then uses a constrained programming solver
     to merge buckets, taking into accounts constraints 1) monotonicity in bad rate, 2) at least 5% of records per bin.
-    
+
     This bucketer:
-    
+
     - Is supervised: is uses the target variable to find good buckets
     - Supports both numerical and categorical features
-    
+
     Example:
-    
+
     ```python
     from skorecard import datasets
     from skorecard.bucketers import OptimalBucketer
@@ -51,12 +52,15 @@ class OptimalBucketer(BaseBucketer):
         variables_type="numerical",
         max_n_bins=10,
         min_bin_size=0.05,
+        do_prebinning=False,
+        min_prebin_size=0.05,
+        max_n_prebins=100,
         cat_cutoff=0.05,
         time_limit=25,
         **kwargs,
     ) -> None:
         """Initialize Optimal Bucketer.
-        
+
         Args:
             variables: List of variables to bucket.
             specials: (nested) dictionary of special values that require their own binning.
@@ -69,6 +73,11 @@ class OptimalBucketer(BaseBucketer):
             variables_type: Type of the variables
             min_bin_size: Minimum fraction of observations in a bucket. Passed to optbinning.OptimalBinning.
             max_n_bins: Maximum numbers of bins to return. Passed to optbinning.OptimalBinning.
+            do_prebinning: Should we also do pre-binning? Default is False
+            min_prebin_size: Minimum fraction of observations in a pre-bucket.
+                Ignored if allow_prebinning = False. Passed to optbinning.OptimalBinning.
+            max_n_prebins: Maximum numbers of pre-buckets to return. Ignored if allow_prebinning = False.
+                Passed to optbinning.OptimalBinning.
             cat_cutoff: Threshold ratio to below which categories are grouped
                 together in a bucket 'other'. Passed to optbinning.OptimalBinning.
             time_limit: Time limit in seconds to find an optimal solution. Passed to optbinning.OptimalBinning.
@@ -79,6 +88,9 @@ class OptimalBucketer(BaseBucketer):
         self.variables_type = variables_type
         self.max_n_bins = max_n_bins
         self.min_bin_size = min_bin_size
+        self.do_prebinning = do_prebinning
+        self.min_prebin_size = min_prebin_size
+        self.max_n_prebins = max_n_prebins
         self.cat_cutoff = cat_cutoff
         self.time_limit = time_limit
         self.kwargs = kwargs
@@ -86,8 +98,9 @@ class OptimalBucketer(BaseBucketer):
             raise NotImplementedError("Specials are currently not implemented for the Optimal bucketer")
 
         assert variables_type in ["numerical", "categorical"]
-        assert "min_prebin_size" not in self.kwargs, "You need to do pre-binning yourself, see skorecard docs"
-        assert "max_n_prebins" not in self.kwargs, "You need to do pre-binning yourself, see skorecard docs"
+        if self.do_prebinning is False:
+            assert "min_prebin_size" not in self.kwargs, "You need to do pre-binning yourself, see skorecard docs"
+            assert "max_n_prebins" not in self.kwargs, "You need to do pre-binning yourself, see skorecard docs"
 
         # not tested right now
         self._verify_specials_variables(self.specials, self.variables)
@@ -118,6 +131,8 @@ class OptimalBucketer(BaseBucketer):
                         f"""
                         OptimalBucketer requires numerical feature '{feature}' to be pre-bucketed:
                         currently there are {len(uniq_values)} unique values present.
+
+                        Apply pre-buckets or set 'do_prebinning' to True
                         """
                     )
                 user_splits = uniq_values
@@ -134,6 +149,8 @@ class OptimalBucketer(BaseBucketer):
                 user_splits=user_splits,
                 min_bin_size=self.min_bin_size,
                 max_n_bins=self.max_n_bins,
+                min_prebin_size=self.min_prebin_size,  # ignored if user_splits is specified
+                max_n_prebins=self.max_n_bins,  # ignored if user_splits is specified
                 cat_cutoff=self.cat_cutoff,
                 time_limit=self.time_limit,
                 **self.kwargs,
@@ -154,7 +171,11 @@ class OptimalBucketer(BaseBucketer):
             # Note that optbinning transform uses right=False
             # https://github.com/guillermo-navas-palencia/optbinning/blob/396b9bed97581094167c9eb4744c2fd1fb5c7408/optbinning/binning/transformations.py#L126-L132
             self.features_bucket_mapping_[feature] = BucketMapping(
-                feature_name=feature, type=self.variables_type, map=splits, right=False, specials=self.specials,
+                feature_name=feature,
+                type=self.variables_type,
+                map=splits,
+                right=False,
+                specials=self.specials,
             )
 
         return self
@@ -166,7 +187,7 @@ class OptimalBucketer(BaseBucketer):
 
 class EqualWidthBucketer(BaseBucketer):
     """Bucket transformer that creates equally spaced bins using numpy.histogram function.
-   
+
     This bucketer:
     - is unsupervised: it does not consider the target value when fitting the buckets.
     - ignores missing values and passes them through.
@@ -248,7 +269,7 @@ class AgglomerativeClusteringBucketer(BaseBucketer):
     This bucketer:
     - is unsupervised: it does not consider the target value when fitting the buckets.
     - ignores missing values and passes them through.
-    
+
     ```python
     from skorecard import datasets
     from skorecard.bucketers import AgglomerativeClusteringBucketer
@@ -328,7 +349,7 @@ class EqualFrequencyBucketer(BaseBucketer):
     This bucketer:
     - is unsupervised: it does not consider the target value when fitting the buckets.
     - ignores missing values and passes them through.
-    
+
     ```python
     from skorecard import datasets
     from skorecard.bucketers import EqualFrequencyBucketer
@@ -366,10 +387,10 @@ class EqualFrequencyBucketer(BaseBucketer):
 
     def fit(self, X, y=None):
         """Fit X, y.
-        
+
         Uses pd.qcut()
         https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.qcut.html
-        
+
         """
         X = self._is_dataframe(X)
         self.variables = self._check_variables(X, self.variables)
@@ -440,13 +461,19 @@ class DecisionTreeBucketer(BaseBucketer):
 
     dt_bucketer = DecisionTreeBucketer(variables=['LIMIT_BAL'], specials = specials)
     dt_bucketer.fit(X, y)
-    
+
     dt_bucketer.fit_transform(X, y)['LIMIT_BAL'].value_counts()
     ```
     """
 
     def __init__(
-        self, variables=[], specials={}, max_n_bins=100, min_bin_size=0.05, random_state=42, **kwargs,
+        self,
+        variables=[],
+        specials={},
+        max_n_bins=100,
+        min_bin_size=0.05,
+        random_state=42,
+        **kwargs,
     ) -> None:
         """Init the class.
 
@@ -581,7 +608,7 @@ class OrdinalCategoricalBucketer(BaseBucketer):
     they will be replaced by 0.
 
     This bucketer:
-    
+
     - is unsupervised when `encoding_method=='frequency'`: it does not consider
         the target value when fitting the buckets.
     - is supervised when `encoding_method=='ordered'`: it uses
@@ -599,12 +626,12 @@ class OrdinalCategoricalBucketer(BaseBucketer):
     bucketer = OrdinalCategoricalBucketer(max_n_categories=2, variables=['EDUCATION'])
     bucketer.fit_transform(X, y)
     ```
-    
+
     Credits: Code & ideas adapted from:
-    
+
     - feature_engine.categorical_encoders.OrdinalCategoricalEncoder
     - feature_engine.categorical_encoders.RareLabelCategoricalEncoder
-    
+
     """
 
     def __init__(self, tol=0.05, max_n_categories=None, variables=[], specials={}, encoding_method="frequency"):
@@ -746,11 +773,14 @@ class UserInputBucketer(BaseBucketer):
     new_X = ui_bucketer.fit_transform(X)
     assert len(new_X['LIMIT_BAL'].unique()) == 5
     ```
-    
+
     """
 
     def __init__(self, features_bucket_mapping: Union[Dict, FeaturesBucketMapping], variables: List = []) -> None:
         """Initialise the user-defined boundaries with a dictionary.
+
+        Notes:
+        - features_bucket_mapping is stored without the trailing underscore (_) because it is not fitted.
 
         Args:
             features_bucket_mapping (dict): Contains the feature name and boundaries defined for this feature.
@@ -761,23 +791,37 @@ class UserInputBucketer(BaseBucketer):
         if not isinstance(features_bucket_mapping, FeaturesBucketMapping):
             if not isinstance(features_bucket_mapping, dict):
                 raise TypeError("'features_bucket_mapping' must be a dict or FeaturesBucketMapping instance")
-            self.features_bucket_mapping_ = FeaturesBucketMapping(features_bucket_mapping)
+            self.features_bucket_mapping = FeaturesBucketMapping(features_bucket_mapping)
         else:
-            self.features_bucket_mapping_ = features_bucket_mapping
-
-        # Save under input name, for __repr___
-        self.features_bucket_mapping = self.features_bucket_mapping_
+            self.features_bucket_mapping = features_bucket_mapping
 
         # If user did not specify any variables,
         # use all the variables defined in the features_bucket_mapping
         self.variables = variables
         if variables == []:
-            self.variables = list(self.features_bucket_mapping_.maps.keys())
+            self.variables = list(self.features_bucket_mapping.maps.keys())
+
+        self.is_fitted_ = True
 
     def fit(self, X, y=None):
         """Init the class."""
         return self
 
-    def transform(self, X):
-        """Transform X."""
-        return super().transform(X)
+    def transform(self, X, y=None):
+        """Transforms an array into the corresponding buckets fitted by the Transformer.
+
+        Args:
+            X (pd.DataFrame): dataframe which will be transformed into the corresponding buckets
+            y (array): target
+
+        Returns:
+            pd.DataFrame with transformed features
+        """
+        check_is_fitted(self)
+        X = self._is_dataframe(X)
+
+        for feature in self.variables:
+            bucket_mapping = self.features_bucket_mapping.get(feature)
+            X[feature] = bucket_mapping.transform(X[feature])
+
+        return X

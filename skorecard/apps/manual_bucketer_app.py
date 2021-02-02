@@ -1,40 +1,15 @@
-"""Ideas for improving the app.
-
-- Buttons for running 1d bucket transformers
-- Sidebar so you can view report over all features https://dash-bootstrap-components.opensource.faculty.ai/examples/
-- datatable https://dash.plotly.com/datatable
-- plotly dark theme + dash dark theme? https://plotly.com/python/templates/
-
-```python
-from skorecard import datasets
-from skorecard.apps import ManualBucketerApp
-
-X, y = datasets.load_uci_credit_card(return_X_y=True)
-
-#app = ManualBucketerApp(X)
-# app.run_server(mode="external")
-# app.stop_server()
-```
-"""
-
+import copy
+from skorecard.bucketers.bucketers import OrdinalCategoricalBucketer
 import pandas as pd
-from sklearn.pipeline import Pipeline
+import numpy as np
+from sklearn.pipeline import Pipeline, make_pipeline
 
-from skorecard.utils.exceptions import NotInstalledError
-from skorecard.reporting import plot_bins
+from skorecard.utils.exceptions import NotInstalledError, BucketingPipelineError
+from skorecard.pipeline import find_bucketing_step, get_features_bucket_mapping
+from skorecard.bucketers import UserInputBucketer
+from skorecard.apps.app_layout import add_layout
+from skorecard.apps.app_callbacks import add_callbacks
 
-# Dash + dependencies
-try:
-    import dash_core_components as dcc
-    import dash_html_components as html
-    from dash.dependencies import Input, Output
-    import dash_table
-except ModuleNotFoundError:
-    dcc = NotInstalledError("dash_core_components", "dashboard")
-    html = NotInstalledError("dash_html_components", "dashboard")
-    Input = NotInstalledError("dash", "dashboard")
-    Output = NotInstalledError("dash", "dashboard")
-    dash_table = NotInstalledError("dash_table", "dashboard")
 
 # JupyterDash
 try:
@@ -42,159 +17,127 @@ try:
 except ModuleNotFoundError:
     JupyterDash = NotInstalledError("jupyter-dash", "dashboard")
 
-# Dash Bootstrap
-try:
-    import dash_bootstrap_components as dbc
-except ModuleNotFoundError:
-    dbc = NotInstalledError("dash_bootstrap_components", "dashboard")
 
-# try:
-#     import plotly.figure_factory as ff
-# except ModuleNotFoundError:
-#     ff = NotInstalledError("plotly", "reporting")
+class BucketTweakerApp(object):
+    """Tweak bucketing in a sklearn pipeline manually using a Dash web app.
 
+    Example:
 
-# TODO make this internal to the package
-# external_stylesheets = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
-external_stylesheets = [dbc.themes.SKETCHY]
+    ```python
+    from skorecard import datasets
+    from skorecard.bucketers import DecisionTreeBucketer, OptimalBucketer
+    from skorecard.pipeline import make_bucketing_pipeline
+    from skorecard.apps import BucketTweakerApp
+    from sklearn.pipeline import make_pipeline
+    from sklearn.preprocessing import OneHotEncoder
+    from sklearn.linear_model import LogisticRegression
 
+    df = datasets.load_uci_credit_card(as_frame=True)
+    X = df.drop(columns=["default"])
+    y = df["default"]
 
-class ManualBucketerApp(object):
-    """Dash App for manual bucketing.
+    num_cols = ["LIMIT_BAL", "BILL_AMT1"]
+    cat_cols = ["EDUCATION", "MARRIAGE"]
 
-    Class that contains a Dash app
+    pipeline = make_pipeline(
+        DecisionTreeBucketer(variables=num_cols, max_n_bins=100, min_bin_size=0.05),
+        make_bucketing_pipeline(
+            OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
+            OptimalBucketer(variables=cat_cols, max_n_bins=10, min_bin_size=0.05),
+        ),
+        OneHotEncoder(),
+        LogisticRegression()
+    )
+
+    pipeline.fit(X, y)
+    tweaker = BucketTweakerApp(pipeline, X, y)
+    # tweaker.run_server()
+    # tweaker.stop_server()
+    tweaker.pipeline # or tweaker.get_pipeline()
+    ```
     """
 
-    def __init__(self, pipeline: Pipeline, X: pd.DataFrame, X_prebucketed: pd.DataFrame, y, index_bucket_pipeline: int):
-        """Create new dash app.
+    def __init__(self, pipeline: Pipeline, X: pd.DataFrame, y: np.array) -> None:
+        """Setup for being able to run the dash app.
 
         Args:
+            pipeline (Pipeline): fitted sklearn pipeline object
             X (pd.DataFrame): input dataframe
             y (np.array): target array
-            features_bucket_mapping: Class with bucketing information for features
-
-        Returns:
-            dash: Dash app
         """
         assert isinstance(X, pd.DataFrame), "X must be pd.DataFrame"
 
-        self.pipeline = pipeline
+        # Make sure we don't change instance of input pipeline
+        pipeline = copy.deepcopy(pipeline)
         self.X = X
         self.y = y
-        self.X_prebucketed = X_prebucketed
-        self.index_bucket_pipeline = index_bucket_pipeline
 
-        self._features_bucket_mapping = self.pipeline[index_bucket_pipeline].features_bucket_mapping_
+        # Identify the bucketing steps in the pipeline
+        index_prebucket_pipeline = find_bucketing_step(pipeline, identifier="prebucketing_pipeline")
+        index_bucket_pipeline = find_bucketing_step(pipeline)
 
-        app = JupyterDash(__name__)  # , external_stylesheets=external_stylesheets)
-        self.app = app
+        if index_bucket_pipeline != index_prebucket_pipeline + 1:
+            msg = "The prebucketing step (make_prebucket_pipeline) should be defined"
+            msg += "right before the bucketing step (make_bucket_pipeline)"
+            raise ValueError(msg)
 
-        def get_prebucket_table(col):
-            vals = pd.DataFrame(self.X_prebucketed[col].value_counts()).sort_index()
-            vals["bucket"] = vals.index
-            vals["new_bucket"] = vals.index
-            return vals
-
-        def get_bucket_table(col):
-            df = Pipeline(self.pipeline.steps[: index_bucket_pipeline + 1]).transform(self.X)
-            vals = pd.DataFrame(df[col].value_counts()).sort_index()
-            vals["bucket"] = vals.index
-            return vals
-
-        # Add the layout
-        app.layout = html.Div(
-            children=[
-                html.H2(children="skorecard.ManualBucketerApp"),
-                html.Div(
-                    [
-                        dcc.Dropdown(
-                            id="input_column",
-                            options=[{"label": o, "value": o} for o in self.X_prebucketed.columns],
-                            value=self.X.columns[0],
-                        ),
-                    ],
-                    style={"width": "20%"},
-                ),
-                dcc.Markdown(id="output-container-range-slider"),
-                html.Div(
-                    [
-                        dcc.Graph(id="distr-graph"),
-                        # dcc.RangeSlider(
-                        #     id="range-slider",
-                        #     allowCross=True,
-                        #     tooltip={"always_visible": True, "placement": "topLeft"},
-                        # ),
-                        html.P(children="pre-bucketing table"),
-                        dash_table.DataTable(
-                            id="prebucket_table",
-                            columns=[{"name": i, "id": i} for i in get_prebucket_table(self.X_prebucketed.columns[0])],
-                            data=get_prebucket_table(self.X_prebucketed.columns[0]).to_dict("records"),
-                            editable=True,
-                        ),
-                        html.P(children="bucketing table"),
-                        dash_table.DataTable(
-                            id="bucket_table",
-                            columns=[{"name": i, "id": i} for i in get_bucket_table(self.X.columns[0])],
-                            data=get_bucket_table(self.X.columns[0]).to_dict("records"),
-                        ),
-                    ]
-                ),
-            ]
+        # Extract the features bucket mapping information
+        self.original_prebucket_feature_mapping = copy.deepcopy(
+            get_features_bucket_mapping(pipeline[index_prebucket_pipeline])
+        )
+        self.original_bucket_feature_mapping = copy.deepcopy(
+            get_features_bucket_mapping(pipeline[index_bucket_pipeline])
         )
 
-        # @app.callback(
-        #     [
-        #         Output("range-slider", "min"),
-        #         Output("range-slider", "max"),
-        #         Output("range-slider", "value"),
-        #         Output("range-slider", "marks"),
-        #     ],
-        #     [Input("input_column", "value")],
-        # )
-        # def change_col_update_slider(col):
-        #     col_min = round(self.X_prebucketed[col].min(), 2)
-        #     col_max = round(self.X_prebucketed[col].max(), 2)
+        # Split pipeline into different parts
+        self.prebucketing_pipeline = Pipeline(pipeline.steps[:index_bucket_pipeline])
+        self.postbucketing_pipeline = Pipeline(pipeline.steps[index_bucket_pipeline + 1 :])
 
-        #     bucket_mapping = self._features_bucket_mapping.get(col)
-        #     mark_edges = [round(x, 2) for x in bucket_mapping.map]
+        # Here is the real trick
+        # We replace the bucketing pipeline step with a UserInputBucketer
+        # Now we can tweak the FeatureMapping in the UserInputBucketer
+        # Obviously that means you cannot re-fit,
+        # but you shouldn't want/need to if you made manual changes.
+        self.ui_bucketer = UserInputBucketer(copy.deepcopy(self.original_bucket_feature_mapping))
+        self.pipeline = make_pipeline(self.prebucketing_pipeline, self.ui_bucketer, self.postbucketing_pipeline)
 
-        #     marks = {}
-        #     for b in mark_edges:
-        #         marks[b] = {"label": str(b)}
+        # Now get the prebucketed features
+        self.X_prebucketed = self.prebucketing_pipeline.transform(self.X)
 
-        #     return col_min, col_max, mark_edges, marks
+        # Checks on prebucketed data
+        assert isinstance(self.X_prebucketed, pd.DataFrame)
+        # Prebucketed features should have at most 100 unique values.
+        # otherwise app prebinning table is too big.
+        for feature in self.X_prebucketed.columns:
+            if len(self.X_prebucketed[feature].unique()) > 100:
+                raise AssertionError(f"{feature} has >100 values. Did you apply pre-bucketing?")
 
-        # @app.callback(
-        #     Output("output-container-range-slider", "children"),
-        #     [Input("range-slider", "value"), Input("input_column", "value")],
-        # )
-        # def update_bucket_mapping(value, col):
-        #     return f"Boundaries for `{col}`: `{value}`"
+        # All columns should have a prebucketing step defined
+        features_prebucket_mapping = get_features_bucket_mapping(self.prebucketing_pipeline)
+        missing_columns = [c for c in X.columns if c not in features_prebucket_mapping.columns]
+        if len(missing_columns) > 0:
+            raise BucketingPipelineError(
+                "The following columns do not have a pre-bucketer assigned: %s" % missing_columns
+            )
 
-        @app.callback(
-            Output("distr-graph", "figure"), [Input("input_column", "value")],
-        )
-        def plot_dist(col):
-
-            fig = plot_bins(self.X_prebucketed, col)
-            fig.update_layout(transition_duration=50)
-            fig.update_layout(showlegend=False)
-            fig.update_layout(xaxis_title=col)
-            # fig.update_yaxes(showticklabels=False)
-
-            # Add boundary cuts as vertical lines
-            # if boundaries:
-            #     shapes = []
-            #     for b in boundaries:
-            #         shapes.append(dict(type="line", yref="paper", y0=0, y1=1, xref="x", x0=b, x1=b))
-            #     fig.update_layout(shapes=shapes)
-
-            return fig
+        # Initialize the Dash app, with layout and callbacks
+        self.app = JupyterDash(__name__)
+        add_layout(self)
+        add_callbacks(self)
 
     def run_server(self, *args, **kwargs):
         """Start a dash server.
 
-        Passes arguments to app.run_server()
+        Passes arguments to app.run_server().
+
+        Note we are using a [jupyterdash](https://medium.com/plotly/introducing-jupyterdash-811f1f57c02e) app,
+        which supports 3 different modes:
+
+        - 'external' (default): Start dash server and print URL
+        - 'inline': Start dash app inside an Iframe in the jupyter notebook
+        - 'jupyterlab': Start dash app as a new tab inside jupyterlab
+
+        Use like `run_server(mode='inline')`
         """
         return self.app.run_server(*args, **kwargs)
 
@@ -206,3 +149,50 @@ class ManualBucketerApp(object):
         [More info](https://community.plotly.com/t/how-to-shutdown-a-jupyterdash-app-in-external-mode/41292/3)
         """
         self.app._terminate_server_for_port("localhost", 8050)
+
+    def get_pipeline(self):
+        """Returns pipeline object."""
+        return self.pipeline
+
+
+# This section is here to help debug the Dash app
+# This custom code start the underlying flask server from dash directly
+# allowing better debugging in IDE's f.e. using breakpoint()
+# Example:
+# python -m ipdb -c continue manual_bucketer_app.py
+if __name__ == "__main__":
+
+    from skorecard import datasets
+    from skorecard.bucketers import DecisionTreeBucketer, OptimalBucketer
+    from skorecard.pipeline import make_bucketing_pipeline, make_prebucketing_pipeline
+    from sklearn.preprocessing import OneHotEncoder
+    from sklearn.linear_model import LogisticRegression
+
+    df = datasets.load_uci_credit_card(as_frame=True)
+    X = df.drop(columns=["default"])
+    y = df["default"]
+
+    num_cols = ["LIMIT_BAL", "BILL_AMT1"]
+    cat_cols = ["EDUCATION", "MARRIAGE"]
+    specials = {"LIMIT_BAL": {"=50000": [50000], "in [20001,30000]": [20000, 30000]}}
+
+    pipeline = make_pipeline(
+        make_prebucketing_pipeline(
+            DecisionTreeBucketer(variables=num_cols, specials=specials, max_n_bins=100, min_bin_size=0.05),
+            OrdinalCategoricalBucketer(variables=cat_cols),
+        ),
+        make_bucketing_pipeline(
+            OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
+            OptimalBucketer(variables=cat_cols, max_n_bins=10, min_bin_size=0.05),
+        ),
+        OneHotEncoder(),
+        LogisticRegression(),
+    )
+
+    pipeline.fit(X, y)
+
+    tweaker = BucketTweakerApp(pipeline, X, y)
+    tweaker.run_server()
+
+    application = tweaker.app.server
+    application.run(debug=True)
