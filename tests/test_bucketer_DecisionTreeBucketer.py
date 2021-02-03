@@ -90,8 +90,8 @@ def test_all_data_is_special(df):
     tbt.fit(X, y)
     X_prebucketed = tbt.transform(X)
 
-    # Bucket 0 will still be a potential value,
-    # # the next bucket is reserved
-    # #everything else is bucket to the next bucket, which are the specials.
+    # Bucket 0 will still be a potential value (between -inf and +inf)
+    # the next bucket (bucket 1) is reserved for nans,
+    # therefore the soecial bucket starts at index 2.
     # assert X_prebucketed["all_nans"].unique() == 1
     assert X_prebucketed["all_zeros"].unique() == 2
