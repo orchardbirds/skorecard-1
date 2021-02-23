@@ -2,7 +2,8 @@ import logging
 
 import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.pipeline import Pipeline, make_pipeline
+from sklearn.pipeline import Pipeline
+from sklearn.pipeline import make_pipeline as scikit_make_pipeline
 from sklearn.utils.validation import check_is_fitted
 
 from skorecard.bucket_mapping import FeaturesBucketMapping
@@ -75,7 +76,39 @@ class KeepPandas(BaseEstimator, TransformerMixin):
         return self.columns_
 
 
-def make_prebucketing_pipeline(*steps, **kwargs):
+def make_pipeline(*steps, memory=None, verbose=False, name="", enforce_all_bucketers=False) -> Pipeline:
+    """
+    Wraps sklearn.pipeline.make_pipeline.
+
+    but adds:
+    - A name attribute (optional)
+    - A features_bucket_mapping_ attribute
+
+    See https://scikit-learn.org/stable/modules/generated/sklearn.pipeline.make_pipeline.html
+
+    Args:
+        steps: sklearn transformers (passed to sklearn.pipeline.make_pipeline)
+        memory: See sklearn.pipeline.make_pipeline
+        verbose: See sklearn.pipeline.make_pipeline
+        name: Add a attribute to Pipeline with a name
+        enforce_all_bucketers: Make sure all steps are skorecard bucketers
+    """
+    if enforce_all_bucketers:
+        for step in steps:
+            msg = "All bucketing steps must be skorecard bucketers"
+            assert "skorecard.bucketers" in str(type(step)), msg
+
+    pipeline = scikit_make_pipeline(*steps, memory=memory, verbose=verbose)
+
+    if name:
+        pipeline.name = name
+
+    pipeline.features_bucket_mapping_ = get_features_bucket_mapping(pipeline)
+
+    return pipeline
+
+
+def make_prebucketing_pipeline(*steps, memory=None, verbose=False):
     """Helps to identify a (series of)sklearn pipeline steps as the bucketing steps.
 
     Very simple wrapper of sklearn.pipeline.make_pipeline() that just adds an ID.
@@ -106,59 +139,17 @@ def make_prebucketing_pipeline(*steps, **kwargs):
     pipeline.fit(X, y)
     ```
     """
-    for step in steps:
-        msg = "All bucketing steps must be skorecard bucketers"
-        assert "skorecard.bucketers" in str(type(step)), msg
-
-    pipeline = make_pipeline(*steps, **kwargs)
-
-    # Identifier, to make it easy to find this Pipeline step in a pipeline structure
-    pipeline.name = "prebucketing_pipeline"
-
-    return pipeline
-
-
-def make_bucketing_pipeline(*steps, **kwargs):
-    """Helps to identify a (series of)sklearn pipeline steps as the bucketing steps.
-
-    Very simple wrapper of sklearn.pipeline.make_pipeline() that just adds an ID.
-
-    ```python
-    from skorecard import datasets
-    from skorecard.bucketers import DecisionTreeBucketer, OptimalBucketer
-    from skorecard.pipeline import make_prebucketing_pipeline, make_bucketing_pipeline
-    from sklearn.pipeline import make_pipeline
-
-    df = datasets.load_uci_credit_card(as_frame=True)
-    y = df["default"]
-    X = df.drop(columns=["default"])
-
-    num_cols = ["LIMIT_BAL", "BILL_AMT1"]
-    cat_cols = ["EDUCATION", "MARRIAGE"]
-
-    pipeline = make_pipeline(
-        make_prebucketing_pipeline(
-            DecisionTreeBucketer(variables=num_cols, max_n_bins=100, min_bin_size=0.05),
-        ),
-        make_bucketing_pipeline(
-            OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
-            OptimalBucketer(variables=cat_cols, max_n_bins=10, min_bin_size=0.05),
-        )
+    return make_pipeline(
+        *steps, memory=memory, verbose=verbose, name="prebucketing_pipeline", enforce_all_bucketers=True
     )
 
-    pipeline.fit(X, y)
-    ```
+
+def make_bucketing_pipeline(*steps, memory=None, verbose=False) -> Pipeline:
+    """Helps to identify a (series of)sklearn pipeline steps as the bucketing steps.
+
+    Very simple wrapper of sklearn.pipeline.make_pipeline() that just adds an ID and
     """
-    for step in steps:
-        msg = "All bucketing steps must be skorecard bucketers"
-        assert "skorecard.bucketers" in str(type(step)), msg
-
-    pipeline = make_pipeline(*steps, **kwargs)
-
-    # Identifier, to make it easy to find this Pipeline step in a pipeline structure
-    pipeline.name = "bucketing_pipeline"
-
-    return pipeline
+    return make_pipeline(*steps, memory=memory, verbose=verbose, name="bucketing_pipeline", enforce_all_bucketers=True)
 
 
 def find_bucketing_step(pipeline: Pipeline, identifier: str = "bucketing_pipeline"):
