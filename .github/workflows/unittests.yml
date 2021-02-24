@@ -17,7 +17,7 @@ jobs:
     - name: Static code checking with pyflakes
       run: |
         pip3 install pyflakes
-        pyflakes src
+        pyflakes skorecard
     - name: Generate coverage report
       run: |
         pip3 install ".[all]"
