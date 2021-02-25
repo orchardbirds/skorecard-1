@@ -3,7 +3,12 @@ import pytest
 import pandas as pd
 
 from skorecard.preprocessing import WoeEncoder
+from skorecard.bucketers import DecisionTreeBucketer, OptimalBucketer
+from skorecard.pipeline import make_prebucketing_pipeline, make_bucketing_pipeline
 
+from sklearn.pipeline import make_pipeline
+
+import numpy.testing as npt
 
 # TODO: WoE should treat missing values as a separate bin and thus handled seamlessly.
 
@@ -12,7 +17,10 @@ from skorecard.preprocessing import WoeEncoder
 def X_y():
     """Set of X,y for testing the transformers."""
     X = pd.DataFrame(
-        np.array([[0, 1], [1, 0], [0, 0], [3, 2], [0, 1], [1, 2], [2, 0], [2, 1], [0, 0]], np.int32,),
+        np.array(
+            [[0, 1], [1, 0], [0, 0], [3, 2], [0, 1], [1, 2], [2, 0], [2, 1], [0, 0]],
+            np.int32,
+        ),
         columns=["col1", "col2"],
     )
     y = pd.Series(np.array([0, 0, 0, 1, 1, 1, 0, 0, 1]))
@@ -27,7 +35,10 @@ def X_y_2():
     In the first column, bucket 3 is not present in class 1.
     """
     X = pd.DataFrame(
-        np.array([[0, 1], [1, 0], [0, 0], [3, 2], [0, 1], [1, 2], [2, 0], [2, 1], [0, 0]], np.int32,),
+        np.array(
+            [[0, 1], [1, 0], [0, 0], [3, 2], [0, 1], [1, 2], [2, 0], [2, 1], [0, 0]],
+            np.int32,
+        ),
         columns=["col1", "col2"],
     )
     y = pd.Series(np.array([0, 0, 0, 0, 0, 1, 1, 1, 1]))
@@ -102,3 +113,32 @@ def test_woe_values(X_y):
     )
 
     pd.testing.assert_frame_equal(new_X, expected, check_less_precise=3)
+
+
+def test_woe_in_pipeline(df):
+    """Tests if WoeEncoder works in pipeline context."""
+    y = df["default"]
+    X = df.drop(columns=["default"])
+
+    num_cols = ["LIMIT_BAL", "BILL_AMT1"]
+    cat_cols = ["EDUCATION", "MARRIAGE"]
+
+    pipeline = make_pipeline(
+        make_prebucketing_pipeline(
+            DecisionTreeBucketer(variables=num_cols, max_n_bins=100, min_bin_size=0.05),
+        ),
+        make_bucketing_pipeline(
+            OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
+            OptimalBucketer(variables=cat_cols, max_n_bins=10, min_bin_size=0.05),
+        ),
+        WoeEncoder(),
+    )
+
+    out = pipeline.fit_transform(X, y)
+    assert all(out.dtypes == float)
+    npt.assert_almost_equal(out["LIMIT_BAL"][0], 0.566607, decimal=4)
+    npt.assert_almost_equal(out["LIMIT_BAL"][1], -0.165262, decimal=4)
+    npt.assert_almost_equal(out["LIMIT_BAL"][3], -0.031407, decimal=4)
+    npt.assert_almost_equal(out["BILL_AMT1"][0], 0.124757, decimal=4)
+    npt.assert_almost_equal(out["BILL_AMT1"][1], 0.091788, decimal=4)
+    npt.assert_almost_equal(out["BILL_AMT1"][3], -0.103650, decimal=4)

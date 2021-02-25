@@ -103,7 +103,7 @@ def make_pipeline(*steps, memory=None, verbose=False, name="", enforce_all_bucke
     if name:
         pipeline.name = name
 
-    # Not we monkey patched sklearn Pipeline class
+    # Note we monkey patched sklearn Pipeline class
     # in skorecard/__init__.py
     # to have a features_bucket_mapping_ property.
 
@@ -118,7 +118,8 @@ def make_prebucketing_pipeline(*steps, memory=None, verbose=False):
     ```python
     from skorecard import datasets
     from skorecard.bucketers import DecisionTreeBucketer, OptimalBucketer
-    from skorecard.pipeline import make_pipeline, make_prebucketing_pipeline, make_bucketing_pipeline
+    from skorecard.pipeline import make_prebucketing_pipeline, make_bucketing_pipeline
+    from sklearn.pipeline import make_pipeline
 
     df = datasets.load_uci_credit_card(as_frame=True)
     y = df["default"]
