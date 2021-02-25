@@ -131,7 +131,8 @@ def test_optimal_binning_categorical(df):
     )
     optb.fit(X["EDUCATION"], y)
     ref = optb.transform(X["EDUCATION"], metric="indices")
-    assert X_trans["EDUCATION"].equals(pd.Series(ref))
+
+    assert all(X_trans["EDUCATION"].values == ref)
 
 
 def _test_optimal_binning_categorical_specials(df):
