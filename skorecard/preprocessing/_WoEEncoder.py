@@ -1,11 +1,13 @@
 import numpy as np
 
 from skorecard.bucketers.base_bucketer import BaseBucketer
-from skorecard.bucket_mapping import BucketMapping
 from skorecard.metrics.metrics import woe_1d
 
+from sklearn.utils.validation import check_is_fitted
+from sklearn.base import BaseEstimator, TransformerMixin
 
-class WoeEncoder(BaseBucketer):
+
+class WoeEncoder(BaseEstimator, TransformerMixin):
     """Transformer that encodes unique values in features to their Weight of Evidence estimation.
 
     Only works for binary classification.
@@ -58,20 +60,28 @@ class WoeEncoder(BaseBucketer):
         assert y is not None, "WoEBucketer needs a target y"
         assert len(np.unique(y)) == 2, "WoEBucketer is only suited for binary classification"
 
-        X = self._is_dataframe(X)
-        # TODO: WoE should treat missing values as a separate bin and thus handled seamlessly.
-        self._check_contains_na(X, self.variables)
+        self.variables = BaseBucketer._check_variables(X, self.variables)
 
-        self.features_bucket_mapping_ = {}
+        X = BaseBucketer._is_dataframe(X)
+        # TODO: WoE should treat missing values as a separate bin and thus handled seamlessly.
+        BaseBucketer._check_contains_na(X, self.variables)
+
+        self.woe_mapping_ = {}
 
         for var in self.variables:
-
             t = woe_1d(X[var], y, epsilon=self.epsilon)
 
-            self.features_bucket_mapping_[var] = BucketMapping(feature_name=var, type="woe", map=t["woe"].to_dict())
+            self.woe_mapping_[var] = t["woe"].to_dict()
 
         return self
 
     def transform(self, X):
         """Transform X."""
-        return super().transform(X)
+        check_is_fitted(self)
+        X = BaseBucketer._is_dataframe(X)
+
+        for feature in self.variables:
+            woe_dict = self.woe_mapping_.get(feature)
+            X[feature] = X[feature].map(woe_dict)
+
+        return X

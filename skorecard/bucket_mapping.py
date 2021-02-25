@@ -51,7 +51,7 @@ class BucketMapping:
         Returns:
             None: nothing
         """
-        assert self.type in ["numerical", "categorical", "woe"]
+        assert self.type in ["numerical", "categorical"]
         assert all(
             [isinstance(k, str) for k in self.specials.keys()]
         ), f"The keys of the special dicionary must be \
@@ -90,9 +90,6 @@ class BucketMapping:
 
         if self.type == "categorical":
             self._validate_categorical_map()
-            return self._transform_cat(x)
-
-        if self.type == "woe":
             return self._transform_cat(x)
 
     def _validate_categorical_map(self):
