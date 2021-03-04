@@ -1,4 +1,5 @@
 from .pipeline import make_prebucketing_pipeline, make_bucketing_pipeline
+from ..utils import NotPreBucketedError
 
 # from sklearn.pipeline import make_pipeline as scikit_make_pipeline
 from sklearn.utils.validation import check_is_fitted
@@ -86,7 +87,7 @@ class BucketingProcess:
         """
         if not self.prebucketing_pipeline:
             msg = "You need to register a prebucketing pipeline. Please use register_prebucketing_pipeline() first."
-            raise ValueError(msg)
+            raise NotPreBucketedError(msg)
 
         self.bucketing_pipeline = make_bucketing_pipeline(*steps, **kwargs)
 
@@ -105,7 +106,12 @@ class BucketingProcess:
         return self
 
     def _remap_feature_bucket_mapping(self):
-        pass
+        """Regenerate the feature bucket mapping.
+
+        Generate a feature_bucket_mapping that will take the boundaries from the
+        prebucket_pipeline and the final output from the bucket_pipeline.
+        """
+        raise NotImplementedError("Do this :)")
 
     def transform(self, X):
         """Transform X through the prebucketing and bucketing pipelines."""
