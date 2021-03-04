@@ -1,11 +1,13 @@
 from .pipeline import make_prebucketing_pipeline, make_bucketing_pipeline
 from ..utils import NotPreBucketedError
 
+from sklearn.base import BaseEstimator, TransformerMixin
+
 # from sklearn.pipeline import make_pipeline as scikit_make_pipeline
 from sklearn.utils.validation import check_is_fitted
 
 
-class BucketingProcess:
+class BucketingProcess(BaseEstimator, TransformerMixin):
     """Class to concatenate a prebucketing and bucketing step.
 
     Usage example:
@@ -58,6 +60,7 @@ class BucketingProcess:
                 When special values are defined, they are not considered in the fitting procedure.
         """
         self.prebucketing_pipeline = None
+        self.specials = specials
 
     def register_prebucketing_pipeline(self, *steps, **kwargs):
         """Helps to identify a (series of)sklearn pipeline steps as the pre-bucketing steps.
