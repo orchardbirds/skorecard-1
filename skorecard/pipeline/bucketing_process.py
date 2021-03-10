@@ -60,7 +60,7 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
                 When special values are defined, they are not considered in the fitting procedure.
         """
         self.prebucketing_pipeline = None
-        self.specials = specials
+        self._prebucketing_specials = specials
 
     def register_prebucketing_pipeline(self, *steps, **kwargs):
         """Helps to identify a (series of)sklearn pipeline steps as the pre-bucketing steps.
@@ -75,6 +75,7 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
                 enforce_all_bucketers: Make sure all steps are skorecard bucketers
         """
         self.prebucketing_pipeline = make_prebucketing_pipeline(*steps, **kwargs)
+        self._remap_specials_pipeline(level="prebucketing")
 
     def register_bucketing_pipeline(self, *steps, **kwargs):
         """Helps to identify a (series of)sklearn pipeline steps as the bucketing steps.
@@ -104,9 +105,66 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
         """
         self.X_prebucketed_ = self.prebucketing_pipeline.fit_transform(X, y)
 
+        # find the prebucket features bucket mapping. This is necessary
+        # to find the mappings of the specials for the bucketing step.
+        self._features_prebucket_mapping = self.prebucketing_pipeline.features_bucket_mapping_
+
+        # define
+        self._retrieve_special_for_bucketing()
+
+        self._remap_specials_pipeline(level="bucketing")
+
         self.bucketing_pipeline.fit(self.X_prebucketed_, y)
 
         return self
+
+    def _remap_specials_pipeline(self, level="prebucketing"):
+        """Add the specials in the prebucketing pipeline.
+
+        Specials are designed to be defined in every bucketer.
+        This class passes it in th constructor.
+        Therefore, this needs to be remapped to the bucketers in the steps of the pipeline.
+
+        Args:
+            level (str, optional): define level at which to map Defaults to "prebucketing".
+
+        Raises:
+            ValueError: error raised in case the level argument is not supported.
+        """
+        if level == "prebucketing":
+            steps = self.prebucketing_pipeline.steps
+            specials = self._prebucketing_specials
+        elif level == "bucketing":
+            steps = self.bucketing_pipeline.steps
+            specials = self._bucketing_specials
+        else:
+            raise ValueError("level must be prebucketing or bucketing")
+        # map the specials to the prebucketer
+        for step in steps:
+            # Assign the special variables to all the bucketers
+            # in all the steps. This is not ideal, but it does not
+            # matter, because the bucketers ignore the special variables
+            # if not there.
+            # TODO: test this!
+            step[1].specials = specials
+
+    def _retrieve_special_for_bucketing(self):
+
+        self._bucketing_specials = dict()
+
+        for var in self._prebucketing_specials.keys():
+            feats_preb_map = self._features_prebucket_mapping.maps[var]
+            # this finds the maximum index withing the
+            max_val = len(feats_preb_map.map)
+            missing_index = max_val + 1
+
+            self._bucketing_specials[var] = {
+                key: missing_index + 1 + key_ix  # the key
+                for key_ix, key in enumerate(self._prebucketing_specials[var].keys())
+            }
+
+            print(var)
+        # self._features_prebucket_mapping
 
     def _remap_feature_bucket_mapping(self):
         """Regenerate the feature bucket mapping.
