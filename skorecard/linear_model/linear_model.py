@@ -41,9 +41,10 @@ class LogisticRegression(lm.LogisticRegression):
 
         # Design matrix -- add column of 1's at the beginning of your X matrix
         if lr.fit_intercept:
-            X_design = np.hstack([np.ones((X.shape[0], 1)), X])
+            print(X.toarray())
+            X_design = np.hstack([np.ones((X.toarray().shape[0], 1)), X.toarray()])
         else:
-            X_design = X
+            X_design = X.toarray()
 
         # Initiate matrix of 0's, fill diagonal with each predicted observation's variance
         V = np.diagflat(np.product(predProbs, axis=1))
