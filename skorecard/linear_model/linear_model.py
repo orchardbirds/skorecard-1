@@ -1,6 +1,7 @@
 from sklearn import linear_model as lm
 import scipy
 import numpy as np
+from skorecard.utils import convert_sparse_matrix
 
 
 class LogisticRegression(lm.LogisticRegression):
@@ -35,15 +36,16 @@ class LogisticRegression(lm.LogisticRegression):
         Returns:
             self, Fitted estimator.
         """
+        X = convert_sparse_matrix(X)
         lr = super().fit(X, y, sample_weight=sample_weight, **kwargs)
 
         predProbs = self.predict_proba(X)
 
         # Design matrix -- add column of 1's at the beginning of your X matrix
         if lr.fit_intercept:
-            X_design = np.hstack([np.ones((X.toarray().shape[0], 1)), X.toarray()])
+            X_design = np.hstack([np.ones((X.shape[0], 1)), X])
         else:
-            X_design = X.toarray()
+            X_design = X
 
         # Initiate matrix of 0's, fill diagonal with each predicted observation's variance
         V = np.diagflat(np.product(predProbs, axis=1))
