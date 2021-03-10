@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-
+import scipy
 from probatus.utils import DimensionalityError
 
 
@@ -28,3 +28,19 @@ def reshape_1d_to_2d(x):
         X_array = x.values
 
     return X_array.reshape(-1, 1)
+
+
+def convert_sparse_matrix(x):
+    """Converts a sparse matrix to a numpy array. This can prevent problems
+    arising from, e.g. OneHotEncoder.
+
+    Args:
+        x: numpy array, sparse matrix
+
+    Returns:
+        numpy array of x
+    """
+    if scipy.sparse.issparse(x):
+        return x.toarray()
+    else:
+        return x
