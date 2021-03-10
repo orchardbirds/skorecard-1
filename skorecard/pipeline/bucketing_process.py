@@ -149,22 +149,32 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
             step[1].specials = specials
 
     def _retrieve_special_for_bucketing(self):
+        """Finds the indexes of the specials from the prebucketing step.
 
+        Then it creates a new special dictionary, where it maps the specials
+        for the bucketing step to the respective index from the prebucketing
+        step.
+        """
         self._bucketing_specials = dict()
 
         for var in self._prebucketing_specials.keys():
             feats_preb_map = self._features_prebucket_mapping.maps[var]
-            # this finds the maximum index withing the
+            # this finds the maximum index within the
+            # the prebucketed maps.  The next index is reserved for the
+            # missing value.
             max_val = len(feats_preb_map.map)
             missing_index = max_val + 1
 
+            # Define the bucketing specials by using the same
+            # keys as in the prebucketing specials.
+            # It then assigns to this keys the index that the
+            # prebucketing step maps it to.
+            # This assures that the information propagates between
+            # the two steps.
             self._bucketing_specials[var] = {
                 key: missing_index + 1 + key_ix  # the key
                 for key_ix, key in enumerate(self._prebucketing_specials[var].keys())
             }
-
-            print(var)
-        # self._features_prebucket_mapping
 
     def _remap_feature_bucket_mapping(self):
         """Regenerate the feature bucket mapping.
