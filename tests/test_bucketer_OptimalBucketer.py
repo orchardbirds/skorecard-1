@@ -161,17 +161,54 @@ def test_optbinning_with_specials(df):
     obt.fit_transform(X, y)
 
 
-def _test_optimal_binning_categorical_specials(df):
+def test_optimal_binning_categorical_specials(df):
     """
     Test categoricals with specials.
     """
     # WIP - currently not implemented yet
-    X = df[["LIMIT_BAL", "BILL_AMT1", "EDUCATION"]]
+    X = df[["LIMIT_BAL", "BILL_AMT1", "EDUCATION", "pet_ownership"]]
     y = df["default"].values
 
-    obt = OptimalBucketer(variables=["EDUCATION"], variables_type="categorical", specials={"special_one": [0]})
+    specials = {"EDUCATION": {"special_one": [0]}}
+    obt = OptimalBucketer(variables=["EDUCATION"], variables_type="categorical", specials=specials)
     obt.fit(X, y)
     X_trans = obt.transform(X)
     assert len(X_trans["EDUCATION"].unique()) == 5
 
     assert obt.transform(X)["EDUCATION"][X["EDUCATION"] == 0].shape[0] == 1
+
+    X = df[["LIMIT_BAL", "BILL_AMT1", "EDUCATION", "pet_ownership"]]
+    y = df["default"].values
+    specials = {"pet_ownership": {"indoor pets outside water": ["dog lover", "cat lover"]}}
+    obt = OptimalBucketer(variables=["pet_ownership"], max_n_bins=2, variables_type="categorical", specials=specials)
+    X_trans = obt.fit_transform(X, y)
+    # import pdb; pdb.set_trace();
+    assert (
+        len(X_trans.pet_ownership.unique()) == 2 + 1 + 1
+    )  # 2, but a bug from Optimalbinning adding an extra, plus 1 speclias
+
+
+def test_optimal_bucketing_cats(df):
+    """
+    Test with categorical strings.
+    """
+    X = df[["LIMIT_BAL", "BILL_AMT1", "EDUCATION", "pet_ownership"]]
+    y = df["default"].values
+    # specials = {'pet_ownership': {"indoor pets outside water": ['dog lover','cat lover']}}
+
+    # obt.features_bucket_mapping_.get('pet_ownership')
+    obt = OptimalBucketer(variables=["pet_ownership"], variables_type="categorical")
+    X_trans = obt.fit_transform(X, y)
+    # assert len(X_trans.pet_ownership.unique()) == 5
+
+    obt = OptimalBucketer(variables=["pet_ownership"], max_n_bins=3, variables_type="categorical")
+    X_trans = obt.fit_transform(X, y)
+    # assert len(X_trans.pet_ownership.unique()) == 3+1
+
+    obt = OptimalBucketer(variables=["pet_ownership"], max_n_bins=2, variables_type="categorical")
+    X_trans = obt.fit_transform(X, y)
+    # assert len(X_trans.pet_ownership.unique()) == 2+1
+
+    obt = OptimalBucketer(variables=["LIMIT_BAL"], max_n_bins=2)
+    X_trans = obt.fit_transform(X, y)
+    assert len(X_trans["LIMIT_BAL"].unique()) == 2
