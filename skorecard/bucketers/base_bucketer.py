@@ -38,6 +38,11 @@ class BaseBucketer(BaseEstimator, TransformerMixin):
 
     @staticmethod
     def _filter_specials_for_fit(X, y, specials):
+        """
+        We need to filter out the specials from a vector.
+
+        Because we don't want to use those values to determine bin boundaries.
+        """
         flt_vals = list(itertools.chain(*specials.values()))
         flt = X.isin(flt_vals)
         X_out = X[~flt]
@@ -49,6 +54,9 @@ class BaseBucketer(BaseEstimator, TransformerMixin):
 
     @staticmethod
     def _verify_specials_variables(specials, variables):
+        """
+        Make sure all specials columns are also in the data.
+        """
         diff = set(specials.keys()).difference(set(variables))
         if len(diff) > 0:
             raise ValueError(f"Features {diff} are defined in the specials dictionary, but not in the variables.")

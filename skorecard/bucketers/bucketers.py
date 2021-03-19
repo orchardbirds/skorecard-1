@@ -52,9 +52,6 @@ class OptimalBucketer(BaseBucketer):
         variables_type="numerical",
         max_n_bins=10,
         min_bin_size=0.05,
-        do_prebinning=False,
-        min_prebin_size=0.05,
-        max_n_prebins=100,
         cat_cutoff=0.05,
         time_limit=25,
         **kwargs,
@@ -73,11 +70,6 @@ class OptimalBucketer(BaseBucketer):
             variables_type: Type of the variables
             min_bin_size: Minimum fraction of observations in a bucket. Passed to optbinning.OptimalBinning.
             max_n_bins: Maximum numbers of bins to return. Passed to optbinning.OptimalBinning.
-            do_prebinning: Should we also do pre-binning? Default is False
-            min_prebin_size: Minimum fraction of observations in a pre-bucket.
-                Ignored if allow_prebinning = False. Passed to optbinning.OptimalBinning.
-            max_n_prebins: Maximum numbers of pre-buckets to return. Ignored if allow_prebinning = False.
-                Passed to optbinning.OptimalBinning.
             cat_cutoff: Threshold ratio to below which categories are grouped
                 together in a bucket 'other'. Passed to optbinning.OptimalBinning.
             time_limit: Time limit in seconds to find an optimal solution. Passed to optbinning.OptimalBinning.
@@ -88,19 +80,11 @@ class OptimalBucketer(BaseBucketer):
         self.variables_type = variables_type
         self.max_n_bins = max_n_bins
         self.min_bin_size = min_bin_size
-        self.do_prebinning = do_prebinning
-        self.min_prebin_size = min_prebin_size
-        self.max_n_prebins = max_n_prebins
         self.cat_cutoff = cat_cutoff
         self.time_limit = time_limit
         self.kwargs = kwargs
-        if len(specials) > 0:
-            raise NotImplementedError("Specials are currently not implemented for the Optimal bucketer")
 
         assert variables_type in ["numerical", "categorical"]
-        if self.do_prebinning is False:
-            assert "min_prebin_size" not in self.kwargs, "You need to do pre-binning yourself, see skorecard docs"
-            assert "max_n_prebins" not in self.kwargs, "You need to do pre-binning yourself, see skorecard docs"
 
         # not tested right now
         self._verify_specials_variables(self.specials, self.variables)
@@ -129,10 +113,11 @@ class OptimalBucketer(BaseBucketer):
                 if len(uniq_values) > 100:
                     raise NotPreBucketedError(
                         f"""
-                        OptimalBucketer requires numerical feature '{feature}' to be pre-bucketed:
-                        currently there are {len(uniq_values)} unique values present.
+                        OptimalBucketer requires numerical feature '{feature}' to be pre-bucketed
+                        to max 100 unique values (for performance reasons).
+                        Currently there are {len(uniq_values)} unique values present.
 
-                        Apply pre-buckets or set 'do_prebinning' to True
+                        Apply pre-binning, f.e. with skorecard.bucketers.DecisionTreeBucketer.
                         """
                     )
                 user_splits = uniq_values
@@ -149,8 +134,6 @@ class OptimalBucketer(BaseBucketer):
                 user_splits=user_splits,
                 min_bin_size=self.min_bin_size,
                 max_n_bins=self.max_n_bins,
-                min_prebin_size=self.min_prebin_size,  # ignored if user_splits is specified
-                max_n_prebins=self.max_n_bins,  # ignored if user_splits is specified
                 cat_cutoff=self.cat_cutoff,
                 time_limit=self.time_limit,
                 **self.kwargs,
@@ -175,7 +158,7 @@ class OptimalBucketer(BaseBucketer):
                 type=self.variables_type,
                 map=splits,
                 right=False,
-                specials=self.specials,
+                specials=special,
             )
 
         return self
@@ -199,7 +182,7 @@ class EqualWidthBucketer(BaseBucketer):
     specials = {"LIMIT_BAL": {"=50000": [50000], "in [20001,30000]": [20000, 30000]}}
 
     X, y = datasets.load_uci_credit_card(return_X_y=True)
-    bucketer = EqualWidthBucketer(bins = 10, variables = ['LIMIT_BAL'], specials= specials)
+    bucketer = EqualWidthBucketer(bins = 10, variables = ['LIMIT_BAL'], specials=specials)
     bucketer.fit_transform(X)
     bucketer.fit_transform(X)['LIMIT_BAL'].value_counts()
     ```

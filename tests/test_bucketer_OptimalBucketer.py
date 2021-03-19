@@ -38,7 +38,7 @@ def test_optimal_binning_prebinning(df):
     # which means internally it is shifted by 1, but that doesn't really matter,
     # as tests below show, because still same unique buckets.
 
-    # transform a feature using new flow
+    # transform a feature using OptBinning's prebucket + optimal binning
     binner = OptimalBinning(
         name="BILL_AMT1",
         dtype="numerical",
@@ -53,6 +53,7 @@ def test_optimal_binning_prebinning(df):
     )
     old = binner.fit_transform(X["BILL_AMT1"], y, metric="indices")
 
+    # transform a feature using skorecard prebinning + optimal binning
     pipe = make_pipeline(
         DecisionTreeBucketer(variables=["BILL_AMT1"], max_n_bins=20, min_bin_size=0.05),
         make_bucketing_pipeline(
@@ -135,8 +136,35 @@ def test_optimal_binning_categorical(df):
     assert all(X_trans["EDUCATION"].values == ref)
 
 
+def test_raises_prebucketing_error(df):
+    """
+    Test prebucketing error.
+    """
+    X = df[["LIMIT_BAL", "BILL_AMT1", "EDUCATION"]]
+    y = df["default"].values
+
+    obt = OptimalBucketer(variables=["BILL_AMT1"])
+    with pytest.raises(NotPreBucketedError):
+        obt.fit_transform(X, y)
+
+
+def test_optbinning_with_specials(df):
+    """
+    Test adding specials.
+    """
+    X = df[["LIMIT_BAL", "BILL_AMT1", "EDUCATION"]]
+    y = df["default"].values
+
+    specials = {"LIMIT_BAL": {"=50000": [50000], "in [20001,30000]": [20000, 30000]}}
+
+    obt = OptimalBucketer(variables=["LIMIT_BAL"], specials=specials)
+    obt.fit_transform(X, y)
+
+
 def _test_optimal_binning_categorical_specials(df):
-    """Test categoricals with specials."""
+    """
+    Test categoricals with specials.
+    """
     # WIP - currently not implemented yet
     X = df[["LIMIT_BAL", "BILL_AMT1", "EDUCATION"]]
     y = df["default"].values
