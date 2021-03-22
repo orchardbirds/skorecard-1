@@ -1,7 +1,10 @@
 import numpy as np
 
 from skorecard import datasets
-from skorecard.linear_model import LogisticRegression
+from skorecard.linear_model import LogisticRegression as LogisticRegression
+from skorecard.bucketers import EqualFrequencyBucketer
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import OneHotEncoder
 
 import pytest
 
@@ -46,3 +49,14 @@ def test_results(X_y):
     lr = LogisticRegression(fit_intercept=True, penalty="none").fit(*X_y)
 
     np.testing.assert_array_almost_equal(lr.p_val_coef_, expected_approx_p_val_coef_, decimal=3)
+
+def test_linear_model(X_y):
+    """Test OHE sparse matrix compatibility"""
+
+    pipeline = Pipeline([
+        ('bucketer', EqualFrequencyBucketer(bins=10)),
+        ('ohe', OneHotEncoder()),
+        ('clf', LogisticRegression())
+    ])
+    pipeline.fit(*X_y)
+    assert pipeline.named_steps['clf'].p_val_coef_.shape[1] > 0
