@@ -63,7 +63,7 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
         self._prebucketing_specials = specials
 
     def register_prebucketing_pipeline(self, *steps, **kwargs):
-        """Helps to identify a (series of)sklearn pipeline steps as the pre-bucketing steps.
+        """Helps to identify a (series of) sklearn pipeline steps as the pre-bucketing steps.
 
         Args:
             *steps: skorecard bucketers or other sklearn transformers (passed to sklearn.pipeline.make_pipeline)
@@ -78,7 +78,7 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
         self._remap_specials_pipeline(level="prebucketing")
 
     def register_bucketing_pipeline(self, *steps, **kwargs):
-        """Helps to identify a (series of)sklearn pipeline steps as the bucketing steps.
+        """Helps to identify a (series of) sklearn pipeline steps as the bucketing steps.
 
         Args:
             *steps: skorecard bucketers or other sklearn transformers (passed to sklearn.pipeline.make_pipeline)
@@ -96,7 +96,7 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
         self.bucketing_pipeline = make_bucketing_pipeline(*steps, **kwargs)
 
     def fit(self, X, y=None):
-        """Fit the prebucketing and bucketing pipeline with X,y.
+        """Fit the prebucketing and bucketing pipeline with X, y.
 
         Args:
             X (pd.DataFrame): [description]
@@ -122,7 +122,7 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
         """Add the specials in the prebucketing pipeline.
 
         Specials are designed to be defined in every bucketer.
-        This class passes it in th constructor.
+        This class passes it in the constructor.
         Therefore, this needs to be remapped to the bucketers in the steps of the pipeline.
 
         Args:
@@ -172,7 +172,7 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
             # This assures that the information propagates between
             # the two steps.
             self._bucketing_specials[var] = {
-                key: missing_index + 1 + key_ix  # the key
+                key: [missing_index + 1 + key_ix]  # the key
                 for key_ix, key in enumerate(self._prebucketing_specials[var].keys())
             }
 
