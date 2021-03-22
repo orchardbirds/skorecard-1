@@ -1,4 +1,7 @@
-from .arrayfuncs import reshape_1d_to_2d
+from .arrayfuncs import (
+    reshape_1d_to_2d,
+    convert_sparse_matrix,
+)
 from .exceptions import (
     DimensionalityError,
     UnknownCategoryError,
@@ -10,6 +13,7 @@ from .dataframe import detect_types
 
 __all__ = [
     "reshape_1d_to_2d",
+    "convert_sparse_matrix",
     "DimensionalityError",
     "UnknownCategoryError",
     "NotInstalledError",

@@ -1,6 +1,7 @@
 from sklearn import linear_model as lm
 import scipy
 import numpy as np
+from skorecard.utils import convert_sparse_matrix
 
 
 class LogisticRegression(lm.LogisticRegression):
@@ -35,6 +36,7 @@ class LogisticRegression(lm.LogisticRegression):
         Returns:
             self, Fitted estimator.
         """
+        X = convert_sparse_matrix(X)
         lr = super().fit(X, y, sample_weight=sample_weight, **kwargs)
 
         predProbs = self.predict_proba(X)
