@@ -129,8 +129,8 @@ class OptimalBucketer(BaseBucketer):
                 dtype=self.variables_type,
                 solver="cp",
                 monotonic_trend="auto_asc_desc",
-                # We want skorecard users to explictly define pre-binning for numerical features
-                # Settings the user_splits prevents OptimalBinning from doing pre-binning again.
+                # We want skorecard users to explicitly define pre-binning for numerical features
+                # Setting the user_splits prevents OptimalBinning from doing pre-binning again.
                 user_splits=user_splits,
                 min_bin_size=self.min_bin_size,
                 max_n_bins=self.max_n_bins,

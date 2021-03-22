@@ -90,7 +90,7 @@ def make_pipeline(*steps, memory=None, verbose=False, name="", enforce_all_bucke
         steps: sklearn transformers (passed to sklearn.pipeline.make_pipeline)
         memory: See sklearn.pipeline.make_pipeline
         verbose: See sklearn.pipeline.make_pipeline
-        name: Add a attribute to Pipeline with a name
+        name: Add an attribute to Pipeline with a name
         enforce_all_bucketers: Make sure all steps are skorecard bucketers
     """
     if enforce_all_bucketers:
@@ -147,9 +147,9 @@ def make_prebucketing_pipeline(*steps, memory=None, verbose=False):
 
 
 def make_bucketing_pipeline(*steps, memory=None, verbose=False) -> Pipeline:
-    """Helps to identify a (series of)sklearn pipeline steps as the bucketing steps.
+    """Helps to identify a (series of) sklearn pipeline steps as the bucketing steps.
 
-    Very simple wrapper of sklearn.pipeline.make_pipeline() that just adds an ID and
+    Very simple wrapper of sklearn.pipeline.make_pipeline() that just adds an ID
     """
     return make_pipeline(*steps, memory=memory, verbose=verbose, name="bucketing_pipeline", enforce_all_bucketers=True)
 
