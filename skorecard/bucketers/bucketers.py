@@ -105,9 +105,9 @@ class OptimalBucketer(BaseBucketer):
                 special = self.specials[feature]
                 X_flt, y_flt = self._filter_specials_for_fit(X=X[feature], y=y, specials=special)
             else:
-                X_flt, y_flt = X[feature], y
+                X_flt, y_flt = X[feature], y.copy()
                 special = {}
-
+            X_flt, y_flt = self._filter_na_for_fit(X=X_flt, y=y_flt)
             if self.variables_type == "numerical":
                 uniq_values = np.sort(np.unique(X_flt.values))
                 if len(uniq_values) > 100:
@@ -225,8 +225,9 @@ class EqualWidthBucketer(BaseBucketer):
                 X_flt, y_flt = self._filter_specials_for_fit(X=X[feature], y=y, specials=special)
             else:
                 X_flt = X[feature]
+                y_flt = y.copy()
                 special = {}
-
+            X_flt, y_flt = self._filter_na_for_fit(X=X_flt, y=y_flt)
             _, boundaries = np.histogram(X_flt.values, bins=self.bins)
 
             # np.histogram returns the min & max values of the fits
@@ -305,8 +306,9 @@ class AgglomerativeClusteringBucketer(BaseBucketer):
                 X_flt, y_flt = self._filter_specials_for_fit(X=X[feature], y=y, specials=special)
             else:
                 X_flt = X[feature]
+                y_flt = y.copy()
                 special = {}
-
+            X_flt, y_flt = self._filter_na_for_fit(X=X_flt, y=y_flt)
             ab.fit(X_flt.values, y=None)
 
             # AgglomerativeBucketer returns the min & max values of the fits
@@ -407,7 +409,7 @@ class EqualFrequencyBucketer(BaseBucketer):
                 feature_name=feature,
                 type="numerical",
                 map=boundaries,
-                right=True,  # pd.qcut returns bins includiing right edge: (edge, edge]
+                right=True,  # pd.qcut returns bins including right edge: (edge, edge]
                 specials=special,
             )
 
@@ -514,9 +516,10 @@ class DecisionTreeBucketer(BaseBucketer):
 
                 X_flt, y_flt = self._filter_specials_for_fit(X=X[feature], y=y, specials=special)
             else:
-                X_flt, y_flt = X[feature], y
+                X_flt, y_flt = X[feature], y.copy()
                 special = {}
 
+            X_flt, y_flt = self._filter_na_for_fit(X=X_flt, y=y_flt)
             # If the specials are excluded, make sure that the bin size is rescaled.
             frac_left = X_flt.shape[0] / X.shape[0]
 
