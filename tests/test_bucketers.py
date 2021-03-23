@@ -1,4 +1,5 @@
 import pytest
+import numpy as np
 
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import make_pipeline
@@ -73,3 +74,16 @@ def test_zero_indexed(bucketer, df):
     assert x_t["EDUCATION"].min() == 0
     assert x_t["LIMIT_BAL"].min() == 0
     assert x_t["BILL_AMT1"].min() == 0
+
+
+@pytest.mark.parametrize("bucketer", BUCKETERS_WITH_SET_BINS)
+def test_missing_default(bucketer, df_with_missings) -> None:
+    """Test that missing values are assigned to the right bucket."""
+    X = df_with_missings
+    y = df_with_missings["default"].values
+
+    BUCK = bucketer(bins=2, variables=["MARRIAGE"])
+    BUCK.fit(X, y)
+    X['MARRIAGE_trans'] = BUCK.transform(X[['MARRIAGE']])
+    assert len(X["MARRIAGE_trans"].unique()) == 3
+    assert X[np.isnan(X['MARRIAGE'])].shape[0] == X[X['MARRIAGE_trans'] == 2].shape[0]
