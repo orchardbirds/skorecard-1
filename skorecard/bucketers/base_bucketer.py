@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 
 from sklearn.utils.validation import check_is_fitted
@@ -45,6 +46,20 @@ class BaseBucketer(BaseEstimator, TransformerMixin):
         """
         flt_vals = list(itertools.chain(*specials.values()))
         flt = X.isin(flt_vals)
+        X_out = X[~flt]
+        if y is not None:
+            y_out = y[~flt]
+        else:
+            y_out = y
+        return X_out, y_out
+
+    def _filter_na_for_fit(self, X, y):
+        """
+        We need to filter out the missing values from a vector.
+
+        Because we don't want to use those values to determine bin boundaries.
+        """
+        flt = np.isnan(X)
         X_out = X[~flt]
         if y is not None:
             y_out = y[~flt]
