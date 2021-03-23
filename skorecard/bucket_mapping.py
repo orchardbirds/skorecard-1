@@ -40,6 +40,7 @@ class BucketMapping:
 
     feature_name: str
     type: str
+    missing_treatment: str or int = field(default='alone')
     map: Union[Dict, List] = field(default_factory=lambda: [])
     right: bool = True
     specials: Dict = field(default_factory=lambda: {})
@@ -130,8 +131,13 @@ class BucketMapping:
         # Missings should always have their own bucket number
         # and should come before specials
         self.labels[max_bucket_number + 1] = "Missing"
+
         if np.isnan(x).any():
-            buckets = np.where(np.isnan(x), max_bucket_number + 1, buckets)
+            print(self.missing_treatment)
+            if self.missing_treatment == 'alone':
+                buckets = np.where(np.isnan(x), max_bucket_number + 1, buckets)
+            elif type(self.missing_treatment) == int:
+                buckets = np.where(np.isnan(x), self.missing_treatment, buckets)
 
         if len(self.specials) > 0:
             buckets = self._assign_specials(x, buckets, start_bucket_number=max_bucket_number + 1)
