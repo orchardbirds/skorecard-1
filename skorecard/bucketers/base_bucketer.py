@@ -18,6 +18,24 @@ class BaseBucketer(BaseEstimator, TransformerMixin):
         return X.copy()
 
     @staticmethod
+    def _is_allowed_missing_treatment(missing_treatment):
+        # checks if the argument for missing_values is valid
+        allowed_str_missing = ['separate', 'frequent', 'risky']
+        if type(missing_treatment) == str:
+            if missing_treatment not in allowed_str_missing:
+                raise ValueError(f'missing_treatment must be in {allowed_str_missing} or a dict')
+        
+        elif type(missing_treatment) == dict:
+            for _, v in enumerate(missing_treatment):
+                if missing_treatment[v] < 0:
+                    raise ValueError(f'As an integer, missing_treatment must be greater than 0')
+                elif type(missing_treatment[v]) != int:
+                    raise ValueError(f'Values of the missing_treatment dict must be integers')
+        
+        else:
+            raise ValueError(f'missing_treatment must be in {allowed_str_missing} or a dict')
+
+    @staticmethod
     def _check_contains_na(X, variables):
 
         has_missings = X[variables].isnull().any()
@@ -53,13 +71,16 @@ class BaseBucketer(BaseEstimator, TransformerMixin):
             y_out = y
         return X_out, y_out
 
-    def _filter_na_for_fit(self, X, y):
+    def _filter_na_for_fit(self, X, y, categorical=False):
         """
         We need to filter out the missing values from a vector.
 
         Because we don't want to use those values to determine bin boundaries.
         """
-        flt = np.isnan(X)
+        if categorical:
+            flt = pd.isnull(X)
+        else:
+            flt = np.isnan(X)
         X_out = X[~flt]
         if y is not None:
             y_out = y[~flt]
