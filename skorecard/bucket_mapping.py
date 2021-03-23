@@ -40,7 +40,7 @@ class BucketMapping:
 
     feature_name: str
     type: str
-    missing_treatment: str or int = field(default='alone')
+    missing_treatment: str or int = field(default='separate')
     map: Union[Dict, List] = field(default_factory=lambda: [])
     right: bool = True
     specials: Dict = field(default_factory=lambda: {})
@@ -128,16 +128,23 @@ class BucketMapping:
         buckets = self._apply_num_mapping(x)
 
         max_bucket_number = int(buckets.max())
-        # Missings should always have their own bucket number
-        # and should come before specials
-        self.labels[max_bucket_number + 1] = "Missing"
 
         if np.isnan(x).any():
-            print(self.missing_treatment)
-            if self.missing_treatment == 'alone':
+            if self.missing_treatment == 'separate':
                 buckets = np.where(np.isnan(x), max_bucket_number + 1, buckets)
-            elif type(self.missing_treatment) == int:
-                buckets = np.where(np.isnan(x), self.missing_treatment, buckets)
+                self.labels[max_bucket_number + 1] = "Missing"
+            elif type(self.missing_treatment) == dict:
+                if self.feature_name in self.missing_treatment.keys():
+                    bucket = self.missing_treatment[self.feature_name]
+                    buckets = np.where(np.isnan(x), bucket, buckets)
+                    self.labels[bucket] = f"{self.labels[bucket]}, Missing"
+                else:
+                    print(f'Feature {feature_name} not in missing_treatment dict. Applying default bucketing for missing values.')
+                    buckets = np.where(np.isnan(x), max_bucket_number + 1, buckets)
+                    self.labels[max_bucket_number + 1] = "Missing"
+
+        else:
+            self.labels[max_bucket_number + 1] = "Missing"
 
         if len(self.specials) > 0:
             buckets = self._assign_specials(x, buckets, start_bucket_number=max_bucket_number + 1)
@@ -166,11 +173,23 @@ class BucketMapping:
         new = self._apply_cat_mapping(x)
 
         max_bucket_number = int(max(self.labels.keys()))
-        # Missings should always have their own bucket number
-        # and should come before specials
-        self.labels[max_bucket_number + 1] = "Missing"
+
         if x.isna().any():
-            new = pd.Series(np.where(x.isna(), max_bucket_number + 1, new))
+            if self.missing_treatment == 'separate':
+                new = pd.Series(np.where(x.isna(), max_bucket_number + 1, new))
+                self.labels[max_bucket_number + 1] = "Missing"
+            elif type(self.missing_treatment) == dict:
+                if self.feature_name in self.missing_treatment.keys():
+                    bucket = self.missing_treatment[self.feature_name]
+                    new = pd.Series(np.where(x.isna(), bucket, new))
+                    self.labels[bucket] = f"{self.labels[bucket]}, Missing"
+                else:
+                    print(f'Feature {self.feature_name} not in missing_treatment dict. Applying default bucketing for missing values.')
+                    new = pd.Series(np.where(x.isna(), max_bucket_number + 1, new))
+                    self.labels[max_bucket_number + 1] = "Missing"
+        
+        else:
+            self.labels[max_bucket_number + 1] = "Missing"
 
         if len(self.specials) > 0:
             new = self._assign_specials(x, new, start_bucket_number=max_bucket_number + 1)
@@ -198,10 +217,10 @@ class BucketMapping:
         v[other_value] = "other"
         sorted_v = {key: v[key] for key in sorted(v)}
 
-        # transfrom it all to a string like format
+        # transform it all to a string-like format
         for k, v in sorted_v.items():
 
-            # if k is of type int32, it will create weird caracters if exported to files
+            # if k is of type int32, it will create weird characters if exported to files
             # if self.type=='categorical':
             if isinstance(k, np.int32):
                 k = int(k)
