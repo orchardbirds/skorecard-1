@@ -226,12 +226,17 @@ def test_missing_categorical_manual(df_with_missings):
     X = df_with_missings[["LIMIT_BAL", "BILL_AMT1", "EDUCATION", "pet_ownership"]]
     y = df_with_missings["default"].values
     obt = OptimalBucketer(variables=["pet_ownership", 'EDUCATION'],
-                        max_n_bins=2,
-                        variables_type="categorical",
-                        missing_treatment ={'pet_ownership': 0}
-                        )
+                          max_n_bins=2,
+                          variables_type="categorical",
+                          missing_treatment ={'pet_ownership': 0}
+                          )
     obt.fit(X[["pet_ownership", 'EDUCATION']], y)
-    X['pet_ownership_trans'] = obt.transform(X[["pet_ownership", 'EDUCATION']])['pet_ownership']
+    X_trans = obt.transform(X[["pet_ownership", 'EDUCATION']])#['pet_ownership']
+    X['pet_ownership_trans'] = X_trans['pet_ownership']
+    X['default'] = y
+    print(X.shape, X_trans.shape)
+    print(X[['pet_ownership', 'EDUCATION', 'default', 'pet_ownership_trans']])
+    print(y)
     assert X[X['pet_ownership'].isnull()]['pet_ownership_trans'].sum() == 0  # Sums to 0 because all missings in bucket 0
 
 
