@@ -697,7 +697,7 @@ class OrdinalCategoricalBucketer(BaseBucketer):
 
     """
 
-    def __init__(self, tol=0.05, max_n_categories=None, variables=[], specials={}, encoding_method="frequency"):
+    def __init__(self, tol=0.05, max_n_categories=None, variables=[], specials={}, encoding_method="frequency", missing_treatment='separate'):
         """Init the class.
 
         Args:
@@ -719,8 +719,18 @@ class OrdinalCategoricalBucketer(BaseBucketer):
                     The lower the number of the bucket the most frequent are the observations in that bucket.
                 - "ordered": orders the buckets based on the average class 1 rate in the bucket.
                     The lower the number of the bucket the lower the fraction of class 1 in that bucket.
+            missing_treatment: Defines how we treat the missing values present in the data.
+                If a string, it must be in ['separate', 'risky', 'frequent']
+                separate: Missing values get put in their separate bucket
+                risky: todo
+                frequent: todo
+
+                If a dict, it must be of the following format: 
+                {"<column name>": <bucket_number>}
+                This bucket number is where we will put the missing values.
         """
         assert isinstance(variables, list)
+        self._is_allowed_missing_treatment(missing_treatment)
 
         if tol < 0 or tol > 1:
             raise ValueError("tol takes values between 0 and 1")
@@ -734,6 +744,7 @@ class OrdinalCategoricalBucketer(BaseBucketer):
         self.variables = variables
         self.specials = specials
         self.encoding_method = encoding_method
+        self.missing_treatment = missing_treatment
 
         self._verify_specials_variables(self.specials, self.variables)
 
@@ -757,6 +768,9 @@ class OrdinalCategoricalBucketer(BaseBucketer):
                 special = {}
             if not (isinstance(y_flt, pd.Series) or isinstance(y_flt, pd.DataFrame)):
                 y_flt = pd.Series(y_flt)
+
+            X_flt, y_flt = self._filter_na_for_fit(X=X_flt, y=y_flt)
+
             X_y = pd.concat([X_flt, y_flt], axis=1)
             X_y.columns = [var, "target"]
 
@@ -789,7 +803,11 @@ class OrdinalCategoricalBucketer(BaseBucketer):
             mapping = dict(zip(normalized_counts.index, range(0, len(normalized_counts))))
 
             self.features_bucket_mapping_[var] = BucketMapping(
-                feature_name=var, type="categorical", map=mapping, specials=special
+                feature_name=var,
+                type="categorical", 
+                map=mapping, 
+                specials=special,
+                missing_treatment=self.missing_treatment
             )
 
         return self
