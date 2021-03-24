@@ -1,6 +1,7 @@
 from skorecard import datasets
 from skorecard.bucketers import DecisionTreeBucketer
 import pandas as pd
+import numpy as np
 
 import pytest
 
@@ -95,3 +96,17 @@ def test_all_data_is_special(df):
     # therefore the soecial bucket starts at index 2.
     # assert X_prebucketed["all_nans"].unique() == 1
     assert X_prebucketed["all_zeros"].unique() == 2
+
+
+def test_missing_default(df_with_missings) -> None:
+    """Test that missing values are assigned to the right bucket."""
+    X = df_with_missings
+    y = df_with_missings["default"].values
+
+    BUCK = DecisionTreeBucketer(variables=["LIMIT_BAL"], random_state=1)
+    BUCK.fit(X, y)
+    X['LIMIT_BAL_trans'] = BUCK.transform(X[['LIMIT_BAL']])
+
+    missing_bucket = [f for f in BUCK.features_bucket_mapping_['LIMIT_BAL'].labels.keys()][-1]
+    assert BUCK.features_bucket_mapping_['LIMIT_BAL'].labels[missing_bucket] == 'Missing'
+    assert X[np.isnan(X['LIMIT_BAL'])].shape[0] == X[X['LIMIT_BAL_trans'] == missing_bucket].shape[0]
