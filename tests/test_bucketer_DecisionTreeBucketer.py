@@ -110,3 +110,15 @@ def test_missing_default(df_with_missings) -> None:
     missing_bucket = [f for f in BUCK.features_bucket_mapping_['LIMIT_BAL'].labels.keys()][-1]
     assert BUCK.features_bucket_mapping_['LIMIT_BAL'].labels[missing_bucket] == 'Missing'
     assert X[np.isnan(X['LIMIT_BAL'])].shape[0] == X[X['LIMIT_BAL_trans'] == missing_bucket].shape[0]
+
+
+def test_missing_manual(df_with_missings) -> None:
+    """Test that missing values are assigned to the right bucket."""
+    X = df_with_missings
+    y = df_with_missings["default"].values
+
+    bucketer = DecisionTreeBucketer(variables=["LIMIT_BAL"], random_state=1, missing_treatment={'LIMIT_BAL': 0})
+    bucketer.fit(X, y)
+    X['LIMIT_BAL_trans'] = bucketer.transform(X[['LIMIT_BAL']])
+
+    assert X[np.isnan(X['LIMIT_BAL_trans'])]['LIMIT_BAL'].sum() == 0
