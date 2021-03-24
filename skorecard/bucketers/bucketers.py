@@ -516,6 +516,7 @@ class DecisionTreeBucketer(BaseBucketer):
         variables=[],
         specials={},
         max_n_bins=100,
+        missing_treatment='separate',
         min_bin_size=0.05,
         random_state=42,
         **kwargs,
@@ -538,15 +539,26 @@ class DecisionTreeBucketer(BaseBucketer):
                 The DecisionTreeClassifier requires max_leaf_nodes>=2:
                 therefore, max_n_bins  must always be >= (number of special bins + 2) if specials are defined,
                 otherwise must be >=2.
+            missing_treatment: Defines how we treat the missing values present in the data.
+                If a string, it must be in ['separate', 'risky', 'frequent']
+                separate: Missing values get put in their separate bucket
+                risky: todo
+                frequent: todo
+
+                If a dict, it must be of the following format: 
+                {"<column name>": <bucket_number>}
+                This bucket number is where we will put the missing values.
             random_state: The random state, Passed directly to DecisionTreeClassifier
             kwargs: Other parameters passed to DecisionTreeClassifier
         """
         assert isinstance(variables, list)
+        self._is_allowed_missing_treatment(missing_treatment)
 
         self.variables = variables
         self.specials = specials
         self.kwargs = kwargs
         self.max_n_bins = max_n_bins
+        self.missing_treatment = missing_treatment
         self.min_bin_size = min_bin_size
         self.random_state = random_state
 
@@ -576,7 +588,8 @@ class DecisionTreeBucketer(BaseBucketer):
 
                 X_flt, y_flt = self._filter_specials_for_fit(X=X[feature], y=y, specials=special)
             else:
-                X_flt, y_flt = X[feature], y
+                X_flt = X[feature]
+                y_flt = y
                 special = {}
 
             X_flt, y_flt = self._filter_na_for_fit(X=X_flt, y=y_flt)
@@ -598,7 +611,6 @@ class DecisionTreeBucketer(BaseBucketer):
                     **self.kwargs,
                 )
                 self.binners[feature] = binner
-
                 binner.fit(X_flt.values.reshape(-1, 1), y_flt)
 
                 # Extract fitted boundaries
@@ -608,7 +620,12 @@ class DecisionTreeBucketer(BaseBucketer):
                 splits = []
 
             self.features_bucket_mapping_[feature] = BucketMapping(
-                feature_name=feature, type="numerical", map=splits, right=False, specials=special
+                feature_name=feature,
+                type="numerical",
+                map=splits, 
+                right=False, 
+                specials=special,
+                missing_treatment=self.missing_treatment
             )
 
         return self
