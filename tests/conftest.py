@@ -22,5 +22,5 @@ def df():
 def df_with_missings(df):
     """Add missing values to above df.
     """
-    df = df.mask(np.random.random(df.shape) < 0.2)
+    df = df.mask(np.random.random(df.shape) < 0.2).dropna(subset=['default']).reset_index()
     return df
