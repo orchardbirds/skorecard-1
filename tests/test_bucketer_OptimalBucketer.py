@@ -118,7 +118,6 @@ def test_optimal_binning_categorical(df):
     obt.fit(X, y)
     X_trans = obt.transform(X)
     assert len(X_trans["EDUCATION"].unique()) == 4
-
     assert obt.features_bucket_mapping_.get("EDUCATION") == BucketMapping(
         feature_name="EDUCATION",
         type="categorical",
@@ -234,9 +233,6 @@ def test_missing_categorical_manual(df_with_missings):
     X_trans = obt.transform(X[["pet_ownership", 'EDUCATION']])#['pet_ownership']
     X['pet_ownership_trans'] = X_trans['pet_ownership']
     X['default'] = y
-    print(X.shape, X_trans.shape)
-    print(X[['pet_ownership', 'EDUCATION', 'default', 'pet_ownership_trans']])
-    print(y)
     assert X[X['pet_ownership'].isnull()]['pet_ownership_trans'].sum() == 0  # Sums to 0 because all missings in bucket 0
 
 

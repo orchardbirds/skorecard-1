@@ -71,16 +71,13 @@ class BaseBucketer(BaseEstimator, TransformerMixin):
             y_out = y
         return X_out, y_out
 
-    def _filter_na_for_fit(self, X, y, categorical=False):
+    def _filter_na_for_fit(self, X, y):
         """
         We need to filter out the missing values from a vector.
 
         Because we don't want to use those values to determine bin boundaries.
         """
-        if categorical:
-            flt = pd.isnull(X)
-        else:
-            flt = np.isnan(X)
+        flt = pd.isnull(X)
         X_out = X[~flt]
         if y is not None:
             y_out = y[~flt]
