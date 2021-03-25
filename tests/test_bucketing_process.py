@@ -1,7 +1,7 @@
 from skorecard.bucketers import OptimalBucketer, DecisionTreeBucketer
 from skorecard.preprocessing import WoeEncoder
 from skorecard.pipeline import BucketingProcess
-from skorecard.utils import NotPreBucketedError
+from skorecard.utils import NotPreBucketedError, NotBucketObjectError
 from sklearn.pipeline import make_pipeline
 from sklearn.linear_model import LogisticRegression
 
@@ -19,7 +19,41 @@ def test_bucketing_process_order(df):
     with pytest.raises(NotPreBucketedError):
         bucketing_process.register_bucketing_pipeline(
             OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
-            OptimalBucketer(variables=cat_cols, max_n_bins=10, min_bin_size=0.05),
+            OptimalBucketer(variables=cat_cols, variables_type='categorical', max_n_bins=10, min_bin_size=0.05),
+        )
+
+def test_non_bucketer_in_pipeline(df):
+    """Test that putting a non-bucketer in bucket_process raises error."""
+    num_cols = ["LIMIT_BAL", "BILL_AMT1"]
+    cat_cols = ["EDUCATION", "MARRIAGE"]
+
+    X = df[num_cols + cat_cols]
+    y = df["default"].values
+
+    bucketing_process = BucketingProcess()
+    bucketing_process.register_prebucketing_pipeline(
+        DecisionTreeBucketer(variables=num_cols, max_n_bins=100, min_bin_size=0.05)
+    )
+    with pytest.raises(NotBucketObjectError):
+        bucketing_process.register_bucketing_pipeline(
+            OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
+            OptimalBucketer(variables=cat_cols, variables_type='categorical', max_n_bins=10, min_bin_size=0.05),
+            LogisticRegression()  # Should break the process
+        )
+
+def test_non_bucketer_in_prebucketing_pipeline(df):
+    """Test that putting a non-bucketer in pre-bucket_process raises error."""
+    num_cols = ["LIMIT_BAL", "BILL_AMT1"]
+    cat_cols = ["EDUCATION", "MARRIAGE"]
+
+    X = df[num_cols + cat_cols]
+    y = df["default"].values
+
+    bucketing_process = BucketingProcess()
+    with pytest.raises(NotBucketObjectError):
+        bucketing_process.register_prebucketing_pipeline(
+            DecisionTreeBucketer(variables=num_cols, max_n_bins=100, min_bin_size=0.05),
+            LogisticRegression()  # Should break the process
         )
 
 
@@ -37,12 +71,13 @@ def test_bucketing_optimization(df):
     )
     bucketing_process.register_bucketing_pipeline(
         OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
-        OptimalBucketer(variables=cat_cols, max_n_bins=10, min_bin_size=0.05),
+        OptimalBucketer(variables=cat_cols, variables_type='categorical', max_n_bins=10, min_bin_size=0.05),
     )
     X_bins = bucketing_process.fit_transform(X, y)
 
     for col in num_cols + cat_cols:
         assert X_bins[col].nunique() <= bucketing_process.X_prebucketed[col].nunique()
+        assert X_bins[col].nunique() > 1
 
 
 def test_bucketing_process_in_pipeline(df):
@@ -59,7 +94,7 @@ def test_bucketing_process_in_pipeline(df):
     )
     bucketing_process.register_bucketing_pipeline(
         OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
-        OptimalBucketer(variables=cat_cols, max_n_bins=10, min_bin_size=0.05),
+        OptimalBucketer(variables=cat_cols, variables_type='categorical', max_n_bins=10, min_bin_size=0.05),
     )
 
     pipeline = make_pipeline(bucketing_process, WoeEncoder(), LogisticRegression())

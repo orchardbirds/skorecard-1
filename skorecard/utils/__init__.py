@@ -7,6 +7,7 @@ from .exceptions import (
     UnknownCategoryError,
     NotInstalledError,
     NotPreBucketedError,
+    NotBucketObjectError,
     BucketingPipelineError,
 )
 from .dataframe import detect_types
@@ -17,6 +18,7 @@ __all__ = [
     "DimensionalityError",
     "UnknownCategoryError",
     "NotInstalledError",
+    "NotBucketObjectError",
     "detect_types",
     "NotPreBucketedError",
     "BucketingPipelineError",

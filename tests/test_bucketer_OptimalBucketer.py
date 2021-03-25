@@ -6,7 +6,6 @@ from sklearn.pipeline import make_pipeline
 
 from skorecard.bucketers import OptimalBucketer, DecisionTreeBucketer
 from skorecard.bucket_mapping import BucketMapping
-from skorecard.pipeline import make_bucketing_pipeline
 from skorecard.utils import NotPreBucketedError
 
 
@@ -56,9 +55,7 @@ def test_optimal_binning_prebinning(df):
     # transform a feature using skorecard prebinning + optimal binning
     pipe = make_pipeline(
         DecisionTreeBucketer(variables=["BILL_AMT1"], max_n_bins=20, min_bin_size=0.05),
-        make_bucketing_pipeline(
-            OptimalBucketer(variables=["BILL_AMT1"], max_n_bins=10, min_bin_size=0.05),
-        ),
+        OptimalBucketer(variables=["BILL_AMT1"], max_n_bins=10, min_bin_size=0.05),
     )
     new = pipe.fit_transform(X, y)["BILL_AMT1"]
 

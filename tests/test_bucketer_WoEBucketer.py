@@ -4,7 +4,7 @@ import pandas as pd
 
 from skorecard.preprocessing import WoeEncoder
 from skorecard.bucketers import DecisionTreeBucketer, OptimalBucketer
-from skorecard.pipeline import make_prebucketing_pipeline, make_bucketing_pipeline
+from skorecard.pipeline import BucketingProcess
 
 from sklearn.pipeline import make_pipeline
 
@@ -123,14 +123,16 @@ def test_woe_in_pipeline(df):
     num_cols = ["LIMIT_BAL", "BILL_AMT1"]
     cat_cols = ["EDUCATION", "MARRIAGE"]
 
+    bucketing_process = BucketingProcess()
+    bucketing_process.register_prebucketing_pipeline(
+        DecisionTreeBucketer(variables=num_cols, max_n_bins=100, min_bin_size=0.05)
+    )
+    bucketing_process.register_bucketing_pipeline(
+        OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
+        OptimalBucketer(variables=cat_cols, variables_type='categorical', max_n_bins=10, min_bin_size=0.05),
+    )
     pipeline = make_pipeline(
-        make_prebucketing_pipeline(
-            DecisionTreeBucketer(variables=num_cols, max_n_bins=100, min_bin_size=0.05),
-        ),
-        make_bucketing_pipeline(
-            OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
-            OptimalBucketer(variables=cat_cols, max_n_bins=10, min_bin_size=0.05),
-        ),
+        bucketing_process,
         WoeEncoder(),
     )
 

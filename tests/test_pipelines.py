@@ -20,7 +20,7 @@ from skorecard.bucketers import (
 from skorecard.pipeline import (
     get_features_bucket_mapping,
     KeepPandas,
-    make_bucketing_pipeline,
+    BucketingProcess,
     find_bucketing_step,
 )
 from skorecard.bucket_mapping import BucketMapping
@@ -82,9 +82,9 @@ def test_bucketing_pipeline(df):
 
     prebucket_pipeline = make_pipeline(DecisionTreeBucketer(variables=num_cols, max_n_bins=100, min_bin_size=0.05))
 
-    bucket_pipeline = make_bucketing_pipeline(
+    bucket_pipeline = make_pipeline(
         OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
-        OptimalBucketer(variables=cat_cols, max_n_bins=10, min_bin_size=0.05),
+        OptimalBucketer(variables=cat_cols, variables_type='categorical', max_n_bins=10, min_bin_size=0.05),
     )
 
     pipe = make_pipeline(prebucket_pipeline, bucket_pipeline)
@@ -92,7 +92,7 @@ def test_bucketing_pipeline(df):
     # Make sure we can fit it twice
     pipe.fit(X, y)
 
-    # make sure sure transforms work.
+    # make sure transforms work.
     pipe.transform(X)
     pipe.fit_transform(X, y)
 
@@ -102,15 +102,17 @@ def test_find_coarse_classing_step(df):
     num_cols = ["LIMIT_BAL", "BILL_AMT1"]
     cat_cols = ["EDUCATION", "MARRIAGE"]
 
-    prebucket_pipeline = make_pipeline(DecisionTreeBucketer(variables=num_cols, max_n_bins=100, min_bin_size=0.05))
-
-    bucket_pipeline = make_bucketing_pipeline(
+    bucketing_process = BucketingProcess()
+    bucketing_process.register_prebucketing_pipeline(
+        DecisionTreeBucketer(variables=num_cols, max_n_bins=100, min_bin_size=0.05)
+    )
+    bucketing_process.register_bucketing_pipeline(
         OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
-        OptimalBucketer(variables=cat_cols, max_n_bins=10, min_bin_size=0.05),
+        OptimalBucketer(variables=cat_cols, variables_type='categorical', max_n_bins=10, min_bin_size=0.05),
     )
 
-    pipe = make_pipeline(prebucket_pipeline, bucket_pipeline)
-    assert find_bucketing_step(pipe) == 1
+    pipeline = make_pipeline(bucketing_process)
+    assert find_bucketing_step(pipeline, identifier="bucketingprocess") == 0
 
 
 def test_get_features_bucket_mapping(df):
