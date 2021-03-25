@@ -212,3 +212,44 @@ def test_optimal_bucketing_cats(df):
     obt = OptimalBucketer(variables=["LIMIT_BAL"], max_n_bins=2)
     X_trans = obt.fit_transform(X, y)
     assert len(X_trans["LIMIT_BAL"].unique()) == 2
+
+### WIP because Opt binning bug creates n+1 bins
+def _test_missing_categorical_default(df_with_missings):
+    X = df[["LIMIT_BAL", "BILL_AMT1", "EDUCATION", "pet_ownership"]]
+    y = df["default"].values
+    obt = OptimalBucketer(variables=["pet_ownership", 'EDUCATION'],
+                        max_n_bins=2,
+                        variables_type="categorical"
+                        )
+
+def test_missing_categorical_manual(df_with_missings):
+    X = df_with_missings[["LIMIT_BAL", "BILL_AMT1", "EDUCATION", "pet_ownership"]]
+    y = df_with_missings["default"].values
+    obt = OptimalBucketer(variables=["pet_ownership", 'EDUCATION'],
+                          max_n_bins=2,
+                          variables_type="categorical",
+                          missing_treatment ={'pet_ownership': 0}
+                          )
+    obt.fit(X[["pet_ownership", 'EDUCATION']], y)
+    X_trans = obt.transform(X[["pet_ownership", 'EDUCATION']])#['pet_ownership']
+    X['pet_ownership_trans'] = X_trans['pet_ownership']
+    X['default'] = y
+    print(X.shape, X_trans.shape)
+    print(X[['pet_ownership', 'EDUCATION', 'default', 'pet_ownership_trans']])
+    print(y)
+    assert X[X['pet_ownership'].isnull()]['pet_ownership_trans'].sum() == 0  # Sums to 0 because all missings in bucket 0
+
+
+def test_missing_numerical_manual(df_with_missings):
+    X = df_with_missings[["LIMIT_BAL", "BILL_AMT1", "EDUCATION", "pet_ownership"]]
+    y = df_with_missings["default"].values
+    obt = OptimalBucketer(variables=["LIMIT_BAL"],
+                        max_n_bins=2,
+                        variables_type="numerical",
+                        missing_treatment ={"LIMIT_BAL": 0}
+                        )
+    obt.fit(X[["LIMIT_BAL"]], y)
+    X["LIMIT_BAL_trans"] = obt.transform(X[["LIMIT_BAL"]])
+    assert X[np.isnan(X["LIMIT_BAL"])]["LIMIT_BAL_trans"].sum() == 0  # Sums to 0 because all missings in bucket 0
+
+    

@@ -87,3 +87,29 @@ def test_specials(df):
     X_transform = ocb.transform(X)
     # Make sure value 1 is assigned bucket 4
     assert np.unique(X_transform[X["EDUCATION"] == 1].values)[0] == 4
+
+
+def test_missing_default(df_with_missings) -> None:
+    """Test that missing values are assigned to the right bucket."""
+    X = df_with_missings
+    y = df_with_missings["default"].values
+
+    bucketer = OrdinalCategoricalBucketer(variables=['EDUCATION'])
+    bucketer = OrdinalCategoricalBucketer(max_n_categories=2, variables=['EDUCATION'])
+    X['EDUCATION_trans'] = bucketer.fit_transform(X[['EDUCATION']], y)
+
+    assert len(X['EDUCATION_trans'].unique()) == 3  # 2 + 1 for NAs
+    assert X[X['EDUCATION'].isnull()].shape[0] == X[X['EDUCATION_trans'] == 2].shape[0]
+
+
+def test_missing_manual(df_with_missings) -> None:
+    """Test that missing values are assigned to the right bucket."""
+    X = df_with_missings
+    y = df_with_missings["default"].values
+
+    bucketer = OrdinalCategoricalBucketer(variables=['EDUCATION'])
+    bucketer = OrdinalCategoricalBucketer(max_n_categories=2, variables=['EDUCATION'], missing_treatment={'EDUCATION': 0})
+    X['EDUCATION_trans'] = bucketer.fit_transform(X[['EDUCATION']], y)
+
+    assert len(X['EDUCATION_trans'].unique()) == 2
+    assert X[X['EDUCATION'].isnull()]['EDUCATION_trans'].sum() == 0
