@@ -1,7 +1,8 @@
-from .pipeline import make_prebucketing_pipeline, make_bucketing_pipeline
-from ..utils import NotPreBucketedError
+from skorecard.utils import NotPreBucketedError
+from skorecard.pipeline import get_features_bucket_mapping
 
 from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.pipeline import make_pipeline
 
 # from sklearn.pipeline import make_pipeline as scikit_make_pipeline
 from sklearn.utils.validation import check_is_fitted
@@ -24,7 +25,7 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
     num_cols = ["LIMIT_BAL", "BILL_AMT1"]
     cat_cols = ["EDUCATION", "MARRIAGE"]
 
-    bucketing_process = BucketingProcess(specials={'column': {'label' : 'value'}})
+    bucketing_process = BucketingProcess(specials={'LIMIT_BAL': {'=400000.0' : [400000.0]}})
     bucketing_process.register_prebucketing_pipeline(
                                 DecisionTreeBucketer(variables=num_cols, max_n_bins=100, min_bin_size=0.05),
     )
@@ -59,8 +60,15 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
                 in that bucket.
                 When special values are defined, they are not considered in the fitting procedure.
         """
+        # @Dan TODO:
+        # Make sure all prebiucketing and bucketing steps are skorecard.
+        # for step in steps:
+        #     msg = "All bucketing steps must be skorecard bucketers"
+        #     assert "skorecard.bucketers" in str(type(step)), msg
+
         self.prebucketing_pipeline = None
         self._prebucketing_specials = specials
+        self.name = "bucketingprocess"
 
     def register_prebucketing_pipeline(self, *steps, **kwargs):
         """Helps to identify a (series of) sklearn pipeline steps as the pre-bucketing steps.
@@ -74,7 +82,7 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
                 name: Add a attribute to Pipeline with a name
                 enforce_all_bucketers: Make sure all steps are skorecard bucketers
         """
-        self.prebucketing_pipeline = make_prebucketing_pipeline(*steps, **kwargs)
+        self.prebucketing_pipeline = make_pipeline(*steps, **kwargs)
         self._remap_specials_pipeline(level="prebucketing")
 
     def register_bucketing_pipeline(self, *steps, **kwargs):
@@ -93,7 +101,7 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
             msg = "You need to register a prebucketing pipeline. Please use register_prebucketing_pipeline() first."
             raise NotPreBucketedError(msg)
 
-        self.bucketing_pipeline = make_bucketing_pipeline(*steps, **kwargs)
+        self.bucketing_pipeline = make_pipeline(*steps, **kwargs)
 
     def fit(self, X, y=None):
         """Fit the prebucketing and bucketing pipeline with X, y.
@@ -107,7 +115,7 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
 
         # find the prebucket features bucket mapping. This is necessary
         # to find the mappings of the specials for the bucketing step.
-        self._features_prebucket_mapping = self.prebucketing_pipeline.features_bucket_mapping_
+        self._features_prebucket_mapping = get_features_bucket_mapping(self.prebucketing_pipeline)
 
         # define
         self._retrieve_special_for_bucketing()
@@ -115,6 +123,7 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
         self._remap_specials_pipeline(level="bucketing")
 
         self.bucketing_pipeline.fit(self.X_prebucketed_, y)
+        self._features_bucket_mapping = get_features_bucket_mapping(self.bucketing_pipeline)
 
         return self
 
@@ -191,6 +200,13 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
         self.X_bucketed = self.bucketing_pipeline.transform(X)
 
         return self.X_bucketed
+
+    @property
+    def buckets(self):
+        """
+        Buckets after bucketing process.
+        """
+        pass
 
 
 # bucketing_process.summary() # all vars, and # buckets

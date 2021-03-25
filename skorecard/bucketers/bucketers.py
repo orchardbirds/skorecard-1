@@ -135,7 +135,7 @@ class OptimalBucketer(BaseBucketer):
                     )
                 user_splits = uniq_values
             else:
-                X_flt, y_flt = self._filter_na_for_fit(X=X_flt, y=y_flt, categorical=True)
+                X_flt, y_flt = self._filter_na_for_fit(X=X_flt, y=y_flt)
                 user_splits = None
 
             binner = OptimalBinning(

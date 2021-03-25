@@ -1,7 +1,6 @@
 import copy
 from skorecard.bucketers.bucketers import OrdinalCategoricalBucketer
 import pandas as pd
-import numpy as np
 from sklearn.pipeline import Pipeline, make_pipeline
 
 from skorecard.utils.exceptions import NotInstalledError, BucketingPipelineError
@@ -26,25 +25,30 @@ class BucketTweakerApp(object):
     ```python
     from skorecard import datasets
     from skorecard.bucketers import DecisionTreeBucketer, OptimalBucketer
-    from skorecard.pipeline import make_bucketing_pipeline
+    from skorecard.pipeline import BucketingProcess
     from skorecard.apps import BucketTweakerApp
     from sklearn.pipeline import make_pipeline
     from sklearn.preprocessing import OneHotEncoder
     from sklearn.linear_model import LogisticRegression
 
     df = datasets.load_uci_credit_card(as_frame=True)
-    X = df.drop(columns=["default"])
     y = df["default"]
+    X = df.drop(columns=["default"])
 
     num_cols = ["LIMIT_BAL", "BILL_AMT1"]
     cat_cols = ["EDUCATION", "MARRIAGE"]
 
-    pipeline = make_pipeline(
-        DecisionTreeBucketer(variables=num_cols, max_n_bins=100, min_bin_size=0.05),
-        make_bucketing_pipeline(
+    bucketing_process = BucketingProcess()
+    bucketing_process.register_prebucketing_pipeline(
+                                DecisionTreeBucketer(variables=num_cols, max_n_bins=100, min_bin_size=0.05),
+    )
+    bucketing_process.register_bucketing_pipeline(
             OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
             OptimalBucketer(variables=cat_cols, max_n_bins=10, min_bin_size=0.05),
-        ),
+    )
+
+    pipeline = make_pipeline(
+        bucketing_process,
         OneHotEncoder(),
         LogisticRegression()
     )
@@ -57,7 +61,7 @@ class BucketTweakerApp(object):
     ```
     """
 
-    def __init__(self, pipeline: Pipeline, X: pd.DataFrame, y: np.array) -> None:
+    def __init__(self, pipeline, X, y):
         """Setup for being able to run the dash app.
 
         Args:
@@ -72,16 +76,31 @@ class BucketTweakerApp(object):
         self.X = X
         self.y = y
 
+        index_bucketing_process = find_bucketing_step(pipeline, identifier="bucketingprocess")
+        bucketingprocess = pipeline.steps[index_bucketing_process][1]
+
+        # Save prebuckets
+        self.X_prebucketed = bucketingprocess.prebucketing_pipeline.transform(X)
+
+        # Here is the real trick
+        # We replace the bucketing pipeline step with a UserInputBucketer
+        # Now we can tweak the FeatureMapping in the UserInputBucketer
+        # Obviously that means you cannot re-fit,
+        # but you shouldn't want/need to if you made manual changes.
+        self.ui_bucketer = UserInputBucketer(copy.deepcopy(bucketingprocess._features_bucket_mapping))
+        self.pipeline = make_pipeline(
+            bucketingprocess.prebucketing_pipeline, self.ui_bucketer, self.postbucketing_pipeline
+        )
+
+        # ====================
+        # Dan and I where HERE
+        # ====================
+
         # Identify the bucketing steps in the pipeline
         index_prebucket_pipeline = find_bucketing_step(pipeline, identifier="prebucketing_pipeline")
         index_bucket_pipeline = find_bucketing_step(pipeline)
 
-        if index_bucket_pipeline != index_prebucket_pipeline + 1:
-            msg = "The prebucketing step (make_prebucket_pipeline) should be defined"
-            msg += "right before the bucketing step (make_bucket_pipeline)"
-            raise ValueError(msg)
-
-        # Extract the features bucket mapping information
+        # # Extract the features bucket mapping information
         self.original_prebucket_feature_mapping = copy.deepcopy(
             get_features_bucket_mapping(pipeline[index_prebucket_pipeline])
         )
@@ -89,30 +108,30 @@ class BucketTweakerApp(object):
             get_features_bucket_mapping(pipeline[index_bucket_pipeline])
         )
 
-        # Split pipeline into different parts
+        # # Split pipeline into different parts
         self.prebucketing_pipeline = Pipeline(pipeline.steps[:index_bucket_pipeline])
         self.postbucketing_pipeline = Pipeline(pipeline.steps[index_bucket_pipeline + 1 :])
 
-        # Here is the real trick
-        # We replace the bucketing pipeline step with a UserInputBucketer
-        # Now we can tweak the FeatureMapping in the UserInputBucketer
-        # Obviously that means you cannot re-fit,
-        # but you shouldn't want/need to if you made manual changes.
+        # # Here is the real trick
+        # # We replace the bucketing pipeline step with a UserInputBucketer
+        # # Now we can tweak the FeatureMapping in the UserInputBucketer
+        # # Obviously that means you cannot re-fit,
+        # # but you shouldn't want/need to if you made manual changes.
         self.ui_bucketer = UserInputBucketer(copy.deepcopy(self.original_bucket_feature_mapping))
         self.pipeline = make_pipeline(self.prebucketing_pipeline, self.ui_bucketer, self.postbucketing_pipeline)
 
-        # Now get the prebucketed features
+        # # Now get the prebucketed features
         self.X_prebucketed = self.prebucketing_pipeline.transform(self.X)
 
-        # Checks on prebucketed data
+        # # Checks on prebucketed data
         assert isinstance(self.X_prebucketed, pd.DataFrame)
-        # Prebucketed features should have at most 100 unique values.
-        # otherwise app prebinning table is too big.
+        # # Prebucketed features should have at most 100 unique values.
+        # # otherwise app prebinning table is too big.
         for feature in self.X_prebucketed.columns:
             if len(self.X_prebucketed[feature].unique()) > 100:
                 raise AssertionError(f"{feature} has >100 values. Did you apply pre-bucketing?")
 
-        # All columns should have a prebucketing step defined
+        # # All columns should have a prebucketing step defined
         features_prebucket_mapping = get_features_bucket_mapping(self.prebucketing_pipeline)
         missing_columns = [c for c in X.columns if c not in features_prebucket_mapping.columns]
         if len(missing_columns) > 0:
@@ -120,7 +139,7 @@ class BucketTweakerApp(object):
                 "The following columns do not have a pre-bucketer assigned: %s" % missing_columns
             )
 
-        # Initialize the Dash app, with layout and callbacks
+        # # Initialize the Dash app, with layout and callbacks
         self.app = JupyterDash(__name__)
         add_layout(self)
         add_callbacks(self)

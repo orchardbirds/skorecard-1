@@ -86,12 +86,7 @@ class BucketMapping:
         """
         assert isinstance(x, (list, pd.core.series.Series, np.ndarray))
         assert len(self.map) is not None, "Please set a 'map' first"
-        if self.type == "numerical":
-            return self._transform_num(x)
-
-        if self.type == "categorical":
-            self._validate_categorical_map()
-            return self._transform_cat(x)
+        return self._transform_buckets(x)
 
     def _validate_categorical_map(self):
         """Assure that the provided mapping starts at 0 and that is tas an incremental trend."""
@@ -104,7 +99,7 @@ class BucketMapping:
                 )
                 raise ValueError(err_msg)
 
-    def _transform_num(self, x):
+    def _transform_buckets(self, x):
         """
         Apply binning using a boundaries map.
 
@@ -124,23 +119,28 @@ class BucketMapping:
             x = pd.Series(x)
         if isinstance(x, list):
             x = pd.Series(x)
+        
+        if self.type == "numerical":
+            buckets = self._apply_num_mapping(x)
+            max_bucket_number = int(buckets.max())
 
-        buckets = self._apply_num_mapping(x)
+        elif self.type == "categorical":
+            self._validate_categorical_map()
+            buckets = self._apply_cat_mapping(x)
+            max_bucket_number = int(max(self.labels.keys()))
 
-        max_bucket_number = int(buckets.max())
-
-        if np.isnan(x).any():
+        if x.isnull().any():
             if self.missing_treatment == 'separate':
-                buckets = np.where(np.isnan(x), max_bucket_number + 1, buckets)
+                buckets = np.where(x.isnull(), max_bucket_number + 1, buckets)
                 self.labels[max_bucket_number + 1] = "Missing"
             elif type(self.missing_treatment) == dict:
                 if self.feature_name in self.missing_treatment.keys():
                     bucket = self.missing_treatment[self.feature_name]
-                    buckets = np.where(np.isnan(x), bucket, buckets)
+                    buckets = np.where(x.isnull(), bucket, buckets)
                     self.labels[bucket] = f"{self.labels[bucket]}, Missing"
                 else:
-                    print(f'Feature {feature_name} not in missing_treatment dict. Applying default bucketing for missing values.')
-                    buckets = np.where(np.isnan(x), max_bucket_number + 1, buckets)
+                    print(f'Feature {self.feature_name} not in missing_treatment dict. Applying default bucketing for missing values.')
+                    buckets = np.where(x.isnull(), max_bucket_number + 1, buckets)
                     self.labels[max_bucket_number + 1] = "Missing"
 
         else:
@@ -150,51 +150,6 @@ class BucketMapping:
             buckets = self._assign_specials(x, buckets, start_bucket_number=max_bucket_number + 1)
 
         return buckets
-
-    def _transform_cat(self, x):
-        """
-        Transforms categorical to buckets.
-
-        Example:
-            x: ['a','c','a']
-            map: {'a': 0, 'b': 1, 'c': 2}
-            output: [0, 2, 0]
-
-        Args:
-            x (pd.Series or np.array): Input vector
-
-        """
-        assert isinstance(self.map, dict)
-        if isinstance(x, np.ndarray):
-            x = pd.Series(x)
-        if isinstance(x, list):
-            x = pd.Series(x)
-
-        new = self._apply_cat_mapping(x)
-
-        max_bucket_number = int(max(self.labels.keys()))
-
-        if x.isna().any():
-            if self.missing_treatment == 'separate':
-                new = pd.Series(np.where(x.isna(), max_bucket_number + 1, new))
-                self.labels[max_bucket_number + 1] = "Missing"
-            elif type(self.missing_treatment) == dict:
-                if self.feature_name in self.missing_treatment.keys():
-                    bucket = self.missing_treatment[self.feature_name]
-                    new = pd.Series(np.where(x.isna(), bucket, new))
-                    self.labels[bucket] = f"{self.labels[bucket]}, Missing"
-                else:
-                    print(f'Feature {self.feature_name} not in missing_treatment dict. Applying default bucketing for missing values.')
-                    new = pd.Series(np.where(x.isna(), max_bucket_number + 1, new))
-                    self.labels[max_bucket_number + 1] = "Missing"
-        
-        else:
-            self.labels[max_bucket_number + 1] = "Missing"
-
-        if len(self.specials) > 0:
-            new = self._assign_specials(x, new, start_bucket_number=max_bucket_number + 1)
-
-        return new
 
     def _apply_cat_mapping(self, x):
         other_value = 1 if len(self.map.values()) == 0 else max(self.map.values()) + 1
