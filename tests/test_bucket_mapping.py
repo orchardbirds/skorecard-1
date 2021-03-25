@@ -35,29 +35,29 @@ def test_bucket_mapping_categorical():
     x = ["car", "motorcycle", "boat", "truck", "truck"]
     bucket = BucketMapping("feature1", "categorical", map={})
     other_category_encoding = 1 if len(bucket.map.values()) == 0 else max(bucket.map.values()) + 1
-    assert bucket.transform(x).equals(pd.Series([other_category_encoding] * 5))
+    assert all(np.equal(bucket.transform(x), [other_category_encoding] * 5))
 
     # Empty map with NA's
     x = ["car", "motorcycle", "boat", "truck", "truck", np.nan]
     bucket = BucketMapping("feature1", "categorical", map={})
     other_category_encoding = 1 if len(bucket.map.values()) == 0 else max(bucket.map.values()) + 1
     missing_cat = other_category_encoding + 1
-    assert bucket.transform(x).equals(pd.Series([other_category_encoding] * 5 + [missing_cat]))
+    assert all(np.equal(bucket.transform(x), [other_category_encoding] * 5 + [missing_cat]))
     #
     # # Limited map
     x = ["car", "motorcycle", "boat", "truck", "truck"]
     bucket = BucketMapping("feature1", "categorical", map={"car": 0, "truck": 0})
     other_category_encoding = 1 if len(bucket.map.values()) == 0 else max(bucket.map.values()) + 1
-    reference = pd.Series([0, other_category_encoding, other_category_encoding, 0, 0])
-    assert bucket.transform(x).equals(reference)
+    reference = [0, other_category_encoding, other_category_encoding, 0, 0]
+    assert all(np.equal(bucket.transform(x), reference))
 
     # Limited map with NA's
     x = ["car", "motorcycle", "boat", "truck", "truck", np.nan]
     bucket = BucketMapping("feature1", "categorical", map={"car": 0, "truck": 0})
     other_category_encoding = 1 if len(bucket.map.values()) == 0 else max(bucket.map.values()) + 1
     missing_cat = other_category_encoding + 1
-    reference = pd.Series([0, other_category_encoding, other_category_encoding, 0, 0, missing_cat])
-    assert bucket.transform(x).equals(reference)
+    reference = [0, other_category_encoding, other_category_encoding, 0, 0, missing_cat]
+    assert all(np.equal(bucket.transform(x), reference))
 
 
 def test_get_map():
