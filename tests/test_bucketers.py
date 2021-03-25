@@ -1,4 +1,5 @@
 import pytest
+import numpy as np
 
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import make_pipeline
@@ -73,3 +74,38 @@ def test_zero_indexed(bucketer, df):
     assert x_t["EDUCATION"].min() == 0
     assert x_t["LIMIT_BAL"].min() == 0
     assert x_t["BILL_AMT1"].min() == 0
+
+
+@pytest.mark.parametrize("bucketer", BUCKETERS_WITH_SET_BINS)
+def test_missing_default(bucketer, df_with_missings) -> None:
+    """Test that missing values are assigned to the right bucket."""
+    X = df_with_missings
+    y = df_with_missings["default"].values
+
+    BUCK = bucketer(bins=2, variables=["MARRIAGE"])
+    BUCK.fit(X, y)
+    X['MARRIAGE_trans'] = BUCK.transform(X[['MARRIAGE']])
+    assert len(X["MARRIAGE_trans"].unique()) == 3
+    assert X[np.isnan(X['MARRIAGE'])].shape[0] == X[X['MARRIAGE_trans'] == 2].shape[0]
+
+
+@pytest.mark.parametrize("bucketer", BUCKETERS_WITH_SET_BINS)
+def test_missing_manual(bucketer, df_with_missings) -> None:
+    """Test that missing values are assigned to the right bucket when manually given."""
+    X = df_with_missings
+    y = df_with_missings["default"].values
+
+    BUCK = bucketer(bins=3,
+                    variables=["MARRIAGE", "LIMIT_BAL"],
+                    missing_treatment ={'LIMIT_BAL': 1,
+                                        'MARRIAGE': 0})
+    BUCK.fit(X, y)
+    X_trans = BUCK.transform(X[['MARRIAGE', 'LIMIT_BAL']])
+    assert len(X_trans["MARRIAGE"].unique()) == 3
+    assert len(X_trans["LIMIT_BAL"].unique()) == 3
+
+    X['MARRIAGE_TRANS'] = X_trans['MARRIAGE']
+    assert X[np.isnan(X['MARRIAGE'])]['MARRIAGE_TRANS'].sum() == 0  # Sums to 0 as they are all in bucket 0
+
+    assert ', Missing' in [f for f in BUCK.features_bucket_mapping_['MARRIAGE'].labels.values()][0]
+    assert ', Missing' in [f for f in BUCK.features_bucket_mapping_['LIMIT_BAL'].labels.values()][1]

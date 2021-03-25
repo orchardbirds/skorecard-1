@@ -51,6 +51,7 @@ class OptimalBucketer(BaseBucketer):
         specials={},
         variables_type="numerical",
         max_n_bins=10,
+        missing_treatment='separate',
         min_bin_size=0.05,
         cat_cutoff=0.05,
         time_limit=25,
@@ -68,6 +69,15 @@ class OptimalBucketer(BaseBucketer):
                 in that bucket.
                 When special values are passed, they are not considered in the fitting procedure.
             variables_type: Type of the variables
+            missing_treatment: Defines how we treat the missing values present in the data.
+                If a string, it must be in ['separate', 'risky', 'frequent']
+                separate: Missing values get put in their separate bucket
+                risky: todo
+                frequent: todo
+
+                If a dict, it must be of the following format: 
+                {"<column name>": <bucket_number>}
+                This bucket number is where we will put the missing values.
             min_bin_size: Minimum fraction of observations in a bucket. Passed to optbinning.OptimalBinning.
             max_n_bins: Maximum numbers of bins to return. Passed to optbinning.OptimalBinning.
             cat_cutoff: Threshold ratio to below which categories are grouped
@@ -75,16 +85,19 @@ class OptimalBucketer(BaseBucketer):
             time_limit: Time limit in seconds to find an optimal solution. Passed to optbinning.OptimalBinning.
             kwargs: Other parameters passed to optbinning.OptimalBinning. Passed to optbinning.OptimalBinning.
         """
+        self._is_allowed_missing_treatment(missing_treatment)
+        assert variables_type in ["numerical", "categorical"]
+
         self.variables = variables
         self.specials = specials
         self.variables_type = variables_type
         self.max_n_bins = max_n_bins
+        self.missing_treatment = missing_treatment
         self.min_bin_size = min_bin_size
         self.cat_cutoff = cat_cutoff
         self.time_limit = time_limit
-        self.kwargs = kwargs
 
-        assert variables_type in ["numerical", "categorical"]
+        self.kwargs = kwargs
 
         # not tested right now
         self._verify_specials_variables(self.specials, self.variables)
@@ -105,10 +118,10 @@ class OptimalBucketer(BaseBucketer):
                 special = self.specials[feature]
                 X_flt, y_flt = self._filter_specials_for_fit(X=X[feature], y=y, specials=special)
             else:
-                X_flt, y_flt = X[feature], y.copy()
+                X_flt, y_flt = X[feature], y
                 special = {}
-            X_flt, y_flt = self._filter_na_for_fit(X=X_flt, y=y_flt)
             if self.variables_type == "numerical":
+                X_flt, y_flt = self._filter_na_for_fit(X=X_flt, y=y_flt)
                 uniq_values = np.sort(np.unique(X_flt.values))
                 if len(uniq_values) > 100:
                     raise NotPreBucketedError(
@@ -122,6 +135,7 @@ class OptimalBucketer(BaseBucketer):
                     )
                 user_splits = uniq_values
             else:
+                X_flt, y_flt = self._filter_na_for_fit(X=X_flt, y=y_flt, categorical=True)
                 user_splits = None
 
             binner = OptimalBinning(
@@ -159,6 +173,7 @@ class OptimalBucketer(BaseBucketer):
                 map=splits,
                 right=False,
                 specials=special,
+                missing_treatment=self.missing_treatment
             )
 
         return self
@@ -188,7 +203,7 @@ class EqualWidthBucketer(BaseBucketer):
     ```
     """
 
-    def __init__(self, bins=-1, variables=[], specials={}):
+    def __init__(self, bins=-1, variables=[], specials={}, missing_treatment='separate'):
         """Init the class.
 
         Args:
@@ -201,10 +216,21 @@ class EqualWidthBucketer(BaseBucketer):
                 This dictionary contains a name of a bucket (key) and an array of unique values that should be put
                 in that bucket.
                 When special values are defined, they are not considered in the fitting procedure.
+            missing_treatment: Defines how we treat the missing values present in the data.
+                If a string, it must be in ['separate', 'risky', 'frequent']
+                separate: Missing values get put in their separate bucket
+                risky: todo
+                frequent: todo
+
+                If a dict, it must be of the following format: 
+                {"<column name>": <bucket_number>}
+                This bucket number is where we will put the missing values.
         """
         assert isinstance(variables, list)
         assert isinstance(bins, int)
+        self._is_allowed_missing_treatment(missing_treatment)
 
+        self.missing_treatment = missing_treatment
         self.variables = variables
         self.bins = bins
         self.specials = specials
@@ -225,8 +251,9 @@ class EqualWidthBucketer(BaseBucketer):
                 X_flt, y_flt = self._filter_specials_for_fit(X=X[feature], y=y, specials=special)
             else:
                 X_flt = X[feature]
-                y_flt = y.copy()
+                y_flt = y
                 special = {}
+
             X_flt, y_flt = self._filter_na_for_fit(X=X_flt, y=y_flt)
             _, boundaries = np.histogram(X_flt.values, bins=self.bins)
 
@@ -237,7 +264,12 @@ class EqualWidthBucketer(BaseBucketer):
             boundaries = boundaries[1:-1]
 
             self.features_bucket_mapping_[feature] = BucketMapping(
-                feature_name=feature, type="numerical", map=boundaries, right=True, specials=special
+                feature_name=feature,
+                type="numerical", 
+                map=boundaries, 
+                right=True, 
+                specials=special, 
+                missing_treatment=self.missing_treatment
             )
 
         return self
@@ -267,7 +299,7 @@ class AgglomerativeClusteringBucketer(BaseBucketer):
     ```
     """
 
-    def __init__(self, bins=-1, variables=[], specials={}):
+    def __init__(self, bins=-1, variables=[], specials={}, missing_treatment='separate'):
         """Init the class.
 
         Args:
@@ -280,14 +312,25 @@ class AgglomerativeClusteringBucketer(BaseBucketer):
                 This dictionary contains a name of a bucket (key) and an array of unique values that should be put
                 in that bucket.
                 When special values are defined, they are not considered in the fitting procedure.
+            missing_treatment: Defines how we treat the missing values present in the data.
+                If a string, it must be in ['separate', 'risky', 'frequent']
+                separate: Missing values get put in their separate bucket
+                risky: todo
+                frequent: todo
+
+                If a dict, it must be of the following format: 
+                {"<column name>": <bucket_number>}
+                This bucket number is where we will put the missing values.
 
         """
         assert isinstance(variables, list)
         assert isinstance(bins, int)
+        self._is_allowed_missing_treatment(missing_treatment)
 
         self.variables = variables
         self.bins = bins
         self.specials = specials
+        self.missing_treatment = missing_treatment
 
         self._verify_specials_variables(self.specials, self.variables)
 
@@ -306,7 +349,7 @@ class AgglomerativeClusteringBucketer(BaseBucketer):
                 X_flt, y_flt = self._filter_specials_for_fit(X=X[feature], y=y, specials=special)
             else:
                 X_flt = X[feature]
-                y_flt = y.copy()
+                y_flt = y
                 special = {}
             X_flt, y_flt = self._filter_na_for_fit(X=X_flt, y=y_flt)
             ab.fit(X_flt.values, y=None)
@@ -318,7 +361,12 @@ class AgglomerativeClusteringBucketer(BaseBucketer):
             boundaries = ab.boundaries[1:-1]
 
             self.features_bucket_mapping_[feature] = BucketMapping(
-                feature_name=feature, type="numerical", map=boundaries, right=True, specials=special
+                feature_name=feature,
+                type="numerical", 
+                map=boundaries, 
+                right=True, 
+                specials=special,
+                missing_treatment=self.missing_treatment
             )
 
         return self
@@ -346,7 +394,7 @@ class EqualFrequencyBucketer(BaseBucketer):
     ```
     """
 
-    def __init__(self, bins=-1, variables=[], specials={}):
+    def __init__(self, bins=-1, variables=[], specials={}, missing_treatment='separate'):
         """Init the class.
 
         Args:
@@ -359,14 +407,25 @@ class EqualFrequencyBucketer(BaseBucketer):
                 This dictionary contains a name of a bucket (key) and an array of unique values that should be put
                 in that bucket.
                 When special values are defined, they are not considered in the fitting procedure.
+            missing_treatment: Defines how we treat the missing values present in the data.
+                If a string, it must be in ['separate', 'risky', 'frequent']
+                separate: Missing values get put in their separate bucket
+                risky: todo
+                frequent: todo
+
+                If a dict, it must be of the following format: 
+                {"<column name>": <bucket_number>}
+                This bucket number is where we will put the missing values.
 
         """
         assert isinstance(variables, list)
         assert isinstance(bins, int)
+        self._is_allowed_missing_treatment(missing_treatment)
 
         self.variables = variables
         self.bins = bins
         self.specials = specials
+        self.missing_treatment = missing_treatment
 
         self._verify_specials_variables(self.specials, self.variables)
 
@@ -411,6 +470,7 @@ class EqualFrequencyBucketer(BaseBucketer):
                 map=boundaries,
                 right=True,  # pd.qcut returns bins including right edge: (edge, edge]
                 specials=special,
+                missing_treatment=self.missing_treatment
             )
 
         return self
@@ -456,6 +516,7 @@ class DecisionTreeBucketer(BaseBucketer):
         variables=[],
         specials={},
         max_n_bins=100,
+        missing_treatment='separate',
         min_bin_size=0.05,
         random_state=42,
         **kwargs,
@@ -478,15 +539,26 @@ class DecisionTreeBucketer(BaseBucketer):
                 The DecisionTreeClassifier requires max_leaf_nodes>=2:
                 therefore, max_n_bins  must always be >= (number of special bins + 2) if specials are defined,
                 otherwise must be >=2.
+            missing_treatment: Defines how we treat the missing values present in the data.
+                If a string, it must be in ['separate', 'risky', 'frequent']
+                separate: Missing values get put in their separate bucket
+                risky: todo
+                frequent: todo
+
+                If a dict, it must be of the following format: 
+                {"<column name>": <bucket_number>}
+                This bucket number is where we will put the missing values.
             random_state: The random state, Passed directly to DecisionTreeClassifier
             kwargs: Other parameters passed to DecisionTreeClassifier
         """
         assert isinstance(variables, list)
+        self._is_allowed_missing_treatment(missing_treatment)
 
         self.variables = variables
         self.specials = specials
         self.kwargs = kwargs
         self.max_n_bins = max_n_bins
+        self.missing_treatment = missing_treatment
         self.min_bin_size = min_bin_size
         self.random_state = random_state
 
@@ -516,7 +588,8 @@ class DecisionTreeBucketer(BaseBucketer):
 
                 X_flt, y_flt = self._filter_specials_for_fit(X=X[feature], y=y, specials=special)
             else:
-                X_flt, y_flt = X[feature], y.copy()
+                X_flt = X[feature]
+                y_flt = y
                 special = {}
 
             X_flt, y_flt = self._filter_na_for_fit(X=X_flt, y=y_flt)
@@ -538,7 +611,6 @@ class DecisionTreeBucketer(BaseBucketer):
                     **self.kwargs,
                 )
                 self.binners[feature] = binner
-
                 binner.fit(X_flt.values.reshape(-1, 1), y_flt)
 
                 # Extract fitted boundaries
@@ -548,7 +620,12 @@ class DecisionTreeBucketer(BaseBucketer):
                 splits = []
 
             self.features_bucket_mapping_[feature] = BucketMapping(
-                feature_name=feature, type="numerical", map=splits, right=False, specials=special
+                feature_name=feature,
+                type="numerical",
+                map=splits, 
+                right=False, 
+                specials=special,
+                missing_treatment=self.missing_treatment
             )
 
         return self
@@ -620,7 +697,7 @@ class OrdinalCategoricalBucketer(BaseBucketer):
 
     """
 
-    def __init__(self, tol=0.05, max_n_categories=None, variables=[], specials={}, encoding_method="frequency"):
+    def __init__(self, tol=0.05, max_n_categories=None, variables=[], specials={}, encoding_method="frequency", missing_treatment='separate'):
         """Init the class.
 
         Args:
@@ -642,8 +719,18 @@ class OrdinalCategoricalBucketer(BaseBucketer):
                     The lower the number of the bucket the most frequent are the observations in that bucket.
                 - "ordered": orders the buckets based on the average class 1 rate in the bucket.
                     The lower the number of the bucket the lower the fraction of class 1 in that bucket.
+            missing_treatment: Defines how we treat the missing values present in the data.
+                If a string, it must be in ['separate', 'risky', 'frequent']
+                separate: Missing values get put in their separate bucket
+                risky: todo
+                frequent: todo
+
+                If a dict, it must be of the following format: 
+                {"<column name>": <bucket_number>}
+                This bucket number is where we will put the missing values.
         """
         assert isinstance(variables, list)
+        self._is_allowed_missing_treatment(missing_treatment)
 
         if tol < 0 or tol > 1:
             raise ValueError("tol takes values between 0 and 1")
@@ -657,6 +744,7 @@ class OrdinalCategoricalBucketer(BaseBucketer):
         self.variables = variables
         self.specials = specials
         self.encoding_method = encoding_method
+        self.missing_treatment = missing_treatment
 
         self._verify_specials_variables(self.specials, self.variables)
 
@@ -680,6 +768,9 @@ class OrdinalCategoricalBucketer(BaseBucketer):
                 special = {}
             if not (isinstance(y_flt, pd.Series) or isinstance(y_flt, pd.DataFrame)):
                 y_flt = pd.Series(y_flt)
+
+            X_flt, y_flt = self._filter_na_for_fit(X=X_flt, y=y_flt)
+
             X_y = pd.concat([X_flt, y_flt], axis=1)
             X_y.columns = [var, "target"]
 
@@ -712,7 +803,11 @@ class OrdinalCategoricalBucketer(BaseBucketer):
             mapping = dict(zip(normalized_counts.index, range(0, len(normalized_counts))))
 
             self.features_bucket_mapping_[var] = BucketMapping(
-                feature_name=var, type="categorical", map=mapping, specials=special
+                feature_name=var,
+                type="categorical", 
+                map=mapping, 
+                specials=special,
+                missing_treatment=self.missing_treatment
             )
 
         return self
