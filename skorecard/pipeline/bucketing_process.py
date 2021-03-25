@@ -1,4 +1,4 @@
-from skorecard.utils import NotPreBucketedError
+from skorecard.utils import NotPreBucketedError, NotBucketObjectError
 from skorecard.pipeline import get_features_bucket_mapping
 
 from sklearn.base import BaseEstimator, TransformerMixin
@@ -31,10 +31,11 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
     )
     bucketing_process.register_bucketing_pipeline(
             OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
-            OptimalBucketer(variables=cat_cols, max_n_bins=10, min_bin_size=0.05),
+            OptimalBucketer(variables=cat_cols, variables_type='categorical', max_n_bins=10, min_bin_size=0.05),
     )
 
     bucketing_process.fit(X, y)
+
 
     # bucketing_process.summary() # all vars, and # buckets
     # bucketing_process.bucket_table("varname")
@@ -60,15 +61,20 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
                 in that bucket.
                 When special values are defined, they are not considered in the fitting procedure.
         """
-        # @Dan TODO:
-        # Make sure all prebiucketing and bucketing steps are skorecard.
-        # for step in steps:
-        #     msg = "All bucketing steps must be skorecard bucketers"
-        #     assert "skorecard.bucketers" in str(type(step)), msg
-
         self.prebucketing_pipeline = None
         self._prebucketing_specials = specials
         self.name = "bucketingprocess"
+    
+    def _check_all_bucketers(self, steps):
+        """Checks all bucketing steps are skorecard bucketers.
+        
+        Args:
+            steps: skorecard bucketers
+        """
+        for step in steps:
+            msg = "All bucketing steps must be skorecard bucketers"
+            if "skorecard.bucketers" not in str(type(step)):
+                raise NotBucketObjectError(msg)
 
     def register_prebucketing_pipeline(self, *steps, **kwargs):
         """Helps to identify a (series of) sklearn pipeline steps as the pre-bucketing steps.
@@ -82,6 +88,7 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
                 name: Add a attribute to Pipeline with a name
                 enforce_all_bucketers: Make sure all steps are skorecard bucketers
         """
+        self._check_all_bucketers(steps)
         self.prebucketing_pipeline = make_pipeline(*steps, **kwargs)
         self._remap_specials_pipeline(level="prebucketing")
 
@@ -100,6 +107,7 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
         if not self.prebucketing_pipeline:
             msg = "You need to register a prebucketing pipeline. Please use register_prebucketing_pipeline() first."
             raise NotPreBucketedError(msg)
+        self._check_all_bucketers(steps)
 
         self.bucketing_pipeline = make_pipeline(*steps, **kwargs)
 
@@ -197,7 +205,7 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
         """Transform X through the prebucketing and bucketing pipelines."""
         check_is_fitted(self)
         self.X_prebucketed = self.prebucketing_pipeline.transform(X)
-        self.X_bucketed = self.bucketing_pipeline.transform(X)
+        self.X_bucketed = self.bucketing_pipeline.transform(self.X_prebucketed)
 
         return self.X_bucketed
 
