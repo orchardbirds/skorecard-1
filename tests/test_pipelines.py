@@ -34,7 +34,7 @@ def test_keep_pandas(df, caplog):
 
     bucket_pipeline = make_pipeline(
         StandardScaler(),
-        EqualWidthBucketer(bins=5, variables=["LIMIT_BAL", "BILL_AMT1"]),
+        EqualWidthBucketer(n_bins=5, variables=["LIMIT_BAL", "BILL_AMT1"]),
     )
     # Doesn't work, input should be a pandas dataframe.
     with pytest.raises(TypeError):
@@ -42,7 +42,7 @@ def test_keep_pandas(df, caplog):
 
     bucket_pipeline = make_pipeline(
         KeepPandas(StandardScaler()),
-        EqualWidthBucketer(bins=5, variables=["LIMIT_BAL", "BILL_AMT1"]),
+        EqualWidthBucketer(n_bins=5, variables=["LIMIT_BAL", "BILL_AMT1"]),
     )
 
     with pytest.raises(NotFittedError):
@@ -54,7 +54,7 @@ def test_keep_pandas(df, caplog):
     bucket_pipeline = ColumnTransformer(
         [
             ("categorical_preprocessing", OrdinalCategoricalBucketer(), ["EDUCATION", "MARRIAGE"]),
-            ("numerical_preprocessing", EqualWidthBucketer(bins=5), ["LIMIT_BAL", "BILL_AMT1"]),
+            ("numerical_preprocessing", EqualWidthBucketer(n_bins=5), ["LIMIT_BAL", "BILL_AMT1"]),
         ],
         remainder="passthrough",
     )
@@ -121,7 +121,7 @@ def test_get_features_bucket_mapping(df):
     X = df.drop(columns=["default"])
 
     nested_pipeline = make_pipeline(
-        make_pipeline(EqualWidthBucketer(bins=5, variables=["LIMIT_BAL", "BILL_AMT1"])),
+        make_pipeline(EqualWidthBucketer(n_bins=5, variables=["LIMIT_BAL", "BILL_AMT1"])),
         OrdinalCategoricalBucketer(variables=["EDUCATION", "MARRIAGE"]),
     )
 
@@ -145,8 +145,8 @@ def test_make_pipeline(df):
     X = df.drop(columns=["default"])
 
     pipe = make_pipeline(
-        EqualWidthBucketer(bins=4, variables=["LIMIT_BAL"]),
-        EqualFrequencyBucketer(bins=7, variables=["BILL_AMT1"]),
+        EqualWidthBucketer(n_bins=4, variables=["LIMIT_BAL"]),
+        EqualFrequencyBucketer(n_bins=7, variables=["BILL_AMT1"]),
     )
     new_X = pipe.fit_transform(X, y)
     assert isinstance(new_X, pd.DataFrame)
@@ -157,7 +157,7 @@ def test_pipeline_errors(df):
     y = df["default"].values
     X = df.drop(columns=["default"])
 
-    bu = EqualWidthBucketer(bins=4, variables=["LIMIT_BAL", "BILL_AMT1"])
+    bu = EqualWidthBucketer(n_bins=4, variables=["LIMIT_BAL", "BILL_AMT1"])
     with pytest.raises(NotFittedError):
         bu.transform(X)  # not fitted yet
     with pytest.raises(TypeError):
