@@ -154,7 +154,7 @@ class KeepPandas(BaseEstimator, TransformerMixin):
 #     verbose=verbose, name="bucketing_pipeline", enforce_all_bucketers=True)
 
 
-def find_bucketing_step(pipeline: Pipeline, identifier: str = "bucketing_pipeline"):
+def find_bucketing_step(pipeline: Pipeline, identifier: str = "bucketingprocess"):
     """
     Finds a specific step in a sklearn Pipeline that has a 'name' attribute equalling 'identifier'.
 

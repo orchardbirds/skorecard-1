@@ -9,6 +9,17 @@ class NotPreBucketedError(Exception):
         """
         self.message = message
 
+class NotBucketObjectError(Exception):
+    """Raise this when a non-bucket object is found in the bucketing_process."""
+
+    def __init__(self, message):
+        """Raise this when a non-bucket object is found in the bucketing_process.
+
+        Args:
+            message: (str) message when exception is raised
+        """
+        self.message = message
+
 
 class BucketingPipelineError(Exception):
     """Raise this when there is something wrong with sklearn pipeline with bucketing inside."""
