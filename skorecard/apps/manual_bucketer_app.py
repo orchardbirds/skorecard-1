@@ -90,7 +90,7 @@ class BucketTweakerApp(object):
         # Save prebuckets
         self.X_prebucketed = bucketingprocess.prebucketing_pipeline.transform(X)
 
-        #self.postbucketing_pipeline = copy.deepcopy(bucketingprocess.bucketing_pipeline)
+        # TODO - do we need to make this more robust?
         self.postbucketing_pipeline = Pipeline(pipeline.steps[1:])
         self.prebucketing_pipeline = copy.deepcopy(bucketingprocess.prebucketing_pipeline)
 
@@ -125,57 +125,6 @@ class BucketTweakerApp(object):
         add_layout(self)
         add_callbacks(self)
 
-        # ====================
-        # Dan and I where HERE
-        # ====================
-
-        # Identify the bucketing steps in the pipeline
-        # index_prebucket_pipeline = find_bucketing_step(pipeline, identifier="prebucketing_pipeline")
-        # index_bucket_pipeline = find_bucketing_step(pipeline)
-
-        # # # Extract the features bucket mapping information
-        # self.original_prebucket_feature_mapping = copy.deepcopy(
-        #     get_features_bucket_mapping(pipeline[index_prebucket_pipeline])
-        # )
-        # self.original_bucket_feature_mapping = copy.deepcopy(
-        #     get_features_bucket_mapping(pipeline[index_bucket_pipeline])
-        # )
-
-        # # # Split pipeline into different parts
-        # self.prebucketing_pipeline = Pipeline(pipeline.steps[:index_bucket_pipeline])
-        # self.postbucketing_pipeline = Pipeline(pipeline.steps[index_bucket_pipeline + 1 :])
-
-        # # # Here is the real trick
-        # # # We replace the bucketing pipeline step with a UserInputBucketer
-        # # # Now we can tweak the FeatureMapping in the UserInputBucketer
-        # # # Obviously that means you cannot re-fit,
-        # # # but you shouldn't want/need to if you made manual changes.
-        # self.ui_bucketer = UserInputBucketer(copy.deepcopy(self.original_bucket_feature_mapping))
-        # self.pipeline = make_pipeline(self.prebucketing_pipeline, self.ui_bucketer, self.postbucketing_pipeline)
-
-        # # # Now get the prebucketed features
-        # self.X_prebucketed = self.prebucketing_pipeline.transform(self.X)
-
-        # # # Checks on prebucketed data
-        # assert isinstance(self.X_prebucketed, pd.DataFrame)
-        # # # Prebucketed features should have at most 100 unique values.
-        # # # otherwise app prebinning table is too big.
-        # for feature in self.X_prebucketed.columns:
-        #     if len(self.X_prebucketed[feature].unique()) > 100:
-        #         raise AssertionError(f"{feature} has >100 values. Did you apply pre-bucketing?")
-
-        # # # All columns should have a prebucketing step defined
-        # features_prebucket_mapping = get_features_bucket_mapping(self.prebucketing_pipeline)
-        # missing_columns = [c for c in X.columns if c not in features_prebucket_mapping.columns]
-        # if len(missing_columns) > 0:
-        #     raise BucketingPipelineError(
-        #         "The following columns do not have a pre-bucketer assigned: %s" % missing_columns
-        #     )
-
-        # # # Initialize the Dash app, with layout and callbacks
-        # self.app = JupyterDash(__name__)
-        # add_layout(self)
-        # add_callbacks(self)
 
     def run_server(self, *args, **kwargs):
         """Start a dash server.
