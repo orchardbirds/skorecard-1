@@ -90,6 +90,10 @@ def create_barplot(df, auc):
         fig: The full plotly figure
     """
     bin_number = df.shape[0]
+    df = df.rename(columns={'bucket_id':'BUCKET', 
+                            'Count (%)':'PERCENTAGE_IN_BUCKET',
+                            'Event Rate': 'DEFAULT_RATE'
+                           })
     df = df.sort_values("BUCKET")
     # Create figure with secondary y-axis
     fig = make_subplots(specs=[[{"secondary_y": True}]])
