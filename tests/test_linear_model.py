@@ -54,7 +54,7 @@ def test_linear_model(X_y):
     """Test OHE sparse matrix compatibility"""
 
     pipeline = Pipeline([
-        ('bucketer', EqualFrequencyBucketer(bins=10)),
+        ('bucketer', EqualFrequencyBucketer(n_bins=10)),
         ('ohe', OneHotEncoder()),
         ('clf', LogisticRegression())
     ])
