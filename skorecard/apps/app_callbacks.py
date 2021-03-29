@@ -152,13 +152,13 @@ def add_callbacks(self):
         new_buckets = pd.DataFrame()
         new_buckets["pre_buckets"] = [row.get("pre-bucket") for row in prebucket_table]
         new_buckets["buckets"] = [int(row.get("bucket")) for row in prebucket_table]
-
         # Explicit error handling
         if all(new_buckets["buckets"].sort_values().values == new_buckets["buckets"].values):
             error = []
         else:
             error = dbc.Alert("The buckets most be in ascending order!", color="danger")
             return None, error
+        error = []
 
         bucket_mapping = self.ui_bucketer.features_bucket_mapping.get(col)
 
