@@ -197,17 +197,17 @@ class EqualWidthBucketer(BaseBucketer):
     specials = {"LIMIT_BAL": {"=50000": [50000], "in [20001,30000]": [20000, 30000]}}
 
     X, y = datasets.load_uci_credit_card(return_X_y=True)
-    bucketer = EqualWidthBucketer(bins = 10, variables = ['LIMIT_BAL'], specials=specials)
+    bucketer = EqualWidthBucketer(n_bins = 10, variables = ['LIMIT_BAL'], specials=specials)
     bucketer.fit_transform(X)
     bucketer.fit_transform(X)['LIMIT_BAL'].value_counts()
     ```
     """
 
-    def __init__(self, bins=-1, variables=[], specials={}, missing_treatment='separate'):
+    def __init__(self, n_bins=-1, variables=[], specials={}, missing_treatment='separate'):
         """Init the class.
 
         Args:
-            bins (int): Number of bins to create.
+            n_bins (int): Number of bins to create.
             variables (list): The features to bucket. Uses all features if not defined.
             specials: (dict) of special values that require their own binning.
                 The dictionary has the following format:
@@ -227,12 +227,12 @@ class EqualWidthBucketer(BaseBucketer):
                 This bucket number is where we will put the missing values.
         """
         assert isinstance(variables, list)
-        assert isinstance(bins, int)
+        assert isinstance(n_bins, int)
         self._is_allowed_missing_treatment(missing_treatment)
 
         self.missing_treatment = missing_treatment
         self.variables = variables
-        self.bins = bins
+        self.n_bins = n_bins
         self.specials = specials
 
         self._verify_specials_variables(self.specials, self.variables)
@@ -255,7 +255,7 @@ class EqualWidthBucketer(BaseBucketer):
                 special = {}
 
             X_flt, y_flt = self._filter_na_for_fit(X=X_flt, y=y_flt)
-            _, boundaries = np.histogram(X_flt.values, bins=self.bins)
+            _, boundaries = np.histogram(X_flt.values, bins=self.n_bins)
 
             # np.histogram returns the min & max values of the fits
             # On transform, we use np.digitize, which means new data that is outside of this range
@@ -293,17 +293,17 @@ class AgglomerativeClusteringBucketer(BaseBucketer):
     specials = {"LIMIT_BAL": {"=50000": [50000], "in [20001,30000]": [20000, 30000]}}
 
     X, y = datasets.load_uci_credit_card(return_X_y=True)
-    bucketer = AgglomerativeClusteringBucketer(bins = 10, variables=['LIMIT_BAL'], specials=specials)
+    bucketer = AgglomerativeClusteringBucketer(n_bins = 10, variables=['LIMIT_BAL'], specials=specials)
     bucketer.fit_transform(X)
     bucketer.fit_transform(X)['LIMIT_BAL'].value_counts()
     ```
     """
 
-    def __init__(self, bins=-1, variables=[], specials={}, missing_treatment='separate'):
+    def __init__(self, n_bins=-1, variables=[], specials={}, missing_treatment='separate'):
         """Init the class.
 
         Args:
-            bins (int): Number of bins to create.
+            n_bins (int): Number of bins to create.
             variables (list): The features to bucket. Uses all features if not defined.
             specials: (dict) of special values that require their own binning.
                 The dictionary has the following format:
@@ -324,11 +324,11 @@ class AgglomerativeClusteringBucketer(BaseBucketer):
 
         """
         assert isinstance(variables, list)
-        assert isinstance(bins, int)
+        assert isinstance(n_bins, int)
         self._is_allowed_missing_treatment(missing_treatment)
 
         self.variables = variables
-        self.bins = bins
+        self.n_bins = n_bins
         self.specials = specials
         self.missing_treatment = missing_treatment
 
@@ -342,7 +342,7 @@ class AgglomerativeClusteringBucketer(BaseBucketer):
         self.features_bucket_mapping_ = {}
 
         for feature in self.variables:
-            ab = AgglomerativeBucketer(bin_count=self.bins)
+            ab = AgglomerativeBucketer(bin_count=self.n_bins)
 
             if feature in self.specials.keys():
                 special = self.specials[feature]
@@ -388,17 +388,17 @@ class EqualFrequencyBucketer(BaseBucketer):
     from skorecard.bucketers import EqualFrequencyBucketer
 
     X, y = datasets.load_uci_credit_card(return_X_y=True)
-    bucketer = EqualFrequencyBucketer(bins = 10, variables=['LIMIT_BAL'])
+    bucketer = EqualFrequencyBucketer(n_bins = 10, variables=['LIMIT_BAL'])
     bucketer.fit_transform(X)
     bucketer.fit_transform(X)['LIMIT_BAL'].value_counts()
     ```
     """
 
-    def __init__(self, bins=-1, variables=[], specials={}, missing_treatment='separate'):
+    def __init__(self, n_bins=-1, variables=[], specials={}, missing_treatment='separate'):
         """Init the class.
 
         Args:
-            bins (int): Number of bins to create.
+            n_bins (int): Number of bins to create.
             variables (list): The features to bucket. Uses all features if not defined.
             specials: (nested) dictionary of special values that require their own binning.
                 The dictionary has the following format:
@@ -419,11 +419,11 @@ class EqualFrequencyBucketer(BaseBucketer):
 
         """
         assert isinstance(variables, list)
-        assert isinstance(bins, int)
+        assert isinstance(n_bins, int)
         self._is_allowed_missing_treatment(missing_treatment)
 
         self.variables = variables
-        self.bins = bins
+        self.n_bins = n_bins
         self.specials = specials
         self.missing_treatment = missing_treatment
 
@@ -450,12 +450,12 @@ class EqualFrequencyBucketer(BaseBucketer):
                 X_flt = X[feature]
                 special = {}
             try:
-                _, boundaries = pd.qcut(X_flt, q=self.bins, retbins=True, duplicates="raise")
+                _, boundaries = pd.qcut(X_flt, q=self.n_bins, retbins=True, duplicates="raise")
             except ValueError:
                 # If there are too many duplicate values (assume a lot of filled missings)
                 # this crashes - the exception drops them.
                 # This means that it will return approximate quantile bins
-                _, boundaries = pd.qcut(X_flt, q=self.bins, retbins=True, duplicates="drop")
+                _, boundaries = pd.qcut(X_flt, q=self.n_bins, retbins=True, duplicates="drop")
                 warnings.warn(ApproximationWarning("Approximated quantiles - too many unique values"))
 
             # pd.qcut returns the min & max values of the fits
@@ -830,7 +830,7 @@ class UserInputBucketer(BaseBucketer):
 
     X, y = datasets.load_uci_credit_card(return_X_y=True)
 
-    ac_bucketer = AgglomerativeClusteringBucketer(bins=3, variables=['LIMIT_BAL'])
+    ac_bucketer = AgglomerativeClusteringBucketer(n_bins=3, variables=['LIMIT_BAL'])
     ac_bucketer.fit(X)
     mapping = ac_bucketer.features_bucket_mapping_
 
@@ -846,7 +846,7 @@ class UserInputBucketer(BaseBucketer):
             }
     }
 
-    ac_bucketer = AgglomerativeClusteringBucketer(bins=3, variables=['LIMIT_BAL'], specials = specials)
+    ac_bucketer = AgglomerativeClusteringBucketer(n_bins=3, variables=['LIMIT_BAL'], specials = specials)
     ac_bucketer.fit(X)
     mapping = ac_bucketer.features_bucket_mapping_
 

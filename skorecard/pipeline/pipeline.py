@@ -29,7 +29,7 @@ class KeepPandas(BaseEstimator, TransformerMixin):
 
     bucket_pipeline = make_pipeline(
         KeepPandas(StandardScaler()),
-        EqualWidthBucketer(bins=5, variables=['LIMIT_BAL', 'BILL_AMT1']),
+        EqualWidthBucketer(n_bins=5, variables=['LIMIT_BAL', 'BILL_AMT1']),
     )
     bucket_pipeline.fit_transform(X, y)
     ```
@@ -233,7 +233,7 @@ def get_features_bucket_mapping(pipe: Pipeline) -> FeaturesBucketMapping:
     X, y = datasets.load_uci_credit_card(return_X_y=True)
 
     bucket_pipeline = make_pipeline(
-        EqualWidthBucketer(bins=5, variables=['LIMIT_BAL', 'BILL_AMT1']),
+        EqualWidthBucketer(n_bins=5, variables=['LIMIT_BAL', 'BILL_AMT1']),
         OrdinalCategoricalBucketer(variables=['EDUCATION', 'MARRIAGE'])
     )
 

@@ -71,7 +71,7 @@ def test_specials_equal_width_bucketer(df):
 
     specials = {"LIMIT_BAL": {"=50000": [50000], "in [20001,30000]": [20000, 30000]}}
 
-    ebt = EqualWidthBucketer(variables=["LIMIT_BAL", "BILL_AMT1"], bins=3, specials=specials)
+    ebt = EqualWidthBucketer(variables=["LIMIT_BAL", "BILL_AMT1"], n_bins=3, specials=specials)
     X_bins = ebt.fit_transform(X, y)
 
     assert X_bins["BILL_AMT1"].nunique() == 3
@@ -101,7 +101,7 @@ def test_specials_equal_width_bucketer(df):
     specials = {"LIMIT_BAL": {"=50000": [50000], "in [20001,30000]": [20000, 30000]}, "Undefinedfeature": {"1": [2]}}
 
     with pytest.raises(ValueError):
-        EqualWidthBucketer(variables=["LIMIT_BAL", "BILL_AMT1"], bins=3, specials=specials)
+        EqualWidthBucketer(variables=["LIMIT_BAL", "BILL_AMT1"], n_bins=3, specials=specials)
 
 
 def test_specials_equal_frequency_bucketer(df):
@@ -114,7 +114,7 @@ def test_specials_equal_frequency_bucketer(df):
 
     specials = {"LIMIT_BAL": {"=50000": [50000], "in [20001,30000]": [20000, 30000]}}
 
-    ebt = EqualFrequencyBucketer(variables=["LIMIT_BAL", "BILL_AMT1"], bins=3, specials=specials)
+    ebt = EqualFrequencyBucketer(variables=["LIMIT_BAL", "BILL_AMT1"], n_bins=3, specials=specials)
     X_bins = ebt.fit_transform(X, y)
 
     assert X_bins["BILL_AMT1"].nunique() == 3
@@ -144,7 +144,7 @@ def test_specials_equal_frequency_bucketer(df):
     specials = {"LIMIT_BAL": {"=50000": [50000], "in [20001,30000]": [20000, 30000]}, "Undefinedfeature": {"1": [2]}}
 
     with pytest.raises(ValueError):
-        EqualFrequencyBucketer(variables=["LIMIT_BAL", "BILL_AMT1"], bins=3, specials=specials)
+        EqualFrequencyBucketer(variables=["LIMIT_BAL", "BILL_AMT1"], n_bins=3, specials=specials)
 
 
 def _test_specials_optimal_bucketer(df):
