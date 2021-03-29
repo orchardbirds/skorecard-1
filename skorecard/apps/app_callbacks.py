@@ -158,7 +158,6 @@ def add_callbacks(self):
         else:
             error = dbc.Alert("The buckets most be in ascending order!", color="danger")
             return None, error
-        error = []
 
         bucket_mapping = self.ui_bucketer.features_bucket_mapping.get(col)
 
