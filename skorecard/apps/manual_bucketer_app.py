@@ -79,8 +79,20 @@ class BucketTweakerApp(object):
         index_bucketing_process = find_bucketing_step(pipeline, identifier="bucketingprocess")
         bucketingprocess = pipeline.steps[index_bucketing_process][1]
 
+        # # # Extract the features bucket mapping information
+        self.original_prebucket_feature_mapping = copy.deepcopy(
+            get_features_bucket_mapping(bucketingprocess.prebucketing_pipeline)
+        )
+        self.original_bucket_feature_mapping = copy.deepcopy(
+            get_features_bucket_mapping(bucketingprocess.bucketing_pipeline)
+        )
+
         # Save prebuckets
         self.X_prebucketed = bucketingprocess.prebucketing_pipeline.transform(X)
+
+        # TODO - do we need to make this more robust?
+        self.postbucketing_pipeline = Pipeline(pipeline.steps[1:])
+        self.prebucketing_pipeline = copy.deepcopy(bucketingprocess.prebucketing_pipeline)
 
         # Here is the real trick
         # We replace the bucketing pipeline step with a UserInputBucketer
@@ -89,39 +101,8 @@ class BucketTweakerApp(object):
         # but you shouldn't want/need to if you made manual changes.
         self.ui_bucketer = UserInputBucketer(copy.deepcopy(bucketingprocess._features_bucket_mapping))
         self.pipeline = make_pipeline(
-            bucketingprocess.prebucketing_pipeline, self.ui_bucketer, self.postbucketing_pipeline
+            self.prebucketing_pipeline, self.ui_bucketer, self.postbucketing_pipeline
         )
-
-        # ====================
-        # Dan and I where HERE
-        # ====================
-
-        # Identify the bucketing steps in the pipeline
-        index_prebucket_pipeline = find_bucketing_step(pipeline, identifier="prebucketing_pipeline")
-        index_bucket_pipeline = find_bucketing_step(pipeline)
-
-        # # Extract the features bucket mapping information
-        self.original_prebucket_feature_mapping = copy.deepcopy(
-            get_features_bucket_mapping(pipeline[index_prebucket_pipeline])
-        )
-        self.original_bucket_feature_mapping = copy.deepcopy(
-            get_features_bucket_mapping(pipeline[index_bucket_pipeline])
-        )
-
-        # # Split pipeline into different parts
-        self.prebucketing_pipeline = Pipeline(pipeline.steps[:index_bucket_pipeline])
-        self.postbucketing_pipeline = Pipeline(pipeline.steps[index_bucket_pipeline + 1 :])
-
-        # # Here is the real trick
-        # # We replace the bucketing pipeline step with a UserInputBucketer
-        # # Now we can tweak the FeatureMapping in the UserInputBucketer
-        # # Obviously that means you cannot re-fit,
-        # # but you shouldn't want/need to if you made manual changes.
-        self.ui_bucketer = UserInputBucketer(copy.deepcopy(self.original_bucket_feature_mapping))
-        self.pipeline = make_pipeline(self.prebucketing_pipeline, self.ui_bucketer, self.postbucketing_pipeline)
-
-        # # Now get the prebucketed features
-        self.X_prebucketed = self.prebucketing_pipeline.transform(self.X)
 
         # # Checks on prebucketed data
         assert isinstance(self.X_prebucketed, pd.DataFrame)
@@ -132,7 +113,7 @@ class BucketTweakerApp(object):
                 raise AssertionError(f"{feature} has >100 values. Did you apply pre-bucketing?")
 
         # # All columns should have a prebucketing step defined
-        features_prebucket_mapping = get_features_bucket_mapping(self.prebucketing_pipeline)
+        features_prebucket_mapping = get_features_bucket_mapping(bucketingprocess.prebucketing_pipeline)
         missing_columns = [c for c in X.columns if c not in features_prebucket_mapping.columns]
         if len(missing_columns) > 0:
             raise BucketingPipelineError(
@@ -143,6 +124,7 @@ class BucketTweakerApp(object):
         self.app = JupyterDash(__name__)
         add_layout(self)
         add_callbacks(self)
+
 
     def run_server(self, *args, **kwargs):
         """Start a dash server.

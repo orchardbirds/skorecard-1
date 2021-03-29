@@ -124,6 +124,17 @@ class BaseBucketer(BaseEstimator, TransformerMixin):
         """
         return self.transform(X)
 
+    def predict_proba(self, X):
+        """Applies the transform method. To be used for the grid searches.
+
+        Args:
+            X (pd.DataFrame): The numerical data which will be transformed into the corresponding buckets
+
+        Returns:
+            np.array of the transformed X, such that the values of X are replaced by the corresponding bucket numbers
+        """
+        return self.transform(X)
+
 
 # def _check_contains_na(X, variables):
 #     if X[variables].isnull().values.any():
