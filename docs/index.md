@@ -1,3 +1,8 @@
+---
+hide:
+  - toc        # Hide table of contents
+---
+
 # skorecard
 
 Tools for automating the construction of credit risk acceptance models (scorecards) in python, with a sklearn-compatible API.
@@ -17,5 +22,9 @@ Scorecard models are binary classification models that output the probability of
 ## Installation
 
 ```shell
-pip3 install git+ssh://git@gitlab.ing.net:2222/RiskandPricingAdvancedAnalytics/skorecard.git
+pip3 install skorecard
 ```
+
+!!! Warning "Not yet released"
+
+    This package has yet to be released on Pypi.

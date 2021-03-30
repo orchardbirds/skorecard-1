@@ -7,14 +7,33 @@ from skorecard.utils import convert_sparse_matrix
 class LogisticRegression(lm.LogisticRegression):
     """Extends the  Logisitic Regression class implemented in sklearn.
 
-    In addition to the regular fit, it computes the following useful statistics.
-    - cov_matrix_: covariance matrix for the estimated parameters.
-    - std_err_intercept_: estimated uncertainty for the intercept
-    - std_err_coef_: estimated uncertainty for the coefficients
-    - z_intercept_: estimated z-statistic for the intercept
-    - z_coef_: estimated z-statistic for the coefficients
-    - p_value_intercept_: estimated p-value for the intercept
-    - p_value_coef_: estimated p-value for the coefficients
+    In addition to the regular fit, it computes the following useful statistics:
+
+    - `cov_matrix_`: covariance matrix for the estimated parameters.
+    - `std_err_intercept_`: estimated uncertainty for the intercept
+    - `std_err_coef_`: estimated uncertainty for the coefficients
+    - `z_intercept_`: estimated z-statistic for the intercept
+    - `z_coef_`: estimated z-statistic for the coefficients
+    - `p_value_intercept_`: estimated p-value for the intercept
+    - `p_value_coef_`: estimated p-value for the coefficients
+
+    ```python
+    from skorecard.datasets import load_uci_credit_card
+    from skorecard.bucketers import EqualFrequencyBucketer
+    from sklearn.pipeline import Pipeline
+    from sklearn.preprocessing import OneHotEncoder
+
+    X, y = datasets.load_uci_credit_card(return_X_y=True)
+
+    pipeline = Pipeline([
+        ('bucketer', EqualFrequencyBucketer(n_bins=10)),
+        ('ohe', OneHotEncoder()),
+        ('clf', LogisticRegression())
+    ])
+    pipeline.fit(*X_y)
+    assert pipeline.named_steps['clf'].p_val_coef_[1] > 0
+    ```
+
     """
 
     def fit(self, X, y, sample_weight=None, **kwargs):
