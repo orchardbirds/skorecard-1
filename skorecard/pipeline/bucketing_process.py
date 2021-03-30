@@ -1,11 +1,15 @@
 from skorecard.utils import NotPreBucketedError, NotBucketObjectError
 from skorecard.pipeline import get_features_bucket_mapping
+from skorecard.apps.app_utils import determine_boundaries
+from skorecard.reporting import create_report, plot_bucket_table, plot_prebucket_table
+from skorecard.bucketers import UserInputBucketer
 
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.pipeline import make_pipeline
-
-# from sklearn.pipeline import make_pipeline as scikit_make_pipeline
 from sklearn.utils.validation import check_is_fitted
+
+import copy
+import pandas as pd
 
 
 class BucketingProcess(BaseEstimator, TransformerMixin):
@@ -76,6 +80,55 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
             if "skorecard.bucketers" not in str(type(step)):
                 raise NotBucketObjectError(msg)
 
+    def bucket_table(self, column):
+        if column not in self.X.columns:
+            raise ValueError(f"column {column} not in columns of X {self.X.columns}")
+
+        prebucket_table = self.prebucket_table(column=column)
+        new_buckets = pd.DataFrame()
+        new_buckets["pre_buckets"] = [prebucket for prebucket in prebucket_table['pre-bucket'].values]
+        new_buckets["buckets"] = [int(bucket) for bucket in prebucket_table['bucket'].values]
+
+        bucket_mapping = self.ui_bucketer.features_bucket_mapping.get(column)
+
+        boundaries = determine_boundaries(new_buckets, bucket_mapping)
+        self.ui_bucketer.features_bucket_mapping.get(column).map = boundaries
+
+        table = create_report(
+            self.X_prebucketed_,
+            self.y,
+            column=column,
+            bucket_mapping=self.ui_bucketer.features_bucket_mapping.get(column),
+            display_missing=False,
+        )
+        table = table.rename(columns={"bucket_id": "bucket"})
+        table["Event Rate"] = round(table["Event Rate"] * 100, 2)
+        return table
+
+    def prebucket_table(self, column):
+        if column not in self.X.columns:
+            raise ValueError(f"column {column} not in columns of X {self.X.columns}")
+
+        table = create_report(
+            self.X, self.y, column=column, bucket_mapping=self._features_prebucket_mapping.get(column)
+        )
+
+        table["Event Rate"] = round(table["Event Rate"] * 100, 2)
+        table = table.rename(columns={"bucket_id": "pre-bucket"})
+
+        # Apply bucket mapping
+        bucket_mapping = self.ui_bucketer.features_bucket_mapping.get(column)
+        table["bucket"] = bucket_mapping.transform(table["pre-bucket"])
+        return table
+
+    def plot_prebucket_bins(self, column):
+        return plot_prebucket_table(self.prebucket_table(column=column))
+
+
+    def plot_bucket_bins(self, column):
+        return plot_bucket_table(self.bucket_table(column=column))
+    
+
     def register_prebucketing_pipeline(self, *steps, **kwargs):
         """Helps to identify a (series of) sklearn pipeline steps as the pre-bucketing steps.
 
@@ -119,6 +172,8 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
             y ([type], optional): [description]. Defaults to None.
 
         """
+        self.X = X
+        self.y = y
         self.X_prebucketed_ = self.prebucketing_pipeline.fit_transform(X, y)
 
         # find the prebucket features bucket mapping. This is necessary
@@ -132,6 +187,12 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
 
         self.bucketing_pipeline.fit(self.X_prebucketed_, y)
         self._features_bucket_mapping = get_features_bucket_mapping(self.bucketing_pipeline)
+
+        # Add UI bucketer for report
+        self.ui_bucketer = UserInputBucketer(self._features_bucket_mapping)
+        self.pipeline = make_pipeline(
+            self.prebucketing_pipeline, self.ui_bucketer, self.bucketing_pipeline
+        )
 
         return self
 
@@ -209,18 +270,9 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
 
         return self.X_bucketed
 
-    @property
-    def buckets(self):
-        """
-        Buckets after bucketing process.
-        """
-        pass
-
 
 # bucketing_process.summary() # all vars, and # buckets
 # bucketing_process.bucket_table("varname")
 # bucketing_process.bucket_plot("varname")
 # bucketing_process.prebucket_table("varname")
 # bucketing_process.prebucket_plot("varname")
-# bucketing_process.buckets
-# bucketing_process.prebuckets
