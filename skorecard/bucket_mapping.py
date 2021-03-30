@@ -119,7 +119,6 @@ class BucketMapping:
             x = pd.Series(x)
         if isinstance(x, list):
             x = pd.Series(x)
-        
         if self.type == "numerical":
             buckets = self._apply_num_mapping(x)
             max_bucket_number = int(buckets.max())

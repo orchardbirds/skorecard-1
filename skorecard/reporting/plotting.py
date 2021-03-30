@@ -56,3 +56,77 @@ def plot_bins(X, y, col):
         height=350,
     )
     return fig
+
+def plot_prebucket_table(prebucket_table):
+    """
+    Given the prebucketed data, plot the pre-buckets
+
+    Args:
+        prebucket_table (pd.DataFrame): the table of the prebucketed data
+
+    Returns:
+        plotly fig
+    """
+    bucket_colors = get_bucket_colors() * 4  # We repeat the colors in case there are lots of buckets
+    buckets = [prebucket for prebucket in prebucket_table['pre-bucket'].values]
+    bar_colors = [bucket_colors[i] for i in buckets]
+
+    fig = plot_bins(self.X_prebucketed_, self.y, column)
+    fig.update_layout(transition_duration=50)
+    fig.update_layout(showlegend=False)
+    fig.update_layout(xaxis_title=column)
+    fig.update_layout(title="Pre-bucketed")
+    fig.update_traces(marker=dict(color=bar_colors), selector=dict(type="bar"))
+    return fig
+
+def plot_bucket_table(bucket_table):
+    """
+    Given the bucketed data, plot the buckets with Event Rate
+
+    Args:
+        bucket_table (pd.DataFrame): the table of the bucketed data
+
+    Returns:
+        plotly fig
+    """
+    bucket_colors = get_bucket_colors() * 4  # We repeat the colors in case there are lots of buckets
+    buckets = [int(bucket) for bucket in bucket_table['bucket'].values]
+    bar_colors = [bucket_colors[i] for i in buckets]
+
+    plotdf = pd.DataFrame(
+        {
+            "bucket": buckets,
+            "counts": [int(count) for count in bucket_table['Count'].values],
+            "counts %": [float(count) for count in bucket_table['Count (%)'].values],
+            "Event Rate": [event for event in bucket_table['Event Rate'].values],
+        }
+    )
+
+    # Create figure with secondary y-axis
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
+    # Add traces
+    fig.add_trace(
+        go.Bar(x=plotdf["bucket"], y=plotdf["counts %"], name="counts (%)"),
+        secondary_y=False,
+    )
+    fig.add_trace(
+        go.Scatter(x=plotdf["bucket"], y=plotdf["Event Rate"], name="Event Rate", line=dict(color="#454c57")),
+        secondary_y=True,
+    )
+    fig.update_layout(transition_duration=50)
+    fig.update_layout(showlegend=False)
+    fig.update_layout(xaxis_title="Bucket")
+    # Set y-axes titles
+    fig.update_yaxes(title_text="counts (%)", secondary_y=False)
+    fig.update_yaxes(title_text="event rate (%)", secondary_y=True)
+    fig.update_layout(title="Bucketed")
+    fig.update_xaxes(type="category")
+    fig.update_traces(
+        marker=dict(color=bar_colors),
+        selector=dict(type="bar"),
+    )
+    fig.update_layout(
+        margin=dict(l=20, r=20, t=40, b=20),
+        height=350,
+    )
+    return fig

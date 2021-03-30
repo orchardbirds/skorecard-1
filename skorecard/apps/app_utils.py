@@ -25,8 +25,8 @@ def determine_boundaries(df: pd.DataFrame, bucket_mapping: BucketMapping) -> lis
     assert "pre_buckets" in df.columns
     assert "buckets" in df.columns
 
-    if bucket_mapping.type != "numerical":
-        raise NotImplementedError("todo")
+    # if bucket_mapping.type != "numerical":
+    #     raise NotImplementedError("todo")
 
     dfg = df.groupby(["buckets"]).agg(["max"])
     dfg.columns = dfg.columns.get_level_values(1)
@@ -42,8 +42,9 @@ def determine_boundaries(df: pd.DataFrame, bucket_mapping: BucketMapping) -> lis
     # instead of a new one
     boundaries = list(boundaries)[:-1]
 
-    assert sorted(boundaries) == boundaries, "buckets must be sorted"
-    return boundaries
+    #assert sorted(boundaries) == boundaries, "buckets must be sorted"
+    return sorted(boundaries)
+    #return boundaries
 
 
 def perc_data_bars(column):
