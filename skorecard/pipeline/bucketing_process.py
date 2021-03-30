@@ -1,7 +1,7 @@
 from skorecard.utils import NotPreBucketedError, NotBucketObjectError
 from skorecard.pipeline import get_features_bucket_mapping
 from skorecard.apps.app_utils import determine_boundaries
-from skorecard.reporting import create_report, plot_bucket_table, plot_prebucket_table
+from skorecard.reporting import create_report, plot_bucket_table, plot_prebucket_table, plot_bins
 from skorecard.bucketers import UserInputBucketer
 
 from sklearn.base import BaseEstimator, TransformerMixin
@@ -52,7 +52,6 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
     ```
 
     """
-
     def __init__(self, specials={}):
         """Init the class.
 
@@ -67,6 +66,7 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
         """
         self.prebucketing_pipeline = None
         self._prebucketing_specials = specials
+        self.specials = specials  # I have no idea why this is needed. Remove it for insane errors
         self.name = "bucketingprocess"
     
     def _check_all_bucketers(self, steps):
@@ -122,7 +122,7 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
         return table
 
     def plot_prebucket_bins(self, column):
-        return plot_prebucket_table(self.prebucket_table(column=column))
+        return plot_prebucket_table(prebucket_table=self.prebucket_table(column), X=self.X_prebucketed_, y=self.y, column=column)
 
 
     def plot_bucket_bins(self, column):
@@ -188,7 +188,7 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
         self.bucketing_pipeline.fit(self.X_prebucketed_, y)
         self._features_bucket_mapping = get_features_bucket_mapping(self.bucketing_pipeline)
 
-        # Add UI bucketer for report
+        #Add UI bucketer for report
         self.ui_bucketer = UserInputBucketer(self._features_bucket_mapping)
         self.pipeline = make_pipeline(
             self.prebucketing_pipeline, self.ui_bucketer, self.bucketing_pipeline
