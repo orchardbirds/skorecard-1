@@ -43,11 +43,9 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
 
     # bucketing_process.summary() # all vars, and # buckets
     # bucketing_process.bucket_table("varname")
-    # bucketing_process.bucket_plot("varname")
+    # bucketing_process.plot_bucket("varname")
     # bucketing_process.prebucket_table("varname")
-    # bucketing_process.prebucket_plot("varname")
-    # bucketing_process.buckets
-    # bucketing_process.prebuckets
+    # bucketing_process.plot_prebucket("varname")
 
     ```
 
@@ -81,6 +79,22 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
                 raise NotBucketObjectError(msg)
 
     def bucket_table(self, column):
+        """
+        Generates the statistics for the buckets of a particular column.
+        The pre-buckets are matched to the post-buckets, so that the user has a much clearer understanding of how
+        the BucketingProcess ends up with the final buckets.
+        An example is seen below:
+
+        pre-bucket	label	            Count	Count (%)	Non-event	Event	Event Rate	WoE	  IV	bucket
+        0	        (-inf, 25000.0)	    479.0	7.98	    300.0	    179.0	37.37	    0.73  0.05	0
+        1	        [25000.0, 45000.0)	370.0	6.17	    233.0	    137.0	37.03	    0.71  0.04	1
+
+        Args:
+            column: The column we wish to analyse
+        
+        Returns:
+            A pandas dataframe of the format above
+        """
         if column not in self.X.columns:
             raise ValueError(f"column {column} not in columns of X {self.X.columns}")
 
@@ -106,6 +120,19 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
         return table
 
     def prebucket_table(self, column):
+        """
+        Generates the statistics for the buckets of a particular column. An example is seen below:
+
+        bucket	label	      Count	 Count (%)	Non-event	Event	Event Rate	WoE	    IV
+        0	    (-inf, 1.0)	  479	 7.98	    300	        179	    37.37	    0.73	0.05
+        1	    [1.0, 2.0)	  370	 6.17	    233	        137	    37.03	    0.71	0.04
+
+        Args:
+            column: The column we wish to analyse
+        
+        Returns:
+            A pandas dataframe of the format above
+        """
         if column not in self.X.columns:
             raise ValueError(f"column {column} not in columns of X {self.X.columns}")
 
@@ -121,14 +148,28 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
         table["bucket"] = bucket_mapping.transform(table["pre-bucket"])
         return table
 
-    def plot_prebucket_bins(self, column):
+    def plot_prebucket(self, column):
+        """
+        Generates the prebucket table and produces a corresponding plotly plot.
+
+        Args:
+            column: The column we want to visualise
+        
+        Returns:
+            plotly fig
+        """
         return plot_prebucket_table(prebucket_table=self.prebucket_table(column), X=self.X_prebucketed_, y=self.y, column=column)
 
-
-    def plot_bucket_bins(self, column):
+    def plot_bucket(self, column):
+        """
+        Args:
+            column: The column we want to visualise
+        
+        Returns:
+            plotly fig
+        """
         return plot_bucket_table(self.bucket_table(column=column))
     
-
     def register_prebucketing_pipeline(self, *steps, **kwargs):
         """Helps to identify a (series of) sklearn pipeline steps as the pre-bucketing steps.
 
@@ -270,9 +311,6 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
 
         return self.X_bucketed
 
-
+#TODO:
 # bucketing_process.summary() # all vars, and # buckets
-# bucketing_process.bucket_table("varname")
-# bucketing_process.bucket_plot("varname")
-# bucketing_process.prebucket_table("varname")
-# bucketing_process.prebucket_plot("varname")
+
