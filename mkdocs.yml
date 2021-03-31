@@ -43,6 +43,9 @@ plugins:
     - search
     - git-revision-date-localized:
         type: timeago
+    - mknotebooks:
+        enable_default_jupyter_cell_styling: false
+        enable_default_pandas_dataframe_styling: true
     - mkdocstrings:
         default_handler: python
         handlers:
@@ -58,7 +61,8 @@ nav:
         - Index: index.md
         - Contributing: contributing.md
     - Tutorials:
-        - Getting Started: guides/getting-started.md
+        - Using bucketers: tutorials/using_bucketers.ipynb
+        - Old Getting Started: guides/getting-started.md
     - How to:
         - examples.md
     - API: 

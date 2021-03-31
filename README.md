@@ -19,7 +19,7 @@ Scorecard models are binary classification models that output the probability of
 ## Installation
 
 ```shell
-pip3 install git+ssh://git@gitlab.ing.net:2222/RiskandPricingAdvancedAnalytics/skorecard.git
+pip3 install skorecard
 ```
 
 ## Documentation
