@@ -51,9 +51,9 @@ class OptimalBucketer(BaseBucketer):
         specials={},
         variables_type="numerical",
         max_n_bins=10,
-        missing_treatment='separate',
+        missing_treatment="separate",
         min_bin_size=0.05,
-        cat_cutoff=0.05,
+        cat_cutoff=None,
         time_limit=25,
         **kwargs,
     ) -> None:
@@ -75,12 +75,12 @@ class OptimalBucketer(BaseBucketer):
                 risky: todo
                 frequent: todo
 
-                If a dict, it must be of the following format: 
+                If a dict, it must be of the following format:
                 {"<column name>": <bucket_number>}
                 This bucket number is where we will put the missing values.
             min_bin_size: Minimum fraction of observations in a bucket. Passed to optbinning.OptimalBinning.
             max_n_bins: Maximum numbers of bins to return. Passed to optbinning.OptimalBinning.
-            cat_cutoff: Threshold ratio to below which categories are grouped
+            cat_cutoff: Threshold ratio (None, or >0 and <=1) to below which categories are grouped
                 together in a bucket 'other'. Passed to optbinning.OptimalBinning.
             time_limit: Time limit in seconds to find an optimal solution. Passed to optbinning.OptimalBinning.
             kwargs: Other parameters passed to optbinning.OptimalBinning. Passed to optbinning.OptimalBinning.
@@ -173,7 +173,7 @@ class OptimalBucketer(BaseBucketer):
                 map=splits,
                 right=False,
                 specials=special,
-                missing_treatment=self.missing_treatment
+                missing_treatment=self.missing_treatment,
             )
 
         return self
@@ -203,7 +203,7 @@ class EqualWidthBucketer(BaseBucketer):
     ```
     """
 
-    def __init__(self, n_bins=-1, variables=[], specials={}, missing_treatment='separate'):
+    def __init__(self, n_bins=-1, variables=[], specials={}, missing_treatment="separate"):
         """Init the class.
 
         Args:
@@ -222,7 +222,7 @@ class EqualWidthBucketer(BaseBucketer):
                 risky: todo
                 frequent: todo
 
-                If a dict, it must be of the following format: 
+                If a dict, it must be of the following format:
                 {"<column name>": <bucket_number>}
                 This bucket number is where we will put the missing values.
         """
@@ -265,11 +265,11 @@ class EqualWidthBucketer(BaseBucketer):
 
             self.features_bucket_mapping_[feature] = BucketMapping(
                 feature_name=feature,
-                type="numerical", 
-                map=boundaries, 
-                right=True, 
-                specials=special, 
-                missing_treatment=self.missing_treatment
+                type="numerical",
+                map=boundaries,
+                right=True,
+                specials=special,
+                missing_treatment=self.missing_treatment,
             )
 
         return self
@@ -299,7 +299,7 @@ class AgglomerativeClusteringBucketer(BaseBucketer):
     ```
     """
 
-    def __init__(self, n_bins=-1, variables=[], specials={}, missing_treatment='separate'):
+    def __init__(self, n_bins=-1, variables=[], specials={}, missing_treatment="separate"):
         """Init the class.
 
         Args:
@@ -318,7 +318,7 @@ class AgglomerativeClusteringBucketer(BaseBucketer):
                 risky: todo
                 frequent: todo
 
-                If a dict, it must be of the following format: 
+                If a dict, it must be of the following format:
                 {"<column name>": <bucket_number>}
                 This bucket number is where we will put the missing values.
 
@@ -362,11 +362,11 @@ class AgglomerativeClusteringBucketer(BaseBucketer):
 
             self.features_bucket_mapping_[feature] = BucketMapping(
                 feature_name=feature,
-                type="numerical", 
-                map=boundaries, 
-                right=True, 
+                type="numerical",
+                map=boundaries,
+                right=True,
                 specials=special,
-                missing_treatment=self.missing_treatment
+                missing_treatment=self.missing_treatment,
             )
 
         return self
@@ -394,7 +394,7 @@ class EqualFrequencyBucketer(BaseBucketer):
     ```
     """
 
-    def __init__(self, n_bins=-1, variables=[], specials={}, missing_treatment='separate'):
+    def __init__(self, n_bins=-1, variables=[], specials={}, missing_treatment="separate"):
         """Init the class.
 
         Args:
@@ -413,7 +413,7 @@ class EqualFrequencyBucketer(BaseBucketer):
                 risky: todo
                 frequent: todo
 
-                If a dict, it must be of the following format: 
+                If a dict, it must be of the following format:
                 {"<column name>": <bucket_number>}
                 This bucket number is where we will put the missing values.
 
@@ -470,7 +470,7 @@ class EqualFrequencyBucketer(BaseBucketer):
                 map=boundaries,
                 right=True,  # pd.qcut returns bins including right edge: (edge, edge]
                 specials=special,
-                missing_treatment=self.missing_treatment
+                missing_treatment=self.missing_treatment,
             )
 
         return self
@@ -516,7 +516,7 @@ class DecisionTreeBucketer(BaseBucketer):
         variables=[],
         specials={},
         max_n_bins=100,
-        missing_treatment='separate',
+        missing_treatment="separate",
         min_bin_size=0.05,
         random_state=42,
         **kwargs,
@@ -545,7 +545,7 @@ class DecisionTreeBucketer(BaseBucketer):
                 risky: todo
                 frequent: todo
 
-                If a dict, it must be of the following format: 
+                If a dict, it must be of the following format:
                 {"<column name>": <bucket_number>}
                 This bucket number is where we will put the missing values.
             random_state: The random state, Passed directly to DecisionTreeClassifier
@@ -622,10 +622,10 @@ class DecisionTreeBucketer(BaseBucketer):
             self.features_bucket_mapping_[feature] = BucketMapping(
                 feature_name=feature,
                 type="numerical",
-                map=splits, 
-                right=False, 
+                map=splits,
+                right=False,
                 specials=special,
-                missing_treatment=self.missing_treatment
+                missing_treatment=self.missing_treatment,
             )
 
         return self
@@ -697,7 +697,15 @@ class OrdinalCategoricalBucketer(BaseBucketer):
 
     """
 
-    def __init__(self, tol=0.05, max_n_categories=None, variables=[], specials={}, encoding_method="frequency", missing_treatment='separate'):
+    def __init__(
+        self,
+        tol=0.05,
+        max_n_categories=None,
+        variables=[],
+        specials={},
+        encoding_method="frequency",
+        missing_treatment="separate",
+    ):
         """Init the class.
 
         Args:
@@ -725,7 +733,7 @@ class OrdinalCategoricalBucketer(BaseBucketer):
                 risky: todo
                 frequent: todo
 
-                If a dict, it must be of the following format: 
+                If a dict, it must be of the following format:
                 {"<column name>": <bucket_number>}
                 This bucket number is where we will put the missing values.
         """
@@ -804,10 +812,10 @@ class OrdinalCategoricalBucketer(BaseBucketer):
 
             self.features_bucket_mapping_[var] = BucketMapping(
                 feature_name=var,
-                type="categorical", 
-                map=mapping, 
+                type="categorical",
+                map=mapping,
                 specials=special,
-                missing_treatment=self.missing_treatment
+                missing_treatment=self.missing_treatment,
             )
 
         return self

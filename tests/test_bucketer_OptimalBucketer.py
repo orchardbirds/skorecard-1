@@ -114,17 +114,17 @@ def test_optimal_binning_categorical(df):
     obt = OptimalBucketer(variables=["EDUCATION"], variables_type="categorical")
     obt.fit(X, y)
     X_trans = obt.transform(X)
-    assert len(X_trans["EDUCATION"].unique()) == 4
+    assert len(X_trans["EDUCATION"].unique()) == 3
     assert obt.features_bucket_mapping_.get("EDUCATION") == BucketMapping(
         feature_name="EDUCATION",
         type="categorical",
-        map={1: 0, 3: 1, 2: 2, 5: 3, 4: 3, 6: 3, 0: 3},
+        map={0: 0, 6: 0, 4: 0, 5: 0, 1: 0, 3: 1, 2: 2},
         right=False,
-        labels={0: "1", 1: "3", 2: "2", 3: "0, 4, 5, 6", 4: "other", 5: "Missing"},
+        labels={0: "0, 1, 4, 5, 6", 1: "3", 2: "2", 3: "other", 4: "Missing"},
     )
 
     optb = OptimalBinning(
-        name="EDUCATION", dtype="categorical", solver="cp", cat_cutoff=0.05, max_n_prebins=100, max_n_bins=10
+        name="EDUCATION", dtype="categorical", solver="cp", cat_cutoff=None, max_n_prebins=100, max_n_bins=10
     )
     optb.fit(X["EDUCATION"], y)
     ref = optb.transform(X["EDUCATION"], metric="indices")
@@ -169,7 +169,7 @@ def test_optimal_binning_categorical_specials(df):
     obt = OptimalBucketer(variables=["EDUCATION"], variables_type="categorical", specials=specials)
     obt.fit(X, y)
     X_trans = obt.transform(X)
-    assert len(X_trans["EDUCATION"].unique()) == 5
+    assert len(X_trans["EDUCATION"].unique()) == 4
 
     assert obt.transform(X)["EDUCATION"][X["EDUCATION"] == 0].shape[0] == 1
 
@@ -179,9 +179,7 @@ def test_optimal_binning_categorical_specials(df):
     obt = OptimalBucketer(variables=["pet_ownership"], max_n_bins=2, variables_type="categorical", specials=specials)
     X_trans = obt.fit_transform(X, y)
     # import pdb; pdb.set_trace();
-    assert (
-        len(X_trans.pet_ownership.unique()) == 2 + 1 + 1
-    )  # 2, but a bug from Optimalbinning adding an extra, plus 1 speclias
+    assert len(X_trans.pet_ownership.unique()) == 2 + 1  # 2 bins plus 1 speclias
 
 
 def test_optimal_bucketing_cats(df):
@@ -209,40 +207,44 @@ def test_optimal_bucketing_cats(df):
     X_trans = obt.fit_transform(X, y)
     assert len(X_trans["LIMIT_BAL"].unique()) == 2
 
-### WIP because Opt binning bug creates n+1 bins
-def _test_missing_categorical_default(df_with_missings):
-    X = df[["LIMIT_BAL", "BILL_AMT1", "EDUCATION", "pet_ownership"]]
-    y = df["default"].values
-    obt = OptimalBucketer(variables=["pet_ownership", 'EDUCATION'],
-                        max_n_bins=2,
-                        variables_type="categorical"
-                        )
+
+# WIP because Opt binning bug creates n+1 bins
+# def _test_missing_categorical_default(df_with_missings):
+#     X = df[["LIMIT_BAL", "BILL_AMT1", "EDUCATION", "pet_ownership"]]
+#     y = df["default"].values
+#     obt = OptimalBucketer(variables=["pet_ownership", "EDUCATION"], max_n_bins=2, variables_type="categorical")
+
 
 def test_missing_categorical_manual(df_with_missings):
+    """
+    Test.
+    """
     X = df_with_missings[["LIMIT_BAL", "BILL_AMT1", "EDUCATION", "pet_ownership"]]
     y = df_with_missings["default"].values
-    obt = OptimalBucketer(variables=["pet_ownership", 'EDUCATION'],
-                          max_n_bins=2,
-                          variables_type="categorical",
-                          missing_treatment ={'pet_ownership': 0}
-                          )
-    obt.fit(X[["pet_ownership", 'EDUCATION']], y)
-    X_trans = obt.transform(X[["pet_ownership", 'EDUCATION']])#['pet_ownership']
-    X['pet_ownership_trans'] = X_trans['pet_ownership']
-    X['default'] = y
-    assert X[X['pet_ownership'].isnull()]['pet_ownership_trans'].sum() == 0  # Sums to 0 because all missings in bucket 0
+    obt = OptimalBucketer(
+        variables=["pet_ownership", "EDUCATION"],
+        max_n_bins=2,
+        variables_type="categorical",
+        missing_treatment={"pet_ownership": 0},
+    )
+    obt.fit(X[["pet_ownership", "EDUCATION"]], y)
+    X_trans = obt.transform(X[["pet_ownership", "EDUCATION"]])  # ['pet_ownership']
+    X["pet_ownership_trans"] = X_trans["pet_ownership"]
+    X["default"] = y
+    assert (
+        X[X["pet_ownership"].isnull()]["pet_ownership_trans"].sum() == 0
+    )  # Sums to 0 because all missings in bucket 0
 
 
 def test_missing_numerical_manual(df_with_missings):
+    """
+    Test.
+    """
     X = df_with_missings[["LIMIT_BAL", "BILL_AMT1", "EDUCATION", "pet_ownership"]]
     y = df_with_missings["default"].values
-    obt = OptimalBucketer(variables=["LIMIT_BAL"],
-                        max_n_bins=2,
-                        variables_type="numerical",
-                        missing_treatment ={"LIMIT_BAL": 0}
-                        )
+    obt = OptimalBucketer(
+        variables=["LIMIT_BAL"], max_n_bins=2, variables_type="numerical", missing_treatment={"LIMIT_BAL": 0}
+    )
     obt.fit(X[["LIMIT_BAL"]], y)
     X["LIMIT_BAL_trans"] = obt.transform(X[["LIMIT_BAL"]])
     assert X[np.isnan(X["LIMIT_BAL"])]["LIMIT_BAL_trans"].sum() == 0  # Sums to 0 because all missings in bucket 0
-
-    
