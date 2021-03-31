@@ -1,4 +1,5 @@
 import pandas as pd
+from skorecard.apps.app_utils import determine_boundaries, get_bucket_colors
 
 from skorecard.utils.exceptions import NotInstalledError
 
@@ -29,11 +30,11 @@ def plot_bins(X, y, col):
     er.columns = [" ".join(col).strip() for col in er.columns.values]
     er = er.pivot(index="bucket", columns="y", values="y count").fillna(0)
     er = er.rename(columns={0: "Non-event", 1: "Event"})
-    er["Event Rate"] = round((er["Event"] / (er["Event"] + er["Non-event"])) * 100, 2).astype(str) + "%"
+    er["Event Rate"] = round((er["Event"] / (er["Event"] + er["Non-event"])) * 100, 2)
     plotdf = plotdf.merge(er, how="left", on="bucket").sort_values("bucket")
 
     fig = make_subplots(specs=[[{"secondary_y": True}]])
-
+    
     # Add traces
     fig.add_trace(
         go.Bar(x=plotdf["bucket"], y=plotdf["counts %"] * 100, name="Bucket count percentage"),
@@ -57,7 +58,7 @@ def plot_bins(X, y, col):
     )
     return fig
 
-def plot_prebucket_table(prebucket_table):
+def plot_prebucket_table(prebucket_table, X, y, column):
     """
     Given the prebucketed data, plot the pre-buckets
 
@@ -71,7 +72,7 @@ def plot_prebucket_table(prebucket_table):
     buckets = [prebucket for prebucket in prebucket_table['pre-bucket'].values]
     bar_colors = [bucket_colors[i] for i in buckets]
 
-    fig = plot_bins(self.X_prebucketed_, self.y, column)
+    fig = plot_bins(X, y, column)
     fig.update_layout(transition_duration=50)
     fig.update_layout(showlegend=False)
     fig.update_layout(xaxis_title=column)
