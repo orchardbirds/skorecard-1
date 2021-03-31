@@ -80,7 +80,7 @@ class OptimalBucketer(BaseBucketer):
                 This bucket number is where we will put the missing values.
             min_bin_size: Minimum fraction of observations in a bucket. Passed to optbinning.OptimalBinning.
             max_n_bins: Maximum numbers of bins to return. Passed to optbinning.OptimalBinning.
-            cat_cutoff: Threshold ratio (None, or >0 and <=1) to below which categories are grouped
+            cat_cutoff: Threshold ratio (None, or >0 and <=1) below which categories are grouped
                 together in a bucket 'other'. Passed to optbinning.OptimalBinning.
             time_limit: Time limit in seconds to find an optimal solution. Passed to optbinning.OptimalBinning.
             kwargs: Other parameters passed to optbinning.OptimalBinning. Passed to optbinning.OptimalBinning.

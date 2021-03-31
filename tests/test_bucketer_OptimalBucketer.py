@@ -208,13 +208,6 @@ def test_optimal_bucketing_cats(df):
     assert len(X_trans["LIMIT_BAL"].unique()) == 2
 
 
-# WIP because Opt binning bug creates n+1 bins
-# def _test_missing_categorical_default(df_with_missings):
-#     X = df[["LIMIT_BAL", "BILL_AMT1", "EDUCATION", "pet_ownership"]]
-#     y = df["default"].values
-#     obt = OptimalBucketer(variables=["pet_ownership", "EDUCATION"], max_n_bins=2, variables_type="categorical")
-
-
 def test_missing_categorical_manual(df_with_missings):
     """
     Test.
