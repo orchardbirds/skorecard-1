@@ -85,9 +85,10 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
         the BucketingProcess ends up with the final buckets.
         An example is seen below:
 
-        pre-bucket	label	            Count	Count (%)	Non-event	Event	Event Rate	WoE	  IV	bucket
-        0	        (-inf, 25000.0)	    479.0	7.98	    300.0	    179.0	37.37	    0.73  0.05	0
-        1	        [25000.0, 45000.0)	370.0	6.17	    233.0	    137.0	37.03	    0.71  0.04	1
+        pre-bucket | label	            | Count | Count (%)	| Non-event	| Event	| Event Rate |	WoE	|  IV  | bucket
+        -----------------------------------------------------------------------------------------------------------
+        0	       | (-inf, 25000.0)    | 479.0	| 7.98	    | 300.0	    | 179.0	| 37.37	     | 0.73 | 0.05 | 0
+        1	       | [25000.0, 45000.0) | 370.0	| 6.17	    | 233.0	    | 137.0	| 37.03	     | 0.71 | 0.04 | 1
 
         Args:
             column: The column we wish to analyse
@@ -95,6 +96,7 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
         Returns:
             A pandas dataframe of the format above
         """
+        check_is_fitted(self)
         if column not in self.X.columns:
             raise ValueError(f"column {column} not in columns of X {self.X.columns}")
 
@@ -123,9 +125,10 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
         """
         Generates the statistics for the buckets of a particular column. An example is seen below:
 
-        bucket	label	      Count	 Count (%)	Non-event	Event	Event Rate	WoE	    IV
-        0	    (-inf, 1.0)	  479	 7.98	    300	        179	    37.37	    0.73	0.05
-        1	    [1.0, 2.0)	  370	 6.17	    233	        137	    37.03	    0.71	0.04
+        bucket | label	     | Count | Count (%) |	Non-event |	Event |	Event Rate |  WoE	| IV
+        -------------------------------------------------------------------------------------------
+        0	   | (-inf, 1.0) |	479	 | 7.98	     | 300	      | 179	  |  37.37	   |  0.73  | 0.05
+        1	   | [1.0, 2.0)  |	370	 | 6.17	     | 233	      | 137	  |  37.03	   |  0.71	| 0.04
 
         Args:
             column: The column we wish to analyse
@@ -133,6 +136,7 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
         Returns:
             A pandas dataframe of the format above
         """
+        check_is_fitted(self)
         if column not in self.X.columns:
             raise ValueError(f"column {column} not in columns of X {self.X.columns}")
 
@@ -158,6 +162,7 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
         Returns:
             plotly fig
         """
+        check_is_fitted(self)
         return plot_prebucket_table(prebucket_table=self.prebucket_table(column), X=self.X_prebucketed_, y=self.y, column=column)
 
     def plot_bucket(self, column):
@@ -168,6 +173,7 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
         Returns:
             plotly fig
         """
+        check_is_fitted(self)
         return plot_bucket_table(self.bucket_table(column=column))
     
     def register_prebucketing_pipeline(self, *steps, **kwargs):
@@ -211,7 +217,6 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
         Args:
             X (pd.DataFrame): [description]
             y ([type], optional): [description]. Defaults to None.
-
         """
         self.X = X
         self.y = y
@@ -311,6 +316,30 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
 
         return self.X_bucketed
 
-#TODO:
-# bucketing_process.summary() # all vars, and # buckets
+    def summary(self):
+        """
+        Generates a summary table for columns passed to .fit()
+        The format is the following:
+
+        column	  | num_prebuckets | num_buckets | dtype
+        -------------------------------------------------
+        LIMIT_BAL |	     15	       |     10	     | float64
+        BILL_AMT1 |	     15	       |     6	     | float64
+        """
+        check_is_fitted(self)
+        columns = []
+        num_prebuckets = []
+        num_buckets = []
+        dtypes = []
+        for col in self.X.columns:
+            columns.append(col)
+            num_prebuckets.append(len(self.prebucket_table(col)['pre-bucket'].unique()))
+            num_buckets.append(len(self.bucket_table(col)['bucket'].unique()))
+            dtypes.append(self.X[col].dtype)
+            
+        return pd.DataFrame({'column': columns,
+                            'num_prebuckets': num_prebuckets,
+                            'num_buckets': num_buckets,
+                            'dtype': dtypes})
+
 
