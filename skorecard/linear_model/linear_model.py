@@ -23,7 +23,7 @@ class LogisticRegression(lm.LogisticRegression):
     from sklearn.pipeline import Pipeline
     from sklearn.preprocessing import OneHotEncoder
 
-    X, y = datasets.load_uci_credit_card(return_X_y=True)
+    X, y = load_uci_credit_card(return_X_y=True)
 
     pipeline = Pipeline([
         ('bucketer', EqualFrequencyBucketer(n_bins=10)),
