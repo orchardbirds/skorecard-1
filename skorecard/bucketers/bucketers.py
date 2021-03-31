@@ -533,7 +533,7 @@ class DecisionTreeBucketer(BaseBucketer):
             min_bin_size: Minimum fraction of observations in a bucket. Passed directly to min_samples_leaf.
             max_n_bins: Maximum numbers of after the bucketing. Passed directly to max_leaf_nodes of the
                 DecisionTreeClassifier.
-                If specials are defined, max_leaf_nodes will be redifined to max_n_bins - (number of special bins).
+                If specials are defined, max_leaf_nodes will be redefined to max_n_bins - (number of special bins).
                 The DecisionTreeClassifier requires max_leaf_nodes>=2:
                 therefore, max_n_bins  must always be >= (number of special bins + 2) if specials are defined,
                 otherwise must be >=2.
@@ -561,7 +561,7 @@ class DecisionTreeBucketer(BaseBucketer):
         self.random_state = random_state
 
     def fit(self, X, y):
-        """Fit X,y."""
+        """Fit X, y."""
         X = self._is_dataframe(X)
         self.variables = self._check_variables(X, self.variables)
         self._verify_specials_variables(self.specials, self.variables)
@@ -630,29 +630,6 @@ class DecisionTreeBucketer(BaseBucketer):
     def transform(self, X):
         """Transform X."""
         return super().transform(X)
-
-    # def get_params(self, deep=True):
-    #     """Return the parameters of the decision tree used in the Transformer.
-
-    #     Args:
-    #         deep (bool): Make a deep copy or not, required by the API.
-
-    #     Returns:
-    #         (dict): Decision Tree Parameters
-    #     """
-    #     raise NotImplementedError("not implemented yet. we have a tree per feature")
-    #     # return self.bucketer.tree.get_params(deep=deep)
-
-    # def set_params(self, **params):
-    #     """Set the parameteres for the decision tree.
-
-    #     Args:
-    #         **params: (dict) parameters for the decision tree
-
-    #     """
-    #     raise NotImplementedError("not implemented yet. we have a tree per feature")
-    #     # self.bucketer.tree.set_params(**params)
-    #     # return self
 
 
 class OrdinalCategoricalBucketer(BaseBucketer):

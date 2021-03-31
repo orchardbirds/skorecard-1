@@ -134,14 +134,3 @@ class BaseBucketer(BaseEstimator, TransformerMixin):
             np.array of the transformed X, such that the values of X are replaced by the corresponding bucket numbers
         """
         return self.transform(X)
-
-
-# def _check_contains_na(X, variables):
-#     if X[variables].isnull().values.any():
-#         raise ValueError('Some of the variables to transform contain missing values. Check and remove those '
-#                          'before using this transformer.')
-
-
-# df = pd.DataFrame(['a','b','a'],columns=['some_col'])
-# from feature_engine.categorical_encoders import OrdinalCategoricalEncoder
-# OrdinalCategoricalEncoder(encoding_method='arbitrary').fit_transform(df)
