@@ -154,10 +154,6 @@ class BucketMapping:
         return buckets
 
     def _apply_cat_mapping(self, x):
-        
-        # if isinstance(self.map, list):
-        #     other_value = 1 if len(self.map) == 0 else max(self.map) + 1
-        # else:
         # Add 'other' category
         other_value = 1 if len(self.map.values()) == 0 else max(self.map.values()) + 1
         mapping = MissingDict(self.map)
