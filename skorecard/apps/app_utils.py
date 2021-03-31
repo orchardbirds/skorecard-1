@@ -42,9 +42,9 @@ def determine_boundaries(df: pd.DataFrame, bucket_mapping: BucketMapping) -> lis
     # instead of a new one
     boundaries = list(boundaries)[:-1]
 
+    # Removed this because of the categoricals
     #assert sorted(boundaries) == boundaries, "buckets must be sorted"
-    return sorted(boundaries)
-    #return boundaries
+    return boundaries
 
 
 def perc_data_bars(column):

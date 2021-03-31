@@ -89,7 +89,10 @@ class BucketMapping:
         return self._transform_buckets(x)
 
     def _validate_categorical_map(self):
-        """Assure that the provided mapping starts at 0 and that is tas an incremental trend."""
+        """Assure that the provided mapping starts at 0 and that it has an incremental trend."""
+        if isinstance(self.map, list):
+            #TODO: Fix why we need to do the following line. It's because app_utils.determine_boundaries() adds +1 for numerical buckets
+            self.map = {k: v-1 for k, v in enumerate(self.map)}
         values = [v for v in self.map.values()]
         if len(values) > 0:
             if not np.array_equal(np.unique(values), np.arange(max(values) + 1)):
@@ -151,6 +154,7 @@ class BucketMapping:
         return buckets
 
     def _apply_cat_mapping(self, x):
+        # Add 'other' category
         other_value = 1 if len(self.map.values()) == 0 else max(self.map.values()) + 1
         mapping = MissingDict(self.map)
         mapping.set_missing_value(other_value)  # This was 'other' but you cannot mix integers and strings
