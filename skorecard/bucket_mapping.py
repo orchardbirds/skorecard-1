@@ -90,8 +90,8 @@ class BucketMapping:
 
     def _validate_categorical_map(self):
         """Assure that the provided mapping starts at 0 and that it has an incremental trend."""
-        #TODO: Fix why we need to do this. It's because of app_utils.determine_boundaries()
         if isinstance(self.map, list):
+            #TODO: Fix why we need to do the following line. It's because app_utils.determine_boundaries() adds +1 for numerical buckets
             self.map = {k: v-1 for k, v in enumerate(self.map)}
         values = [v for v in self.map.values()]
         if len(values) > 0:
@@ -123,14 +123,10 @@ class BucketMapping:
         if isinstance(x, list):
             x = pd.Series(x)
         if self.type == "numerical":
-            print('NUMERICAL MAP')
-            print(self.map)
             buckets = self._apply_num_mapping(x)
             max_bucket_number = int(buckets.max())
 
         elif self.type == "categorical":
-            print('CATEGORICAL MAP')
-            print(self.map)
             self._validate_categorical_map()
             buckets = self._apply_cat_mapping(x)
             max_bucket_number = int(max(self.labels.keys()))
@@ -158,10 +154,12 @@ class BucketMapping:
         return buckets
 
     def _apply_cat_mapping(self, x):
-        if isinstance(self.map, list):
-            other_value = 1 if len(self.map) == 0 else max(self.map) + 1
-        else:
-            other_value = 1 if len(self.map.values()) == 0 else max(self.map.values()) + 1
+        
+        # if isinstance(self.map, list):
+        #     other_value = 1 if len(self.map) == 0 else max(self.map) + 1
+        # else:
+        # Add 'other' category
+        other_value = 1 if len(self.map.values()) == 0 else max(self.map.values()) + 1
         mapping = MissingDict(self.map)
         mapping.set_missing_value(other_value)  # This was 'other' but you cannot mix integers and strings
 
