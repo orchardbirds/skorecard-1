@@ -100,12 +100,13 @@ class OptimalBucketer(BaseBucketer):
         self.kwargs = kwargs
 
         # not tested right now
-        self._verify_specials_variables(self.specials, self.variables)
 
     def fit(self, X, y):
         """Fit X, y."""
         X = self._is_dataframe(X)
         self.variables = self._check_variables(X, self.variables)
+        self._verify_specials_variables(self.specials, self.variables)
+
         if isinstance(y, pd.Series):
             y = y.values
 
@@ -235,12 +236,11 @@ class EqualWidthBucketer(BaseBucketer):
         self.n_bins = n_bins
         self.specials = specials
 
-        self._verify_specials_variables(self.specials, self.variables)
-
     def fit(self, X, y=None):
         """Fit X, y."""
         X = self._is_dataframe(X)
         self.variables = self._check_variables(X, self.variables)
+        self._verify_specials_variables(self.specials, self.variables)
 
         self.features_bucket_mapping_ = {}
 
@@ -332,12 +332,11 @@ class AgglomerativeClusteringBucketer(BaseBucketer):
         self.specials = specials
         self.missing_treatment = missing_treatment
 
-        self._verify_specials_variables(self.specials, self.variables)
-
     def fit(self, X, y=None):
         """Fit X, y."""
         X = self._is_dataframe(X)
         self.variables = self._check_variables(X, self.variables)
+        self._verify_specials_variables(self.specials, self.variables)
 
         self.features_bucket_mapping_ = {}
 
@@ -427,8 +426,6 @@ class EqualFrequencyBucketer(BaseBucketer):
         self.specials = specials
         self.missing_treatment = missing_treatment
 
-        self._verify_specials_variables(self.specials, self.variables)
-
     def fit(self, X, y=None):
         """Fit X, y.
 
@@ -438,6 +435,7 @@ class EqualFrequencyBucketer(BaseBucketer):
         """
         X = self._is_dataframe(X)
         self.variables = self._check_variables(X, self.variables)
+        self._verify_specials_variables(self.specials, self.variables)
 
         self.features_bucket_mapping_ = {}
 
@@ -562,12 +560,11 @@ class DecisionTreeBucketer(BaseBucketer):
         self.min_bin_size = min_bin_size
         self.random_state = random_state
 
-        self._verify_specials_variables(self.specials, self.variables)
-
     def fit(self, X, y):
         """Fit X,y."""
         X = self._is_dataframe(X)
         self.variables = self._check_variables(X, self.variables)
+        self._verify_specials_variables(self.specials, self.variables)
 
         self.features_bucket_mapping_ = {}
         self.binners = {}
@@ -754,12 +751,11 @@ class OrdinalCategoricalBucketer(BaseBucketer):
         self.encoding_method = encoding_method
         self.missing_treatment = missing_treatment
 
-        self._verify_specials_variables(self.specials, self.variables)
-
     def fit(self, X, y=None):
         """Init the class."""
         X = self._is_dataframe(X)
         self.variables = self._check_variables(X, self.variables)
+        self._verify_specials_variables(self.specials, self.variables)
 
         self.features_bucket_mapping_ = {}
 
