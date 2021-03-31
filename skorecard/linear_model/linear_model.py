@@ -20,18 +20,19 @@ class LogisticRegression(lm.LogisticRegression):
     ```python
     from skorecard.datasets import load_uci_credit_card
     from skorecard.bucketers import EqualFrequencyBucketer
+    from skorecard.linear_model import LogisticRegression
     from sklearn.pipeline import Pipeline
     from sklearn.preprocessing import OneHotEncoder
 
-    X, y = datasets.load_uci_credit_card(return_X_y=True)
+    X, y = load_uci_credit_card(return_X_y=True)
 
     pipeline = Pipeline([
         ('bucketer', EqualFrequencyBucketer(n_bins=10)),
         ('ohe', OneHotEncoder()),
         ('clf', LogisticRegression())
     ])
-    pipeline.fit(*X_y)
-    assert pipeline.named_steps['clf'].p_val_coef_[1] > 0
+    pipeline.fit(X, y)
+    assert pipeline.named_steps['clf'].p_val_coef_[0][1] > 0
     ```
 
     """
