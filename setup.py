@@ -33,6 +33,7 @@ docs_dep = [
     "mkdocs>=1.1.2",
     "mkdocs-material>=7.1",
     "mkdocstrings>=0.13.2",
+    "mknotebooks>=0.7.0",
     "mkdocs-git-revision-date-localized-plugin>=0.7.2",
 ]
 
