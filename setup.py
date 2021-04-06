@@ -9,7 +9,6 @@ base_packages = [
     "pandas>=1.1.2",
     "scikit-learn>=0.23.2",
     "probatus>=1.1.1",
-    "dataclasses>=0.6",
 ]
 
 dashboard_dep = [
@@ -50,15 +49,15 @@ setup(
     author="ING, Risk and Pricing Advanced Analytics",
     author_email="ML_Risk_and_Pricing_AA@ing.com",
     license="ING Open Source",
-    python_requires=">=3.6",
+    python_requires=">=3.7",
     classifiers=[
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3 :: Only",
     ],
     include_package_data=True,
