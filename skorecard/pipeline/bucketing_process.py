@@ -342,11 +342,18 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
         num_prebuckets = []
         num_buckets = []
         dtypes = []
-        for col in self.X.columns:
+        for col in self.X_prebucketed_.columns:
             columns.append(col)
-            num_prebuckets.append(len(self.prebucket_table(col)["pre-bucket"].unique()))
-            num_buckets.append(len(self.bucket_table(col)["bucket"].unique()))
-            dtypes.append(self.X[col].dtype)
+            # In case the column was never bucketed
+            try:
+                prebucket_number = len(self.prebucket_table(col)['pre-bucket'].unique())
+                bucket_number = len(self.bucket_table(col)['bucket'].unique())
+            except KeyError:
+                prebucket_number = 'not_bucketed'
+                bucket_number = 'not_bucketed'
+            num_prebuckets.append(prebucket_number)
+            num_buckets.append(bucket_number)
+            dtypes.append(self.X_prebucketed_[col].dtype)
 
         return pd.DataFrame(
             {"column": columns, "num_prebuckets": num_prebuckets, "num_buckets": num_buckets, "dtype": dtypes}
