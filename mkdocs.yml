@@ -62,9 +62,9 @@ nav:
         - Contributing: contributing.md
     - Tutorials:
         - Using bucketers: tutorials/using_bucketers.ipynb
-        - Old Getting Started: guides/getting-started.md
+        - Using BucketingProcess: tutorials/using-bucketing-process.ipynb
     - How to:
-        - examples.md
+        - howto/howto-placeholder.md
     - API: 
         - bucketers:
             - api/bucketers/OptimalBucketer.md
@@ -130,3 +130,6 @@ extra_javascript:
     - assets/javascripts/config.js
     - https://polyfill.io/v3/polyfill.min.js?features=es6
     - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+extra_css:
+  - assets/stylesheets/mknotebooks.css

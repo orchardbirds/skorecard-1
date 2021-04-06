@@ -1,14 +1,13 @@
 from skorecard.utils import NotPreBucketedError, NotBucketObjectError
 from skorecard.pipeline import get_features_bucket_mapping
 from skorecard.apps.app_utils import determine_boundaries
-from skorecard.reporting import create_report, plot_bucket_table, plot_prebucket_table, plot_bins
+from skorecard.reporting import create_report, plot_bucket_table, plot_prebucket_table
 from skorecard.bucketers import UserInputBucketer
 
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.pipeline import make_pipeline
 from sklearn.utils.validation import check_is_fitted
 
-import copy
 import pandas as pd
 
 
@@ -50,6 +49,7 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
     ```
 
     """
+
     def __init__(self, specials={}):
         """Init the class.
 
@@ -66,10 +66,10 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
         self._prebucketing_specials = specials
         self.specials = specials  # I have no idea why this is needed. Remove it for insane errors
         self.name = "bucketingprocess"
-    
+
     def _check_all_bucketers(self, steps):
         """Checks all bucketing steps are skorecard bucketers.
-        
+
         Args:
             steps: skorecard bucketers
         """
@@ -81,29 +81,30 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
     def bucket_table(self, column):
         """
         Generates the statistics for the buckets of a particular column.
+
         The pre-buckets are matched to the post-buckets, so that the user has a much clearer understanding of how
         the BucketingProcess ends up with the final buckets.
         An example is seen below:
 
-        pre-bucket | label	            | Count | Count (%)	| Non-event	| Event	| Event Rate |	WoE	|  IV  | bucket
+        pre-bucket | label              | Count | Count (%) | Non-event | Event | Event Rate | WoE |  IV   | bucket
         -----------------------------------------------------------------------------------------------------------
-        0	       | (-inf, 25000.0)    | 479.0	| 7.98	    | 300.0	    | 179.0	| 37.37	     | 0.73 | 0.05 | 0
-        1	       | [25000.0, 45000.0) | 370.0	| 6.17	    | 233.0	    | 137.0	| 37.03	     | 0.71 | 0.04 | 1
+        0          | (-inf, 25000.0)    | 479.0 | 7.98      | 300.0     | 179.0 | 37.37      | 0.73 | 0.05 | 0
+        1          | [25000.0, 45000.0) | 370.0 | 6.17      | 233.0     | 137.0 | 37.03      | 0.71 | 0.04 | 1
 
         Args:
             column: The column we wish to analyse
-        
+
         Returns:
-            A pandas dataframe of the format above
-        """
+            df (pd.DataFrame): A pandas dataframe of the format above
+        """  # noqa
         check_is_fitted(self)
         if column not in self.X.columns:
             raise ValueError(f"column {column} not in columns of X {self.X.columns}")
 
         prebucket_table = self.prebucket_table(column=column)
         new_buckets = pd.DataFrame()
-        new_buckets["pre_buckets"] = [prebucket for prebucket in prebucket_table['pre-bucket'].values]
-        new_buckets["buckets"] = [int(bucket) for bucket in prebucket_table['bucket'].values]
+        new_buckets["pre_buckets"] = [prebucket for prebucket in prebucket_table["pre-bucket"].values]
+        new_buckets["buckets"] = [int(bucket) for bucket in prebucket_table["bucket"].values]
 
         bucket_mapping = self.ui_bucketer.features_bucket_mapping.get(column)
 
@@ -123,19 +124,21 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
 
     def prebucket_table(self, column):
         """
-        Generates the statistics for the buckets of a particular column. An example is seen below:
+        Generates the statistics for the buckets of a particular column.
 
-        bucket | label	     | Count | Count (%) |	Non-event |	Event |	Event Rate |  WoE	| IV
+        An example is seen below:
+
+        bucket | label      | Count | Count (%) | Non-event | Event | Event Rate | WoE   | IV
         -------------------------------------------------------------------------------------------
-        0	   | (-inf, 1.0) |	479	 | 7.98	     | 300	      | 179	  |  37.37	   |  0.73  | 0.05
-        1	   | [1.0, 2.0)  |	370	 | 6.17	     | 233	      | 137	  |  37.03	   |  0.71	| 0.04
+        0      | (-inf, 1.0)| 479   | 7.98      | 300       | 179   |  37.37     |  0.73 | 0.05
+        1      | [1.0, 2.0) | 370   | 6.17      | 233       | 137   |  37.03     |  0.71 | 0.04
 
         Args:
             column: The column we wish to analyse
-        
+
         Returns:
-            A pandas dataframe of the format above
-        """
+            df (pd.DataFrame): A pandas dataframe of the format above
+        """  # noqa
         check_is_fitted(self)
         if column not in self.X.columns:
             raise ValueError(f"column {column} not in columns of X {self.X.columns}")
@@ -158,26 +161,31 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
 
         Args:
             column: The column we want to visualise
-        
+
         Returns:
-            plotly fig
+            plot: plotly fig
         """
         check_is_fitted(self)
-        return plot_prebucket_table(prebucket_table=self.prebucket_table(column), X=self.X_prebucketed_, y=self.y, column=column)
+        return plot_prebucket_table(
+            prebucket_table=self.prebucket_table(column), X=self.X_prebucketed_, y=self.y, column=column
+        )
 
     def plot_bucket(self, column):
         """
+        Plot the buckets.
+
         Args:
             column: The column we want to visualise
-        
+
         Returns:
-            plotly fig
+            plot: plotly fig
         """
         check_is_fitted(self)
         return plot_bucket_table(self.bucket_table(column=column))
-    
+
     def register_prebucketing_pipeline(self, *steps, **kwargs):
-        """Helps to identify a (series of) sklearn pipeline steps as the pre-bucketing steps.
+        """
+        Helps to identify a (series of) sklearn pipeline steps as the pre-bucketing steps.
 
         Args:
             *steps: skorecard bucketers or other sklearn transformers (passed to sklearn.pipeline.make_pipeline)
@@ -193,7 +201,8 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
         self._remap_specials_pipeline(level="prebucketing")
 
     def register_bucketing_pipeline(self, *steps, **kwargs):
-        """Helps to identify a (series of) sklearn pipeline steps as the bucketing steps.
+        """
+        Helps to identify a (series of) sklearn pipeline steps as the bucketing steps.
 
         Args:
             *steps: skorecard bucketers or other sklearn transformers (passed to sklearn.pipeline.make_pipeline)
@@ -234,16 +243,15 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
         self.bucketing_pipeline.fit(self.X_prebucketed_, y)
         self._features_bucket_mapping = get_features_bucket_mapping(self.bucketing_pipeline)
 
-        #Add UI bucketer for report
+        # Add UI bucketer for report
         self.ui_bucketer = UserInputBucketer(self._features_bucket_mapping)
-        self.pipeline = make_pipeline(
-            self.prebucketing_pipeline, self.ui_bucketer, self.bucketing_pipeline
-        )
+        self.pipeline = make_pipeline(self.prebucketing_pipeline, self.ui_bucketer, self.bucketing_pipeline)
 
         return self
 
     def _remap_specials_pipeline(self, level="prebucketing"):
-        """Add the specials in the prebucketing pipeline.
+        """
+        Add the specials in the prebucketing pipeline.
 
         Specials are designed to be defined in every bucketer.
         This class passes it in the constructor.
@@ -273,7 +281,8 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
             step[1].specials = specials
 
     def _retrieve_special_for_bucketing(self):
-        """Finds the indexes of the specials from the prebucketing step.
+        """
+        Finds the indexes of the specials from the prebucketing step.
 
         Then it creates a new special dictionary, where it maps the specials
         for the bucketing step to the respective index from the prebucketing
@@ -301,7 +310,8 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
             }
 
     def _remap_feature_bucket_mapping(self):
-        """Regenerate the feature bucket mapping.
+        """
+        Regenerate the feature bucket mapping.
 
         Generate a feature_bucket_mapping that will take the boundaries from the
         prebucket_pipeline and the final output from the bucket_pipeline.
@@ -318,14 +328,15 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
 
     def summary(self):
         """
-        Generates a summary table for columns passed to .fit()
+        Generates a summary table for columns passed to `.fit()`.
+
         The format is the following:
 
-        column	  | num_prebuckets | num_buckets | dtype
+        column    | num_prebuckets | num_buckets | dtype
         -------------------------------------------------
-        LIMIT_BAL |	     15	       |     10	     | float64
-        BILL_AMT1 |	     15	       |     6	     | float64
-        """
+        LIMIT_BAL |      15        |     10      | float64
+        BILL_AMT1 |      15        |     6       | float64
+        """  # noqa
         check_is_fitted(self)
         columns = []
         num_prebuckets = []
@@ -333,13 +344,10 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
         dtypes = []
         for col in self.X.columns:
             columns.append(col)
-            num_prebuckets.append(len(self.prebucket_table(col)['pre-bucket'].unique()))
-            num_buckets.append(len(self.bucket_table(col)['bucket'].unique()))
+            num_prebuckets.append(len(self.prebucket_table(col)["pre-bucket"].unique()))
+            num_buckets.append(len(self.bucket_table(col)["bucket"].unique()))
             dtypes.append(self.X[col].dtype)
-            
-        return pd.DataFrame({'column': columns,
-                            'num_prebuckets': num_prebuckets,
-                            'num_buckets': num_buckets,
-                            'dtype': dtypes})
 
-
+        return pd.DataFrame(
+            {"column": columns, "num_prebuckets": num_prebuckets, "num_buckets": num_buckets, "dtype": dtypes}
+        )

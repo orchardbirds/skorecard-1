@@ -5,13 +5,13 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
 
-Tools for automating building credit risk acceptance models (scorecards) in python, with a sklearn-compatible API.
+`scorecard` is a scikit-learn compatible python package that helps streamline the development of credit risk acceptance models (scorecards).
 
-Scorecard models are binary classification models that output the probability of default of a customer or customer's application, and Logistic Regression as the classification algorithm.
+Scorecards are ‘traditional’ models used by banks in the credit decision process. Internally, scorecards are Logistic Regressions models that make use of features that are binned into different groups. The process of binning is usually done manually by experts, and `skorecard` provides tools to makes this process easier. `skorecard` is built on top of [scikit-learn](https://pypi.org/project/scikit-learn/) as well as other excellent open sources projects like [optbinning](https://pypi.org/project/optbinning/), [dash](https://pypi.org/project/dash/) and [plotly](https://pypi.org/project/plotly/).
 
 ## Features ⭐
 
-- Automate bucketing of features
+- Automate bucketing of features inside scikit-learn pipelines.
 - Dash webapp to help manually tweak bucketing of features with business knowledge
 - Extension to `sklearn.linear_model.LogisticRegression` that is also able to report p-values
 - Plots and reports to speed up analysis and writing technical documentation.
@@ -19,9 +19,9 @@ Scorecard models are binary classification models that output the probability of
 ## Installation
 
 ```shell
-pip3 install skorecard
+pip3 install skorecard # not yet release!
 ```
 
 ## Documentation
 
-*Documentation website yet to be built*
+See [timvink.github.io/skorecard/](https://timvink.github.io/skorecard/).

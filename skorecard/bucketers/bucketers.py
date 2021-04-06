@@ -877,7 +877,7 @@ class UserInputBucketer(BaseBucketer):
             y (array): target
 
         Returns:
-            pd.DataFrame with transformed features
+            df (pd.DataFrame): df with transformed features
         """
         check_is_fitted(self)
         X = self._is_dataframe(X)
