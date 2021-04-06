@@ -24,7 +24,8 @@ dev_dep = [
     "black>=19.10b0",
     "pre-commit>=2.5.0",
     "mypy>=0.770",
-    "flake8-docstrings>=1.4.0" "pytest>=6.0.0",
+    "flake8-docstrings>=1.4.0",
+    "pytest>=6.0.0",
     "pytest-cov>=2.10.0",
 ]
 
@@ -38,7 +39,7 @@ docs_dep = [
 
 # Packages that are not a set together
 # We recommend users to just install that package when it is used
-utils_dep = ["dabl>=0.1.8", "optbinning>=0.8.0"]
+utils_dep = ["optbinning>=0.8.0"]
 
 setup(
     name="skorecard",
