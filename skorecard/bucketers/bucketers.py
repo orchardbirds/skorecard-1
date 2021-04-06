@@ -105,7 +105,7 @@ class OptimalBucketer(BaseBucketer):
         """Fit X, y."""
         X = self._is_dataframe(X)
         self.variables = self._check_variables(X, self.variables)
-        self._verify_specials_variables(self.specials, self.variables)
+        self._verify_specials_variables(self.specials, X.columns)
 
         if isinstance(y, pd.Series):
             y = y.values
@@ -240,7 +240,7 @@ class EqualWidthBucketer(BaseBucketer):
         """Fit X, y."""
         X = self._is_dataframe(X)
         self.variables = self._check_variables(X, self.variables)
-        self._verify_specials_variables(self.specials, self.variables)
+        self._verify_specials_variables(self.specials, X.columns)
 
         self.features_bucket_mapping_ = {}
 
@@ -336,7 +336,7 @@ class AgglomerativeClusteringBucketer(BaseBucketer):
         """Fit X, y."""
         X = self._is_dataframe(X)
         self.variables = self._check_variables(X, self.variables)
-        self._verify_specials_variables(self.specials, self.variables)
+        self._verify_specials_variables(self.specials, X.columns)
 
         self.features_bucket_mapping_ = {}
 
@@ -435,7 +435,7 @@ class EqualFrequencyBucketer(BaseBucketer):
         """
         X = self._is_dataframe(X)
         self.variables = self._check_variables(X, self.variables)
-        self._verify_specials_variables(self.specials, self.variables)
+        self._verify_specials_variables(self.specials, X.columns)
 
         self.features_bucket_mapping_ = {}
 
@@ -564,7 +564,7 @@ class DecisionTreeBucketer(BaseBucketer):
         """Fit X, y."""
         X = self._is_dataframe(X)
         self.variables = self._check_variables(X, self.variables)
-        self._verify_specials_variables(self.specials, self.variables)
+        self._verify_specials_variables(self.specials, X.columns)
 
         self.features_bucket_mapping_ = {}
         self.binners = {}
@@ -732,7 +732,7 @@ class OrdinalCategoricalBucketer(BaseBucketer):
         """Init the class."""
         X = self._is_dataframe(X)
         self.variables = self._check_variables(X, self.variables)
-        self._verify_specials_variables(self.specials, self.variables)
+        self._verify_specials_variables(self.specials, X.columns)
 
         self.features_bucket_mapping_ = {}
 
