@@ -85,8 +85,8 @@ def test_bucketing_with_specials(df):
 
     bucketing_process = BucketingProcess(specials={"LIMIT_BAL": {"=400000.0": [400000.0]}})
     bucketing_process.register_prebucketing_pipeline(
-        DecisionTreeBucketer(variables=num_cols, max_n_bins=100, min_bin_size=0.05)
-    )
+        DecisionTreeBucketer(variables=num_cols, max_n_bins=100, min_bin_size=0.05),
+)
     bucketing_process.register_bucketing_pipeline(
         OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
         OptimalBucketer(variables=cat_cols, variables_type="categorical", max_n_bins=10, min_bin_size=0.05),
@@ -188,3 +188,32 @@ def test_bucketing_process_with_categorical_specials(df):
     table = bucketing_process.prebucket_table("MARRIAGE")
     assert table.shape[0] == 4
     assert table['label'][3] == 'Special: =0'
+
+    def test_bucketing_process_summary(df):
+        """
+        Test we get expected results for .summary()
+        """
+        y = df["default"]
+        X = df.drop(columns=["default"])
+
+        num_cols = ["LIMIT_BAL", "BILL_AMT1"]
+        cat_cols = ["EDUCATION", "MARRIAGE"]
+
+        bucketing_process = BucketingProcess(specials={'MARRIAGE': {'=0' : [0]}})
+        bucketing_process.register_prebucketing_pipeline(
+                                    DecisionTreeBucketer(variables=num_cols, max_n_bins=100, min_bin_size=0.05),
+                                    DecisionTreeBucketer(variables=cat_cols, max_n_bins=100, min_bin_size=0.05)
+        )
+        bucketing_process.register_bucketing_pipeline(
+                OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
+                OptimalBucketer(variables=cat_cols,
+                                variables_type='categorical',
+                                max_n_bins=10,
+                                min_bin_size=0.05),
+        )
+
+        bucketing_process.fit(X, y)
+        table = bucketing_process.summary()
+        assert set(table.columns) == set(['column', 'num_prebuckets', 'num_buckets', 'dtype'])
+        assert table[table['column'] == 'pet_ownership']['num_prebuckets'].values[0] == 'not_bucketed'
+        assert table[table['column'] == 'pet_ownership']['num_buckets'].values[0] == 'not_bucketed'
