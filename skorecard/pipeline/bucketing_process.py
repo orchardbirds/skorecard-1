@@ -10,6 +10,7 @@ from sklearn.utils.validation import check_is_fitted
 
 import pandas as pd
 
+import warnings
 
 class BucketingProcess(BaseEstimator, TransformerMixin):
     """Class to concatenate a prebucketing and bucketing step.
@@ -344,12 +345,16 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
         dtypes = []
         for col in self.X_prebucketed_.columns:
             columns.append(col)
-            # In case the column was never bucketed
+            # In case the column was never (pre)-bucketed
             try:
                 prebucket_number = len(self.prebucket_table(col)['pre-bucket'].unique())
+            except KeyError:
+                warnings.warn(f'Column {col} not pre-bucketed')
+                prebucket_number = 'not_bucketed'
+            try:
                 bucket_number = len(self.bucket_table(col)['bucket'].unique())
             except KeyError:
-                prebucket_number = 'not_bucketed'
+                warnings.warn(f'Column {col} not bucketed')
                 bucket_number = 'not_bucketed'
             num_prebuckets.append(prebucket_number)
             num_buckets.append(bucket_number)
