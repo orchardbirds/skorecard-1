@@ -85,8 +85,8 @@ def test_bucketing_with_specials(df):
 
     bucketing_process = BucketingProcess(specials={"LIMIT_BAL": {"=400000.0": [400000.0]}})
     bucketing_process.register_prebucketing_pipeline(
-        DecisionTreeBucketer(variables=num_cols, max_n_bins=100, min_bin_size=0.05)
-    )
+        DecisionTreeBucketer(variables=num_cols, max_n_bins=100, min_bin_size=0.05),
+)
     bucketing_process.register_bucketing_pipeline(
         OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
         OptimalBucketer(variables=cat_cols, variables_type="categorical", max_n_bins=10, min_bin_size=0.05),
