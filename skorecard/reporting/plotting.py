@@ -1,5 +1,5 @@
 import pandas as pd
-from skorecard.apps.app_utils import determine_boundaries, get_bucket_colors
+from skorecard.apps.app_utils import get_bucket_colors
 
 from skorecard.utils.exceptions import NotInstalledError
 

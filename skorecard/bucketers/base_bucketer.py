@@ -1,5 +1,4 @@
 import pandas as pd
-import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 
 from sklearn.utils.validation import check_is_fitted
@@ -28,9 +27,9 @@ class BaseBucketer(BaseEstimator, TransformerMixin):
         elif type(missing_treatment) == dict:
             for _, v in enumerate(missing_treatment):
                 if missing_treatment[v] < 0:
-                    raise ValueError(f'As an integer, missing_treatment must be greater than 0')
+                    raise ValueError('As an integer, missing_treatment must be greater than 0')
                 elif type(missing_treatment[v]) != int:
-                    raise ValueError(f'Values of the missing_treatment dict must be integers')
+                    raise ValueError('Values of the missing_treatment dict must be integers')
         
         else:
             raise ValueError(f'missing_treatment must be in {allowed_str_missing} or a dict')

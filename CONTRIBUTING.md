@@ -31,9 +31,24 @@ pip install mkdocs-material
 mkdocs serve
 ```
 
-## Versioning
+## Releases and versioning
 
-We use [semver](https://semver.org/) for versioning.
+We use [semver](https://semver.org/) for versioning. When we are ready for a release, the maintainer runs:
+
+```shell
+git tag -a v0.1 -m "skorecard v0.1" && git push origin v0.1
+```
+
+When we create a new github release a [github action](https://github.com/timvink/skorecard/blob/main/.github/workflows/publish_pypi.yml) is triggered that:
+
+- a new version will be deployed to pypi
+- the docs will be re-built and deployed
+
+## Logo
+
+- We adapted the ['scores' noun](https://thenounproject.com/search/?q=score&i=1929515)
+- We used [this color scheme](https://coolors.co/d7263d-f46036-2e294e-1b998b-c5d86d) from coolors.co 
+- We edited the logo using https://boxy-svg.com/app
 
 ## Terminology
 
