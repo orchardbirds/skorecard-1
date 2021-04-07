@@ -1,3 +1,5 @@
+<img src="https://github.com/timvink/skorecard/raw/main/docs/assets/img/skorecard_logo.svg" width="50" align="right">
+
 # skorecard
 
 ![pytest](https://github.com/timvink/skorecard/workflows/Release/badge.svg)
