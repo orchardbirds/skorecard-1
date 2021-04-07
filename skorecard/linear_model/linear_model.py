@@ -28,11 +28,10 @@ class LogisticRegression(lm.LogisticRegression):
 
     pipeline = Pipeline([
         ('bucketer', EqualFrequencyBucketer(n_bins=10)),
-        ('ohe', OneHotEncoder()),
         ('clf', LogisticRegression())
     ])
     pipeline.fit(X, y)
-    assert pipeline.named_steps['clf'].p_val_coef_[0][7] > 0
+    assert pipeline.named_steps['clf'].p_val_coef_[0][0] > 0
     ```
 
     """
