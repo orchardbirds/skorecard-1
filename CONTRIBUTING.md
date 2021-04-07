@@ -35,6 +35,12 @@ mkdocs serve
 
 We use [semver](https://semver.org/) for versioning.
 
+## Logo
+
+- We adapted the ['scores' noun](https://thenounproject.com/search/?q=score&i=1929515)
+- We used [this color scheme](https://coolors.co/d7263d-f46036-2e294e-1b998b-c5d86d) from coolors.co 
+- We edited the logo using https://boxy-svg.com/app
+
 ## Terminology
 
 - `BucketMapping` is a custom class that stores all the information needed for bucketing, including the map itself (either boundaries for binning, or a list of lists for categoricals)

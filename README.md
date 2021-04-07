@@ -1,4 +1,4 @@
-<img src="https://github.com/timvink/skorecard/raw/main/docs/assets/img/skorecard_logo.svg" width="50" align="right">
+<img src="https://github.com/timvink/skorecard/raw/main/docs/assets/img/skorecard_logo.svg" width="150" align="right">
 
 # skorecard
 
