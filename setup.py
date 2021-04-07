@@ -47,9 +47,9 @@ setup(
     description="Tools for building scorecard models in python, with a sklearn-compatible API",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    author="ING, Risk and Pricing Advanced Analytics",
-    author_email="ML_Risk_and_Pricing_AA@ing.com",
-    license="ING Open Source",
+    author="ING Bank",
+    author_email="daniel.timbrell@ing.com",
+    license="MIT license",
     python_requires=">=3.7",
     classifiers=[
         "License :: OSI Approved :: MIT License",
