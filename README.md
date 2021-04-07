@@ -12,14 +12,14 @@ Scorecards are ‘traditional’ models used by banks in the credit decision pro
 ## Features ⭐
 
 - Automate bucketing of features inside scikit-learn pipelines.
-- Dash webapp to help manually tweak bucketing of features with business knowledge
+- Dash webapp to help manually tweak bucketing of features with business knowledge (*not yet available*)
 - Extension to `sklearn.linear_model.LogisticRegression` that is also able to report p-values
 - Plots and reports to speed up analysis and writing technical documentation.
 
 ## Installation
 
 ```shell
-pip3 install skorecard # not yet release!
+pip3 install skorecard
 ```
 
 ## Documentation

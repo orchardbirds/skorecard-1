@@ -77,8 +77,8 @@ nav:
         - pipeline:
             - api/pipeline/BucketingProcess.md
             - api/pipeline/KeepPandas.md
-        - apps:
-            - api/apps/BucketTweakerApp.md
+        # # - apps:
+        #     - api/apps/BucketTweakerApp.md
         - linear_model:
             - api/linear_model/LogisticRegression.md
         - datasets:

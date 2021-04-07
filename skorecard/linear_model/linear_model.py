@@ -32,7 +32,7 @@ class LogisticRegression(lm.LogisticRegression):
         ('clf', LogisticRegression())
     ])
     pipeline.fit(X, y)
-    assert pipeline.named_steps['clf'].p_val_coef_[0][1] > 0
+    assert pipeline.named_steps['clf'].p_val_coef_[0][7] > 0
     ```
 
     """
