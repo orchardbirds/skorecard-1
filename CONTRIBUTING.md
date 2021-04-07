@@ -31,6 +31,9 @@ pip install mkdocs-material
 mkdocs serve
 ```
 
+## Versioning
+
+We use [semver](https://semver.org/) for versioning.
 
 ## Terminology
 
