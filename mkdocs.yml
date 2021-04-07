@@ -29,8 +29,9 @@ theme:
 
     font: false
     icon:
-        logo: material/counter
         repo: fontawesome/brands/github
+    logo: assets/img/skorecard_logo.svg
+    favicon: assets/img/skorecard_logo.svg
     favicon: assets/images/cli.png
     features:
         - navigation.tracking
