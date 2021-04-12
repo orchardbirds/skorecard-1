@@ -24,10 +24,9 @@ def test_output_dimensions():
     y = np.array([1, 0, 0, 1, 0, 0, 1, 0, 0, 1])
 
     lr = LogisticRegression(fit_intercept=True).fit(X, y)
-
     assert lr.p_val_coef_.shape[1] == shape_features[1]
     assert lr.z_coef_.shape[1] == shape_features[1]
-    assert lr.std_err_coef_.shape[1] == shape_features[1]
+    assert len(lr.std_err_coef_) == shape_features[1]
     assert not np.isnan(lr.p_val_intercept_)
     assert not np.isnan(lr.z_intercept_)
     assert not np.isnan(lr.std_err_intercept_)
@@ -36,7 +35,7 @@ def test_output_dimensions():
 
     assert lr.p_val_coef_.shape[1] == shape_features[1]
     assert lr.z_coef_.shape[1] == shape_features[1]
-    assert lr.std_err_coef_.shape[1] == shape_features[1]
+    assert len(lr.std_err_coef_) == shape_features[1]
     assert np.isnan(lr.p_val_intercept_)
     assert np.isnan(lr.z_intercept_)
     assert np.isnan(lr.std_err_intercept_)
