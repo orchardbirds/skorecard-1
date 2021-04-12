@@ -1,7 +1,9 @@
 from sklearn import linear_model as lm
 import scipy
 import numpy as np
+import pandas as pd
 from skorecard.utils import convert_sparse_matrix
+from sklearn.utils.validation import check_is_fitted
 
 
 class LogisticRegression(lm.LogisticRegression):
@@ -55,6 +57,11 @@ class LogisticRegression(lm.LogisticRegression):
             self (LogisticRegression): Fitted estimator.
         """
         X = convert_sparse_matrix(X)
+        if isinstance(X, pd.DataFrame):
+            self.names = ['const'] + [f for f in X.columns]
+        else:
+            self.names = ['const'] + [f'x{i}' for i in range(X.shape[1])]
+            
         lr = super().fit(X, y, sample_weight=sample_weight, **kwargs)
 
         predProbs = self.predict_proba(X)
@@ -77,6 +84,7 @@ class LogisticRegression(lm.LogisticRegression):
         # Index 0 corresponds to the intercept, from index 1 onwards it relates to the coefficients
         # If fit intercept is False, then all the values are related to the coefficients
         if lr.fit_intercept:
+
             self.std_err_intercept_ = std_err[:, 0]
             self.std_err_coef_ = std_err[:, 1:]
 
@@ -98,3 +106,43 @@ class LogisticRegression(lm.LogisticRegression):
         self.p_val_coef_ = scipy.stats.norm.sf(abs(self.z_coef_)) * 2
 
         return self
+
+    def get_stats(self):
+        """Puts the summary statistics of the fit() function into a
+        pandas DataFrame. An example is:
+
+        Index     |Coef.      |	Std.Err	 |   z        |	P>|z|
+        ------------------------------------------------------------
+        const     |	-0.537571 |	0.096108 |	-5.593394 |	2.226735e-08
+        EDUCATION |	0.010091  |	0.044874 |	0.224876  |	8.220757e-01
+
+        Returns:
+            data (pandas DataFrame): The statistics dataframe, indexed by
+            the column name
+        """
+        check_is_fitted(self)
+        coef = self.intercept_.tolist() + self.coef_.tolist()[0]
+        
+        data = {
+            "Coef.":coef
+            }
+        
+        std_error = (
+            self.std_err_intercept_.tolist()
+            + self.std_err_coef_.tolist()[0]
+        )
+        z = (
+            self.z_intercept_.tolist()
+            + self.z_coef_.tolist()[0]
+        )
+
+        p_vals = (
+            self.p_val_intercept_.tolist()
+            + self.p_val_coef_.tolist()[0]
+        )
+            
+        data["Std.Err"] = std_error
+        data["z"] = z
+        data["P>|z|"] = p_vals
+
+        return pd.DataFrame(data, index=self.names)
