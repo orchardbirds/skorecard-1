@@ -86,7 +86,7 @@ class LogisticRegression(lm.LogisticRegression):
         if lr.fit_intercept:
 
             self.std_err_intercept_ = std_err[:, 0]
-            self.std_err_coef_ = std_err[:, 1:]
+            self.std_err_coef_ = std_err[:, 1:][0]
 
             self.z_intercept_ = self.intercept_ / self.std_err_intercept_
 
@@ -94,13 +94,13 @@ class LogisticRegression(lm.LogisticRegression):
             self.p_val_intercept_ = scipy.stats.norm.sf(abs(self.z_intercept_)) * 2
 
         else:
-            self.std_err_intercept_ = np.nan
-            self.std_err_coef_ = std_err
+            self.std_err_intercept_ = np.array([np.nan])
+            self.std_err_coef_ = std_err[0]
 
-            self.z_intercept_ = np.nan
+            self.z_intercept_ = np.array([np.nan])
 
             # Get p-values under the gaussian assumption
-            self.p_val_intercept_ = np.nan
+            self.p_val_intercept_ = np.array([np.nan])
 
         self.z_coef_ = self.coef_ / self.std_err_coef_
         self.p_val_coef_ = scipy.stats.norm.sf(abs(self.z_coef_)) * 2
@@ -126,10 +126,9 @@ class LogisticRegression(lm.LogisticRegression):
         data = {
             "Coef.":coef
             }
-        
         std_error = (
             self.std_err_intercept_.tolist()
-            + self.std_err_coef_.tolist()[0]
+            + self.std_err_coef_.tolist()
         )
         z = (
             self.z_intercept_.tolist()
