@@ -84,17 +84,16 @@ def test_all_data_is_special(df):
     y = df["default"]
 
     X["all_zeros"] = pd.Series([999 for i in range(X.shape[0])])
-    # X["all_nans"] = pd.Series([np.nan for i in range(X.shape[0])])
+    X["all_nans"] = pd.Series([np.nan for i in range(X.shape[0])])
     specials = {"all_zeros": {"=999": [999]}}
 
-    tbt = DecisionTreeBucketer(variables=["all_zeros"], specials=specials)
+    tbt = DecisionTreeBucketer(variables=["all_zeros", "all_nans"], specials=specials)
     tbt.fit(X, y)
     X_prebucketed = tbt.transform(X)
-
     # Bucket 0 will still be a potential value (between -inf and +inf)
     # the next bucket (bucket 1) is reserved for nans,
-    # therefore the soecial bucket starts at index 2.
-    # assert X_prebucketed["all_nans"].unique() == 1
+    # therefore the special bucket starts at index 2.
+    assert X_prebucketed["all_nans"].unique() == 1
     assert X_prebucketed["all_zeros"].unique() == 2
 
 
