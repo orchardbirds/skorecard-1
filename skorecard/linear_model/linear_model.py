@@ -72,12 +72,8 @@ class LogisticRegression(lm.LogisticRegression):
         else:
             X_design = X
 
-        # Initiate matrix of 0's, fill diagonal with each predicted observation's variance
-        V = np.diagflat(np.product(predProbs, axis=1))
-
-        # Covariance matrix following the algebra
-        self.cov_matrix_ = np.linalg.inv(np.dot(np.dot(X_design.T, V), X_design))
-
+        p = np.product(predProbs, axis=1)
+        self.cov_matrix_ = np.linalg.inv((X_design * p[..., np.newaxis]).T @ X_design)
         std_err = np.sqrt(np.diag(self.cov_matrix_)).reshape(1, -1)
 
         # In case fit_intercept is set to True, then in the std_error array
