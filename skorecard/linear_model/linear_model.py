@@ -121,27 +121,24 @@ class LogisticRegression(lm.LogisticRegression):
             the column name
         """
         check_is_fitted(self)
-        coef = self.intercept_.tolist() + self.coef_.tolist()[0]
         
         data = {
-            "Coef.":coef
+            "Coef.": (
+                self.intercept_.tolist() + 
+                self.coef_.tolist()[0]
+                ),
+            "Std.Err": (
+                self.std_err_intercept_.tolist() + 
+                self.std_err_coef_.tolist()
+                ),
+            "z": (
+                self.z_intercept_.tolist() + 
+                self.z_coef_.tolist()[0]
+            ),
+            "P>|z|": (
+                self.p_val_intercept_.tolist() + 
+                self.p_val_coef_.tolist()[0]
+            )
             }
-        std_error = (
-            self.std_err_intercept_.tolist()
-            + self.std_err_coef_.tolist()
-        )
-        z = (
-            self.z_intercept_.tolist()
-            + self.z_coef_.tolist()[0]
-        )
-
-        p_vals = (
-            self.p_val_intercept_.tolist()
-            + self.p_val_coef_.tolist()[0]
-        )
-            
-        data["Std.Err"] = std_error
-        data["z"] = z
-        data["P>|z|"] = p_vals
 
         return pd.DataFrame(data, index=self.names)
