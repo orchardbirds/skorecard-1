@@ -24,10 +24,9 @@ def test_output_dimensions():
     y = np.array([1, 0, 0, 1, 0, 0, 1, 0, 0, 1])
 
     lr = LogisticRegression(fit_intercept=True).fit(X, y)
-
     assert lr.p_val_coef_.shape[1] == shape_features[1]
     assert lr.z_coef_.shape[1] == shape_features[1]
-    assert lr.std_err_coef_.shape[1] == shape_features[1]
+    assert len(lr.std_err_coef_) == shape_features[1]
     assert not np.isnan(lr.p_val_intercept_)
     assert not np.isnan(lr.z_intercept_)
     assert not np.isnan(lr.std_err_intercept_)
@@ -36,7 +35,7 @@ def test_output_dimensions():
 
     assert lr.p_val_coef_.shape[1] == shape_features[1]
     assert lr.z_coef_.shape[1] == shape_features[1]
-    assert lr.std_err_coef_.shape[1] == shape_features[1]
+    assert len(lr.std_err_coef_) == shape_features[1]
     assert np.isnan(lr.p_val_intercept_)
     assert np.isnan(lr.z_intercept_)
     assert np.isnan(lr.std_err_intercept_)
@@ -60,3 +59,18 @@ def test_linear_model(X_y):
     ])
     pipeline.fit(*X_y)
     assert pipeline.named_steps['clf'].p_val_coef_.shape[1] > 0
+
+def test_get_stats(X_y):
+    """Test that we get the expected pandas dataframe"""
+    lr = LogisticRegression(fit_intercept=True).fit(*X_y)
+
+    # We add 1 because of the intercept
+    assert lr.get_stats().shape[0] == len(X_y[0].columns) + 1
+    assert lr.get_stats().index[0] == 'const'
+
+    lr = LogisticRegression(fit_intercept=False).fit(*X_y)
+    assert lr.get_stats().fillna(-999)['Coef.'][0] == 0
+    assert lr.get_stats().fillna(-999)['Std.Err'][0] == -999
+    assert lr.get_stats().fillna(-999)['z'][0] == -999
+    assert lr.get_stats().fillna(-999)['P>|z|'][0] == -999
+
