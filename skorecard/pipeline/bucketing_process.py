@@ -358,7 +358,7 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
                 bucket_number = 'not_bucketed'
             num_prebuckets.append(prebucket_number)
             num_buckets.append(bucket_number)
-            dtypes.append(self.X_prebucketed_[col].dtype)
+            dtypes.append(self.X[col].dtype)
 
         return pd.DataFrame(
             {"column": columns, "num_prebuckets": num_prebuckets, "num_buckets": num_buckets, "dtype": dtypes}
