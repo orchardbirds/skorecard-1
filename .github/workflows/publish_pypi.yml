@@ -29,5 +29,11 @@ jobs:
         python setup.py sdist bdist_wheel
         twine upload dist/*
     - name: Deploy mkdocs site
-      run: | 
+      uses: conda-incubator/setup-miniconda@v2
+            with:
+              auto-update-conda: true
+              python-version: "3.x"
+      run: |
+        pip install psutils
+        conda install --yes -c plotly plotly-orca 
         mkdocs gh-deploy --force
