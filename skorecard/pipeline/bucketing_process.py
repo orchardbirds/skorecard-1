@@ -156,33 +156,35 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
         table["bucket"] = bucket_mapping.transform(table["pre-bucket"])
         return table
 
-    def plot_prebucket(self, column):
+    def plot_prebucket(self, column, format=None):
         """
         Generates the prebucket table and produces a corresponding plotly plot.
 
         Args:
             column: The column we want to visualise
+            format: The format of the image, such as 'png'. The default None returns a plotly image.
 
         Returns:
             plot: plotly fig
         """
         check_is_fitted(self)
         return plot_prebucket_table(
-            prebucket_table=self.prebucket_table(column), X=self.X_prebucketed_, y=self.y, column=column
+            prebucket_table=self.prebucket_table(column), X=self.X_prebucketed_, y=self.y, column=column, format=format
         )
 
-    def plot_bucket(self, column):
+    def plot_bucket(self, column, format=None):
         """
         Plot the buckets.
 
         Args:
             column: The column we want to visualise
+            format: The format of the image, such as 'png'. The default None returns a plotly image.
 
         Returns:
             plot: plotly fig
         """
         check_is_fitted(self)
-        return plot_bucket_table(self.bucket_table(column=column))
+        return plot_bucket_table(self.bucket_table(column=column), format=format)
 
     def register_prebucketing_pipeline(self, *steps, **kwargs):
         """
