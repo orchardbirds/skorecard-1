@@ -217,3 +217,4 @@ def test_bucketing_process_with_categorical_specials(df):
         assert set(table.columns) == set(['column', 'num_prebuckets', 'num_buckets', 'dtype'])
         assert table[table['column'] == 'pet_ownership']['num_prebuckets'].values[0] == 'not_bucketed'
         assert table[table['column'] == 'pet_ownership']['num_buckets'].values[0] == 'not_bucketed'
+        assert len(table['dtype'].unique()) == 3
