@@ -10,6 +10,10 @@ try:
 except ModuleNotFoundError:
     px = NotInstalledError("plotly", "reporting")
 
+try:
+    from IPython.display import Image
+except ModuleNotFoundError:
+    Image = NotInstalledError("psutil")
 
 def plot_bins(X, y, col):
     """Plot bin table."""
@@ -58,15 +62,19 @@ def plot_bins(X, y, col):
     )
     return fig
 
-def plot_prebucket_table(prebucket_table, X, y, column):
+def plot_prebucket_table(prebucket_table, X, y, column, format=None):
     """
     Given the prebucketed data, plot the pre-buckets
 
     Args:
         prebucket_table (pd.DataFrame): the table of the prebucketed data
+        X (pd.DataFrame): [description]
+        y ([type], optional): [description]. Defaults to None.
+        column (str): The column to plot
+        format (str): The format of the image, e.g. 'png'. The default returns a plotly fig
 
     Returns:
-        plotly fig
+        fig of desired format
     """
     bucket_colors = get_bucket_colors() * 4  # We repeat the colors in case there are lots of buckets
     buckets = [prebucket for prebucket in prebucket_table['pre-bucket'].values]
@@ -78,14 +86,19 @@ def plot_prebucket_table(prebucket_table, X, y, column):
     fig.update_layout(xaxis_title=column)
     fig.update_layout(title="Pre-bucketed")
     fig.update_traces(marker=dict(color=bar_colors), selector=dict(type="bar"))
+
+    if format is not None:
+        img_bytes = fig.to_image(format=format)
+        fig = Image(img_bytes)
     return fig
 
-def plot_bucket_table(bucket_table):
+def plot_bucket_table(bucket_table, format=None):
     """
     Given the bucketed data, plot the buckets with Event Rate
 
     Args:
         bucket_table (pd.DataFrame): the table of the bucketed data
+        format (str): The format of the image, e.g. 'png'. The default returns a plotly fig
 
     Returns:
         plotly fig
@@ -130,4 +143,9 @@ def plot_bucket_table(bucket_table):
         margin=dict(l=20, r=20, t=40, b=20),
         height=350,
     )
+
+    if format is not None:
+        img_bytes = fig.to_image(format=format)
+        fig = Image(img_bytes)
+
     return fig
