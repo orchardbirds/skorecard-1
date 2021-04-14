@@ -1,3 +1,3 @@
-from .manual_bucketer_app import BucketTweakerApp
+from .interactive_bucketing import BucketTweakerApp
 
 __all__ = ["BucketTweakerApp"]

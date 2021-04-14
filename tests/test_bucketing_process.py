@@ -70,8 +70,9 @@ def test_bucketing_optimization(df):
     )
     X_bins = bucketing_process.fit_transform(X, y)
 
+    X_prebucketed = bucketing_process.prebucketing_pipeline.transform(X)
     for col in num_cols + cat_cols:
-        assert X_bins[col].nunique() <= bucketing_process.X_prebucketed[col].nunique()
+        assert X_bins[col].nunique() <= X_prebucketed[col].nunique()
         assert X_bins[col].nunique() > 1
 
 
@@ -83,23 +84,28 @@ def test_bucketing_with_specials(df):
     X = df[num_cols + cat_cols]
     y = df["default"].values
 
-    bucketing_process = BucketingProcess(specials={"LIMIT_BAL": {"=400000.0": [400000.0]}})
+    the_specials = {"LIMIT_BAL": {"=400000.0": [400000.0]}}
+    bucketing_process = BucketingProcess(specials=the_specials)
     bucketing_process.register_prebucketing_pipeline(
         DecisionTreeBucketer(variables=num_cols, max_n_bins=100, min_bin_size=0.05),
-)
+    )
     bucketing_process.register_bucketing_pipeline(
         OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
         OptimalBucketer(variables=cat_cols, variables_type="categorical", max_n_bins=10, min_bin_size=0.05),
     )
     _ = bucketing_process.fit_transform(X, y)
 
+    # Make sure all the prebucketers have the specials assigned
+    for step in bucketing_process.prebucketing_pipeline:
+        assert step.specials == the_specials
+
     prebuckets = bucketing_process.prebucket_table("LIMIT_BAL")
     assert prebuckets["Count"][14] == 45.0
     assert prebuckets["label"][14] == "Special: =400000.0"
 
     buckets = bucketing_process.bucket_table("LIMIT_BAL")
-    assert buckets["Count"][9] == 45.0
-    assert buckets["label"][9] == "Special: =400000.0"
+    assert buckets["Count"][10] == 45.0
+    assert buckets["label"][10] == "Special: =400000.0"
 
 
 def test_bucketing_process_in_pipeline(df):
@@ -129,7 +135,7 @@ def test_bucketing_process_in_pipeline(df):
 
 def test_bucketing_process_with_numerical_specials(df):
     """
-    Test we get expected results for numerical specials
+    Test we get expected results for numerical specials.
     """
     y = df["default"]
     X = df.drop(columns=["default"])
@@ -137,24 +143,21 @@ def test_bucketing_process_with_numerical_specials(df):
     num_cols = ["LIMIT_BAL", "BILL_AMT1"]
     cat_cols = ["EDUCATION", "MARRIAGE"]
 
-    bucketing_process = BucketingProcess(specials={'LIMIT_BAL': {'=400000.0' : [400000.0]}})
+    bucketing_process = BucketingProcess(specials={"LIMIT_BAL": {"=400000.0": [400000.0]}})
     bucketing_process.register_prebucketing_pipeline(
-                                DecisionTreeBucketer(variables=num_cols, max_n_bins=100, min_bin_size=0.05),
-                                DecisionTreeBucketer(variables=cat_cols, max_n_bins=100, min_bin_size=0.05)
+        DecisionTreeBucketer(variables=num_cols, max_n_bins=100, min_bin_size=0.05),
+        DecisionTreeBucketer(variables=cat_cols, max_n_bins=100, min_bin_size=0.05),
     )
     bucketing_process.register_bucketing_pipeline(
-            OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
-            OptimalBucketer(variables=cat_cols,
-                            variables_type='categorical',
-                            max_n_bins=10,
-                            min_bin_size=0.05),
+        OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
+        OptimalBucketer(variables=cat_cols, variables_type="categorical", max_n_bins=10, min_bin_size=0.05),
     )
 
     bucketing_process.fit(X, y)
 
     table = bucketing_process.prebucket_table("LIMIT_BAL")
-    assert len(table['bucket'].unique()) == 10
-    assert table[['label']].values[-1] == 'Special: =400000.0'
+    assert len(table["bucket"].unique()) == 10
+    assert table[["label"]].values[-1] == "Special: =400000.0"
 
     table = bucketing_process.prebucket_table("MARRIAGE")
     assert table.shape[0] == 3
@@ -162,7 +165,7 @@ def test_bucketing_process_with_numerical_specials(df):
 
 def test_bucketing_process_with_categorical_specials(df):
     """
-    Test we get expected results for numerical specials
+    Test we get expected results for numerical specials.
     """
     y = df["default"]
     X = df.drop(columns=["default"])
@@ -170,27 +173,26 @@ def test_bucketing_process_with_categorical_specials(df):
     num_cols = ["LIMIT_BAL", "BILL_AMT1"]
     cat_cols = ["EDUCATION", "MARRIAGE"]
 
-    bucketing_process = BucketingProcess(specials={'MARRIAGE': {'=0' : [0]}})
+    bucketing_process = BucketingProcess(specials={"MARRIAGE": {"=0": [0]}})
     bucketing_process.register_prebucketing_pipeline(
-                                DecisionTreeBucketer(variables=num_cols, max_n_bins=100, min_bin_size=0.05),
-                                DecisionTreeBucketer(variables=cat_cols, max_n_bins=100, min_bin_size=0.05)
+        DecisionTreeBucketer(variables=num_cols, max_n_bins=100, min_bin_size=0.05),
+        DecisionTreeBucketer(variables=cat_cols, max_n_bins=100, min_bin_size=0.05),
     )
     bucketing_process.register_bucketing_pipeline(
-            OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
-            OptimalBucketer(variables=cat_cols,
-                            variables_type='categorical',
-                            max_n_bins=10,
-                            min_bin_size=0.05),
+        OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
+        OptimalBucketer(variables=cat_cols, variables_type="categorical", max_n_bins=10, min_bin_size=0.05),
     )
 
     bucketing_process.fit(X, y)
 
     table = bucketing_process.prebucket_table("MARRIAGE")
     assert table.shape[0] == 4
-    assert table['label'][3] == 'Special: =0'
+    assert table["label"][3] == "Special: =0"
 
     def test_bucketing_process_summary(df):
         """
+        Test bucketing process.
+
         Test we get expected results for .summary()
         """
         y = df["default"]
@@ -199,22 +201,19 @@ def test_bucketing_process_with_categorical_specials(df):
         num_cols = ["LIMIT_BAL", "BILL_AMT1"]
         cat_cols = ["EDUCATION", "MARRIAGE"]
 
-        bucketing_process = BucketingProcess(specials={'MARRIAGE': {'=0' : [0]}})
+        bucketing_process = BucketingProcess(specials={"MARRIAGE": {"=0": [0]}})
         bucketing_process.register_prebucketing_pipeline(
-                                    DecisionTreeBucketer(variables=num_cols, max_n_bins=100, min_bin_size=0.05),
-                                    DecisionTreeBucketer(variables=cat_cols, max_n_bins=100, min_bin_size=0.05)
+            DecisionTreeBucketer(variables=num_cols, max_n_bins=100, min_bin_size=0.05),
+            DecisionTreeBucketer(variables=cat_cols, max_n_bins=100, min_bin_size=0.05),
         )
         bucketing_process.register_bucketing_pipeline(
-                OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
-                OptimalBucketer(variables=cat_cols,
-                                variables_type='categorical',
-                                max_n_bins=10,
-                                min_bin_size=0.05),
+            OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
+            OptimalBucketer(variables=cat_cols, variables_type="categorical", max_n_bins=10, min_bin_size=0.05),
         )
 
         bucketing_process.fit(X, y)
         table = bucketing_process.summary()
-        assert set(table.columns) == set(['column', 'num_prebuckets', 'num_buckets', 'dtype'])
-        assert table[table['column'] == 'pet_ownership']['num_prebuckets'].values[0] == 'not_bucketed'
-        assert table[table['column'] == 'pet_ownership']['num_buckets'].values[0] == 'not_bucketed'
-        assert len(table['dtype'].unique()) == 3
+        assert set(table.columns) == set(["column", "num_prebuckets", "num_buckets", "dtype"])
+        assert table[table["column"] == "pet_ownership"]["num_prebuckets"].values[0] == "not_bucketed"
+        assert table[table["column"] == "pet_ownership"]["num_buckets"].values[0] == "not_bucketed"
+        assert len(table["dtype"].unique()) == 3
