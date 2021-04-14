@@ -43,11 +43,11 @@ theme:
 
 plugins:
     - search
-    - git-revision-date-localized:
-        type: timeago
     - mknotebooks:
         enable_default_jupyter_cell_styling: false
         enable_default_pandas_dataframe_styling: true
+    - git-revision-date-localized:
+        type: timeago
     - mkdocstrings:
         default_handler: python
         handlers:

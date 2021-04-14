@@ -90,10 +90,10 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
         the BucketingProcess ends up with the final buckets.
         An example is seen below:
 
-        bucket     | label              | Count | Count (%) | Non-event | Event | Event Rate | WoE |  IV   | bucket
-        -----------------------------------------------------------------------------------------------------------
-        0          | (-inf, 25000.0)    | 479.0 | 7.98      | 300.0     | 179.0 | 37.37      | 0.73 | 0.05 | 0
-        1          | [25000.0, 45000.0) | 370.0 | 6.17      | 233.0     | 137.0 | 37.03      | 0.71 | 0.04 | 1
+        bucket     | label              | Count | Count (%) | Non-event | Event | Event Rate | WoE |  IV
+        ---------------------------------------------------------------------------------------------------
+        0          | (-inf, 25000.0)    | 479.0 | 7.98      | 300.0     | 179.0 | 37.37      | 0.73 | 0.05
+        1          | [25000.0, 45000.0) | 370.0 | 6.17      | 233.0     | 137.0 | 37.03      | 0.71 | 0.04
 
         Args:
             column: The column we wish to analyse
@@ -116,10 +116,10 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
 
         An example is seen below:
 
-        bucket | label      | Count | Count (%) | Non-event | Event | Event Rate | WoE   | IV
-        -------------------------------------------------------------------------------------------
-        0      | (-inf, 1.0)| 479   | 7.98      | 300       | 179   |  37.37     |  0.73 | 0.05
-        1      | [1.0, 2.0) | 370   | 6.17      | 233       | 137   |  37.03     |  0.71 | 0.04
+        pre-bucket | label      | Count | Count (%) | Non-event | Event | Event Rate | WoE   | IV  | bucket
+        ---------------------------------------------------------------------------------------------------
+        0          | (-inf, 1.0)| 479   | 7.98      | 300       | 179   |  37.37     |  0.73 | 0.05 | 0
+        1          | [1.0, 2.0) | 370   | 6.17      | 233       | 137   |  37.03     |  0.71 | 0.04 | 0
 
         Args:
             column: The column we wish to analyse
@@ -141,35 +141,50 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
         table["bucket"] = bucket_mapping.transform(table["pre-bucket"])
         return table
 
-    def plot_prebucket(self, column, format=None):
+    def plot_prebucket(self, column, format=None, scale=None, width=None, height=None):
         """
         Generates the prebucket table and produces a corresponding plotly plot.
 
         Args:
             column: The column we want to visualise
             format: The format of the image, such as 'png'. The default None returns a plotly image.
+            scale: If format is specified, the scale of the image
+            width: If format is specified, the width of the image
+            height: If format is specified, the image of the image
 
         Returns:
             plot: plotly fig
         """
         check_is_fitted(self)
         return plot_prebucket_table(
-            prebucket_table=self.prebucket_table(column), X=self.X_prebucketed_, y=self.y, column=column, format=format
+            prebucket_table=self.prebucket_table(column),
+            X=self.X_prebucketed,
+            y=self.y,
+            column=column,
+            format=format,
+            scale=scale,
+            width=width,
+            height=height,
         )
 
-    def plot_bucket(self, column, format=None):
+    def plot_bucket(self, column, format=None, scale=None, width=None, height=None):
         """
         Plot the buckets.
 
         Args:
             column: The column we want to visualise
             format: The format of the image, such as 'png'. The default None returns a plotly image.
+            scale: If format is specified, the scale of the image
+            width: If format is specified, the width of the image
+            height: If format is specified, the image of the image
 
         Returns:
             plot: plotly fig
         """
         check_is_fitted(self)
-        return plot_bucket_table(self.bucket_table(column=column), format=format)
+        return plot_bucket_table(
+            self.bucket_table(column=column), format=format, scale=scale, width=width, height=height
+        )
 
     def register_prebucketing_pipeline(self, *steps, **kwargs):
         """
@@ -222,7 +237,6 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
             y ([type], optional): [description]. Defaults to None.
         """
         # Fit the prebucketing pipeline
-        # And save the prebucket mapping
         X_prebucketed_ = self.prebucketing_pipeline.fit_transform(X, y)
         assert isinstance(X_prebucketed_, pd.DataFrame)
         self._features_prebucket_mapping = get_features_bucket_mapping(self.prebucketing_pipeline)
@@ -233,6 +247,12 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
                 self.prebucket_tables_[column] = create_report(
                     X, y, column=column, bucket_mapping=self._features_prebucket_mapping.get(column)
                 )
+
+        # TODO: these need to be removed later
+        # they are only used in .plot_prebucket_table()
+        # and that should be refactored because all info is already saved in self.prebucket_tables
+        self.y = y
+        self.X_prebucketed = X_prebucketed_
 
         # Find the new bucket numbers of the specials after prebucketing,
         # and set self._bucketing_specials
