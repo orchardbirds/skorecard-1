@@ -1,6 +1,6 @@
 from skorecard.utils import NotPreBucketedError, NotBucketObjectError
 from skorecard.pipeline import get_features_bucket_mapping
-from skorecard.reporting import create_report, plot_bucket_table, plot_prebucket_table
+from skorecard.reporting import build_bucket_table, plot_bucket_table, plot_prebucket_table
 from skorecard.bucketers import UserInputBucketer
 
 from sklearn.base import BaseEstimator, TransformerMixin
@@ -107,7 +107,7 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
 
         table = self.bucket_tables_.get(column)
         table = table.rename(columns={"bucket_id": "bucket"})
-        table["Event Rate"] = round(table["Event Rate"] * 100, 2)
+
         return table
 
     def prebucket_table(self, column):
@@ -132,8 +132,6 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
             raise ValueError(f"column '{column}' was not part of the pre-bucketing process")
 
         table = self.prebucket_tables_.get(column)
-
-        table["Event Rate"] = round(table["Event Rate"] * 100, 2)
         table = table.rename(columns={"bucket_id": "pre-bucket"})
 
         # Apply bucket mapping
@@ -158,8 +156,6 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
         check_is_fitted(self)
         return plot_prebucket_table(
             prebucket_table=self.prebucket_table(column),
-            X=self.X_prebucketed,
-            y=self.y,
             column=column,
             format=format,
             scale=scale,
@@ -244,15 +240,9 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
         self.prebucket_tables_ = dict()
         for column in X.columns:
             if column in self._features_prebucket_mapping.maps.keys():
-                self.prebucket_tables_[column] = create_report(
+                self.prebucket_tables_[column] = build_bucket_table(
                     X, y, column=column, bucket_mapping=self._features_prebucket_mapping.get(column)
                 )
-
-        # TODO: these need to be removed later
-        # they are only used in .plot_prebucket_table()
-        # and that should be refactored because all info is already saved in self.prebucket_tables
-        self.y = y
-        self.X_prebucketed = X_prebucketed_
 
         # Find the new bucket numbers of the specials after prebucketing,
         # and set self._bucketing_specials
@@ -272,7 +262,7 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
         self.bucket_tables_ = dict()
         for column in X.columns:
             if column in self._features_bucket_mapping.maps.keys():
-                self.bucket_tables_[column] = create_report(
+                self.bucket_tables_[column] = build_bucket_table(
                     X_prebucketed_, y, column=column, bucket_mapping=self._features_bucket_mapping.get(column)
                 )
 
@@ -298,7 +288,7 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
         self.bucket_tables_ = dict()
         for column in X_prebucketed.columns:
             if column in self._features_bucket_mapping.maps.keys():
-                self.bucket_tables_[column] = create_report(
+                self.bucket_tables_[column] = build_bucket_table(
                     X_prebucketed, y, column=column, bucket_mapping=self._features_bucket_mapping.get(column)
                 )
 
