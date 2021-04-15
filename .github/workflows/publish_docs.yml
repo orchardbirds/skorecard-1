@@ -22,8 +22,10 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install --upgrade setuptools wheel twine
-        pip install psutils
         pip install ".[all]"
+        # In our docs, we need to output static images
+        # That requires additional setup
+        conda install psutils
         conda install --yes -c plotly plotly-orca
 
     - name: Deploy mkdocs site
