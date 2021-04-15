@@ -21,9 +21,8 @@ import skorecard.metrics
 import skorecard.bucket_mapping
 import skorecard.utils
 
-
 # List of all classes and functions we want tested
-MODULES_TO_TEST = [skorecard.apps.manual_bucketer_app]
+MODULES_TO_TEST = [skorecard.apps.interactive_bucketing]
 CLASSES_TO_TEST = [
     # skorecard.apps.BucketTweakerApp,
     skorecard.linear_model.LogisticRegression,
@@ -43,7 +42,7 @@ CLASSES_TO_TEST = [
 FUNCTIONS_TO_TEST = [
     skorecard.utils.reshape_1d_to_2d,
     skorecard.pipeline.get_features_bucket_mapping,
-    skorecard.reporting.create_report,
+    skorecard.reporting.build_bucket_table,
 ]
 
 

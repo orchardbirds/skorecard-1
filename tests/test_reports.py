@@ -1,5 +1,5 @@
 from skorecard.bucketers import DecisionTreeBucketer
-from skorecard.reporting import create_report
+from skorecard.reporting import build_bucket_table
 import numpy as np
 import pandas as pd
 
@@ -12,7 +12,7 @@ def test_report_decision_tree(df):
     tbt.fit(X, y)
     tbt.transform(X)
 
-    df_out = create_report(X, y, column="LIMIT_BAL", bucketer=tbt)
+    df_out = build_bucket_table(X, y, column="LIMIT_BAL", bucketer=tbt)
     assert df_out.shape == (5, 9)
     assert df_out["label"].to_dict() == tbt.features_bucket_mapping_["LIMIT_BAL"].labels
 

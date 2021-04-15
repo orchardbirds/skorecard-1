@@ -1,9 +1,7 @@
 import numpy as np
 import pandas as pd
-from sklearn.pipeline import make_pipeline
 from sklearn.metrics import roc_auc_score
 
-from skorecard.reporting import plot_bins, create_report
 from skorecard.apps.app_utils import determine_boundaries, get_bucket_colors
 from skorecard.utils.exceptions import NotInstalledError
 
@@ -108,7 +106,7 @@ def add_callbacks(self):
         Output("updated_boundaries", "children"), [Input("bucket_table", "data")], State("input_column", "value")
     )
     def update_updated_boundaries(bucket_table, col):
-        return str(self.ui_bucketer.features_bucket_mapping.get(col).map)
+        return str(self.bucketingprocess._features_bucket_mapping.get(col).map)
 
     @app.callback(
         Output("input_column", "value"),
@@ -117,30 +115,19 @@ def add_callbacks(self):
     )
     def reset_boundaries(n_clicks, col):
         original_map = self.original_bucket_feature_mapping.get(col).map
-        self.ui_bucketer.features_bucket_mapping.get(col).map = original_map
+        self.bucketingprocess._features_bucket_mapping.get(col).map = original_map
         # update same column to input_colum
         # this will trigger other components to update
         return col
 
     @app.callback(
-        Output("prebucket_table", "data"),
+        [Output("prebucket_table", "data"), Output("graph-prebucket", "figure")],
         [Input("input_column", "value")],
     )
     def get_prebucket_table(col):
-
-        table = create_report(
-            self.X, self.y, column=col, bucket_mapping=self.original_prebucket_feature_mapping.get(col)
-        )
-
-        # table['Count %'] = table['Count %'] * 100
-        table["Event Rate"] = round(table["Event Rate"] * 100, 2)
-        # table = bucket_table(x_original=self.X[col], x_bucketed=self.X_prebucketed[col], y=self.y)
-        table = table.rename(columns={"bucket_id": "pre-bucket"})
-
-        # Apply bucket mapping
-        bucket_mapping = self.ui_bucketer.features_bucket_mapping.get(col)
-        table["bucket"] = bucket_mapping.transform(table["pre-bucket"])
-        return table.to_dict("records")
+        table = self.bucketingprocess.prebucket_table(col)
+        fig = self.bucketingprocess.plot_prebucket(col)
+        return table.to_dict("records"), fig
 
     @app.callback(
         [Output("bucket_table", "data"), Output("pre-bucket-error", "children")],
@@ -148,10 +135,21 @@ def add_callbacks(self):
         State("input_column", "value"),
     )
     def get_bucket_table(prebucket_table, col):
-
+        # Determine the boundaries from the buckets set in the prebucket table
         new_buckets = pd.DataFrame()
         new_buckets["pre_buckets"] = [row.get("pre-bucket") for row in prebucket_table]
         new_buckets["buckets"] = [int(row.get("bucket")) for row in prebucket_table]
+
+        features_bucket_mapping = self.bucketingprocess._features_bucket_mapping
+        boundaries = determine_boundaries(new_buckets, features_bucket_mapping.get(col))
+
+        # Update the feature_bucket_mapping in the bucketingprocess
+        features_bucket_mapping.get(col).map = boundaries
+        self.bucketingprocess._set_bucket_mapping(features_bucket_mapping, self.X_prebucketed, self.y)
+
+        # Get the new bucketing table
+        table = self.bucketingprocess.bucket_table(col)
+
         # Explicit error handling
         # if all(new_buckets["buckets"].sort_values().values == new_buckets["buckets"].values):
         #     error = []
@@ -160,21 +158,6 @@ def add_callbacks(self):
         #     return None, error
         error = []
 
-        bucket_mapping = self.ui_bucketer.features_bucket_mapping.get(col)
-
-        boundaries = determine_boundaries(new_buckets, bucket_mapping)
-        self.ui_bucketer.features_bucket_mapping.get(col).map = boundaries
-
-        table = create_report(
-            self.X_prebucketed,
-            self.y,
-            column=col,
-            bucket_mapping=self.ui_bucketer.features_bucket_mapping.get(col),
-            display_missing=False,
-        )
-        table = table.rename(columns={"bucket_id": "bucket"})
-        table["Event Rate"] = round(table["Event Rate"] * 100, 2)
-
         return table.to_dict("records"), error
 
     @app.callback(
@@ -182,28 +165,17 @@ def add_callbacks(self):
         [Input("bucket_table", "data")],
     )
     def update_auc(bucket_table):
-        pipe = make_pipeline(self.prebucketing_pipeline, self.ui_bucketer, self.postbucketing_pipeline)
-        pipe.fit(self.X, self.y)
-        yhat = [x[1] for x in pipe.predict_proba(self.X)]
+        yhat = [x[1] for x in self.pipeline.predict_proba(self.X)]
         auc = roc_auc_score(self.y, yhat)
         return f"AUC: {auc:.3f}"
 
     @app.callback(
         Output("graph-prebucket", "figure"),
-        [Input("input_column", "value"), Input("prebucket_table", "data")],
+        [Input("prebucket_table", "data")],
     )
     def plot_prebucket_bins(col, prebucket_table):
-        bucket_colors = get_bucket_colors() * 4  # We repeat the colors in case there are lots of buckets
-        buckets = [int(x.get("bucket")) for x in prebucket_table]
-        bar_colors = [bucket_colors[i] for i in buckets]
 
-        fig = plot_bins(self.X_prebucketed, self.y, col)
-        fig.update_layout(transition_duration=50)
-        fig.update_layout(showlegend=False)
-        fig.update_layout(xaxis_title=col)
-        fig.update_layout(title="Pre-bucketed")
-        fig.update_traces(marker=dict(color=bar_colors), selector=dict(type="bar"))
-        return fig
+        return self.bucketingprocess.plot_prebucket(col)
 
     @app.callback(
         Output("graph-bucket", "figure"),
