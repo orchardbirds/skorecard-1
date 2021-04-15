@@ -1,9 +1,9 @@
 name: Publish Documentation
 
 on:
+  workflow_dispatch:
   release:
     types: [created]
-  workflow_dispatch
 
 jobs:
   deploy:
