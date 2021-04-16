@@ -1,11 +1,14 @@
 import pandas as pd
-from sklearn.base import BaseEstimator, TransformerMixin
-
-from sklearn.utils.validation import check_is_fitted
 import itertools
 
+from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.utils.validation import check_is_fitted
 
-class BaseBucketer(BaseEstimator, TransformerMixin):
+from skorecard.reporting.plotting import PlotBucketMethod
+from skorecard.reporting.report import BucketTableMethod
+
+
+class BaseBucketer(BaseEstimator, TransformerMixin, PlotBucketMethod, BucketTableMethod):
     """Base class for bucket transformers."""
 
     @staticmethod
@@ -19,20 +22,20 @@ class BaseBucketer(BaseEstimator, TransformerMixin):
     @staticmethod
     def _is_allowed_missing_treatment(missing_treatment):
         # checks if the argument for missing_values is valid
-        allowed_str_missing = ['separate', 'frequent', 'risky']
+        allowed_str_missing = ["separate", "frequent", "risky"]
         if type(missing_treatment) == str:
             if missing_treatment not in allowed_str_missing:
-                raise ValueError(f'missing_treatment must be in {allowed_str_missing} or a dict')
-        
+                raise ValueError(f"missing_treatment must be in {allowed_str_missing} or a dict")
+
         elif type(missing_treatment) == dict:
             for _, v in enumerate(missing_treatment):
                 if missing_treatment[v] < 0:
-                    raise ValueError('As an integer, missing_treatment must be greater than 0')
+                    raise ValueError("As an integer, missing_treatment must be greater than 0")
                 elif type(missing_treatment[v]) != int:
-                    raise ValueError('Values of the missing_treatment dict must be integers')
-        
+                    raise ValueError("Values of the missing_treatment dict must be integers")
+
         else:
-            raise ValueError(f'missing_treatment must be in {allowed_str_missing} or a dict')
+            raise ValueError(f"missing_treatment must be in {allowed_str_missing} or a dict")
 
     @staticmethod
     def _check_contains_na(X, variables):

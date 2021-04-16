@@ -1,18 +1,22 @@
-from skorecard.utils import NotPreBucketedError, NotBucketObjectError
-from skorecard.pipeline import get_features_bucket_mapping
-from skorecard.reporting import build_bucket_table, plot_bucket_table, plot_prebucket_table
-from skorecard.bucketers import UserInputBucketer
+import warnings
+
+import pandas as pd
 
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.pipeline import make_pipeline
 from sklearn.utils.validation import check_is_fitted
 
-import pandas as pd
+from skorecard.utils import NotPreBucketedError, NotBucketObjectError
+from skorecard.pipeline import get_features_bucket_mapping
+from skorecard.bucketers import UserInputBucketer
+from skorecard.reporting import build_bucket_table
+from skorecard.reporting.report import BucketTableMethod, PreBucketTableMethod
+from skorecard.reporting.plotting import PlotBucketMethod, PlotPreBucketMethod
 
-import warnings
 
-
-class BucketingProcess(BaseEstimator, TransformerMixin):
+class BucketingProcess(
+    BaseEstimator, TransformerMixin, BucketTableMethod, PreBucketTableMethod, PlotBucketMethod, PlotPreBucketMethod
+):
     """Class to concatenate a prebucketing and bucketing step.
 
     Usage example:
@@ -68,7 +72,7 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
         self._bucketing_specials = dict()  # will be determined later.
         self.name = "bucketingprocess"  # to be able to identity the bucketingprocess in a pipeline
 
-        self.specials = specials  # I have no idea why this is needed. Remove it for insane errors
+        # self.specials = specials  # I have no idea why this is needed. Remove it for insane errors
 
     def _check_all_bucketers(self, steps):
         """
@@ -81,106 +85,6 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
             msg = "All bucketing steps must be skorecard bucketers"
             if "skorecard.bucketers" not in str(type(step)):
                 raise NotBucketObjectError(msg)
-
-    def bucket_table(self, column):
-        """
-        Generates the statistics for the buckets of a particular column.
-
-        The pre-buckets are matched to the post-buckets, so that the user has a much clearer understanding of how
-        the BucketingProcess ends up with the final buckets.
-        An example is seen below:
-
-        bucket     | label              | Count | Count (%) | Non-event | Event | Event Rate | WoE |  IV
-        ---------------------------------------------------------------------------------------------------
-        0          | (-inf, 25000.0)    | 479.0 | 7.98      | 300.0     | 179.0 | 37.37      | 0.73 | 0.05
-        1          | [25000.0, 45000.0) | 370.0 | 6.17      | 233.0     | 137.0 | 37.03      | 0.71 | 0.04
-
-        Args:
-            column: The column we wish to analyse
-
-        Returns:
-            df (pd.DataFrame): A pandas dataframe of the format above
-        """  # noqa
-        check_is_fitted(self)
-        if column not in self.bucket_tables_.keys():
-            raise ValueError(f"column '{column}' was not part of the bucketingprocess")
-
-        table = self.bucket_tables_.get(column)
-        table = table.rename(columns={"bucket_id": "bucket"})
-
-        return table
-
-    def prebucket_table(self, column):
-        """
-        Generates the statistics for the buckets of a particular column.
-
-        An example is seen below:
-
-        pre-bucket | label      | Count | Count (%) | Non-event | Event | Event Rate | WoE   | IV  | bucket
-        ---------------------------------------------------------------------------------------------------
-        0          | (-inf, 1.0)| 479   | 7.98      | 300       | 179   |  37.37     |  0.73 | 0.05 | 0
-        1          | [1.0, 2.0) | 370   | 6.17      | 233       | 137   |  37.03     |  0.71 | 0.04 | 0
-
-        Args:
-            column: The column we wish to analyse
-
-        Returns:
-            df (pd.DataFrame): A pandas dataframe of the format above
-        """  # noqa
-        check_is_fitted(self)
-        if column not in self.prebucket_tables_.keys():
-            raise ValueError(f"column '{column}' was not part of the pre-bucketing process")
-
-        table = self.prebucket_tables_.get(column)
-        table = table.rename(columns={"bucket_id": "pre-bucket"})
-
-        # Apply bucket mapping
-        bucket_mapping = self._features_bucket_mapping.get(column)
-        table["bucket"] = bucket_mapping.transform(table["pre-bucket"])
-        return table
-
-    def plot_prebucket(self, column, format=None, scale=None, width=None, height=None):
-        """
-        Generates the prebucket table and produces a corresponding plotly plot.
-
-        Args:
-            column: The column we want to visualise
-            format: The format of the image, such as 'png'. The default None returns a plotly image.
-            scale: If format is specified, the scale of the image
-            width: If format is specified, the width of the image
-            height: If format is specified, the image of the image
-
-        Returns:
-            plot: plotly fig
-        """
-        check_is_fitted(self)
-        return plot_prebucket_table(
-            prebucket_table=self.prebucket_table(column),
-            column=column,
-            format=format,
-            scale=scale,
-            width=width,
-            height=height,
-        )
-
-    def plot_bucket(self, column, format=None, scale=None, width=None, height=None):
-        """
-        Plot the buckets.
-
-        Args:
-            column: The column we want to visualise
-            format: The format of the image, such as 'png'. The default None returns a plotly image.
-            scale: If format is specified, the scale of the image
-            width: If format is specified, the width of the image
-            height: If format is specified, the image of the image
-
-        Returns:
-            plot: plotly fig
-        """
-        check_is_fitted(self)
-        return plot_bucket_table(
-            self.bucket_table(column=column), format=format, scale=scale, width=width, height=height
-        )
 
     def register_prebucketing_pipeline(self, *steps, **kwargs):
         """
@@ -235,13 +139,13 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
         # Fit the prebucketing pipeline
         X_prebucketed_ = self.prebucketing_pipeline.fit_transform(X, y)
         assert isinstance(X_prebucketed_, pd.DataFrame)
-        self._features_prebucket_mapping = get_features_bucket_mapping(self.prebucketing_pipeline)
+        self.features_prebucket_mapping_ = get_features_bucket_mapping(self.prebucketing_pipeline)
         # and calculate the prebucket tables.
         self.prebucket_tables_ = dict()
         for column in X.columns:
-            if column in self._features_prebucket_mapping.maps.keys():
+            if column in self.features_prebucket_mapping_.maps.keys():
                 self.prebucket_tables_[column] = build_bucket_table(
-                    X, y, column=column, bucket_mapping=self._features_prebucket_mapping.get(column)
+                    X, y, column=column, bucket_mapping=self.features_prebucket_mapping_.get(column)
                 )
 
         # Find the new bucket numbers of the specials after prebucketing,
@@ -257,13 +161,13 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
         # Fit the prebucketing pipeline
         # And save the bucket mapping
         self.bucketing_pipeline.fit(X_prebucketed_, y)
-        self._features_bucket_mapping = get_features_bucket_mapping(self.bucketing_pipeline)
+        self.features_bucket_mapping_ = get_features_bucket_mapping(self.bucketing_pipeline)
         # and calculate the bucket tables.
         self.bucket_tables_ = dict()
         for column in X.columns:
-            if column in self._features_bucket_mapping.maps.keys():
+            if column in self.features_bucket_mapping_.maps.keys():
                 self.bucket_tables_[column] = build_bucket_table(
-                    X_prebucketed_, y, column=column, bucket_mapping=self._features_bucket_mapping.get(column)
+                    X_prebucketed_, y, column=column, bucket_mapping=self.features_bucket_mapping_.get(column)
                 )
 
         return self
@@ -273,23 +177,23 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
         Replace the bucket mapping in the bucketing_pipeline.
 
         This is meant for use internally in the dash app, where we manually edit
-        bucketingprocess._features_bucket_mapping.
+        bucketingprocess.features_bucket_mapping_.
 
         To be able to update the bucketingprocess, use something like:
         X_prebucketed = bucketingprocess.prebucket_pipeline.transform(X)
-        feature_bucket_mapping # your edited bucketingprocess._features_bucket_mapping
+        feature_bucket_mapping # your edited bucketingprocess.features_bucket_mapping_
         bucketingprocess._set_bucket_mapping(feature_bucket_mapping, X_prebucketed, y)
         """
         # Step 1: replace the bucketing pipeline with a UI bucketer that uses the new mapping
         self.bucketing_pipeline = UserInputBucketer(features_bucket_mapping)
-        self._features_bucket_mapping = features_bucket_mapping
+        self.features_bucket_mapping_ = features_bucket_mapping
 
         # Step 2: Recalculate the bucket tables
         self.bucket_tables_ = dict()
         for column in X_prebucketed.columns:
-            if column in self._features_bucket_mapping.maps.keys():
+            if column in self.features_bucket_mapping_.maps.keys():
                 self.bucket_tables_[column] = build_bucket_table(
-                    X_prebucketed, y, column=column, bucket_mapping=self._features_bucket_mapping.get(column)
+                    X_prebucketed, y, column=column, bucket_mapping=self.features_bucket_mapping_.get(column)
                 )
 
     def _retrieve_special_for_bucketing(self):
@@ -301,7 +205,7 @@ class BucketingProcess(BaseEstimator, TransformerMixin):
         step.
         """
         for var in self._prebucketing_specials.keys():
-            feats_preb_map = self._features_prebucket_mapping.maps[var]
+            feats_preb_map = self.features_prebucket_mapping_.maps[var]
             # this finds the maximum index within the
             # the prebucketed maps.  The next index is reserved for the
             # missing value.

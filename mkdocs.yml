@@ -52,6 +52,8 @@ plugins:
         default_handler: python
         handlers:
             python:
+                selection:
+                    inherited_members: true
                 rendering:
                     show_source: false
                     show_root_heading: false
