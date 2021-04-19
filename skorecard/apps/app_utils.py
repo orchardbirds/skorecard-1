@@ -1,6 +1,7 @@
 import pandas as pd
 
 from skorecard.bucket_mapping import BucketMapping
+from skorecard.reporting.plotting import get_bucket_colors
 
 
 def determine_boundaries(df: pd.DataFrame, bucket_mapping: BucketMapping) -> list:
@@ -43,7 +44,7 @@ def determine_boundaries(df: pd.DataFrame, bucket_mapping: BucketMapping) -> lis
     boundaries = list(boundaries)[:-1]
 
     # Removed this because of the categoricals
-    #assert sorted(boundaries) == boundaries, "buckets must be sorted"
+    # assert sorted(boundaries) == boundaries, "buckets must be sorted"
     return boundaries
 
 
@@ -117,33 +118,6 @@ def perc_data_bars(column):
         )
 
     return styles
-
-
-def get_bucket_colors():
-    """Return diverging color for unique buckets.
-
-    Generated using:
-
-    ```python
-    import seaborn as sns
-    colors = sns.color_palette("Set2")
-    rgbs = []
-    for r,g,b in list(colors):
-        rgbs.append(
-            f"rgb({int(r*255)},{int(g*255)},{int(b*255)})"
-        )
-    ```
-    """
-    return [
-        "rgb(102,194,165)",
-        "rgb(252,141,98)",
-        "rgb(141,160,203)",
-        "rgb(231,138,195)",
-        "rgb(166,216,84)",
-        "rgb(255,217,47)",
-        "rgb(229,196,148)",
-        "rgb(179,179,179)",
-    ]
 
 
 def colorize_cell(column):

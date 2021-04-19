@@ -135,7 +135,6 @@ def add_callbacks(self):
         State("input_column", "value"),
     )
     def get_bucket_table(prebucket_table, col):
-
         # Determine the boundaries from the buckets set in the prebucket table
         new_buckets = pd.DataFrame()
         new_buckets["pre_buckets"] = [row.get("pre-bucket") for row in prebucket_table]
@@ -170,24 +169,13 @@ def add_callbacks(self):
         auc = roc_auc_score(self.y, yhat)
         return f"AUC: {auc:.3f}"
 
-    # @app.callback(
-    #     Output("graph-prebucket", "figure"),
-    #     [Input("input_column", "value"), Input("prebucket_table", "data")],
-    # )
-    # def plot_prebucket_bins(col, prebucket_table):
+    @app.callback(
+        Output("graph-prebucket", "figure"),
+        [Input("prebucket_table", "data")],
+    )
+    def plot_prebucket_bins(col, prebucket_table):
 
-    #     return self.bucketingprocess.plot_prebucket(col)
-    # bucket_colors = get_bucket_colors() * 4  # We repeat the colors in case there are lots of buckets
-    # buckets = [int(x.get("bucket")) for x in prebucket_table]
-    # bar_colors = [bucket_colors[i] for i in buckets]
-
-    # fig = plot_bins(self.X_prebucketed, self.y, col)
-    # fig.update_layout(transition_duration=50)
-    # fig.update_layout(showlegend=False)
-    # fig.update_layout(xaxis_title=col)
-    # fig.update_layout(title="Pre-bucketed")
-    # fig.update_traces(marker=dict(color=bar_colors), selector=dict(type="bar"))
-    # return fig
+        return self.bucketingprocess.plot_prebucket(col)
 
     @app.callback(
         Output("graph-bucket", "figure"),

@@ -12,3 +12,4 @@ The problem of dividing a feature in to a smaller number of buckets is not uniqu
 
 - [feature-engine](https://feature-engine.readthedocs.io/en/latest/discretisation/index.html) has some 'discretisation' transformers that function just like `skorecard`'s bucketers.
 
+

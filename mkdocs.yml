@@ -52,6 +52,8 @@ plugins:
         default_handler: python
         handlers:
             python:
+                selection:
+                    inherited_members: true
                 rendering:
                     show_source: false
                     show_root_heading: false
@@ -65,6 +67,8 @@ nav:
     - Tutorials:
         - Using bucketers: tutorials/using_bucketers.ipynb
         - Using BucketingProcess: tutorials/using-bucketing-process.ipynb
+        - Manually defining buckets: tutorials/using_manually_defined_buckets.ipynb
+        - Building a skorecard pipeline: tutorials/pipelines.ipynb
     - How to:
         - howto/howto-placeholder.md
     - API: 

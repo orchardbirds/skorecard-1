@@ -84,7 +84,7 @@ def test_bucketing_pipeline(df):
 
     bucket_pipeline = make_pipeline(
         OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
-        OptimalBucketer(variables=cat_cols, variables_type='categorical', max_n_bins=10, min_bin_size=0.05),
+        OptimalBucketer(variables=cat_cols, variables_type="categorical", max_n_bins=10, min_bin_size=0.05),
     )
 
     pipe = make_pipeline(prebucket_pipeline, bucket_pipeline)
@@ -108,7 +108,7 @@ def test_find_coarse_classing_step(df):
     )
     bucketing_process.register_bucketing_pipeline(
         OptimalBucketer(variables=num_cols, max_n_bins=10, min_bin_size=0.05),
-        OptimalBucketer(variables=cat_cols, variables_type='categorical', max_n_bins=10, min_bin_size=0.05),
+        OptimalBucketer(variables=cat_cols, variables_type="categorical", max_n_bins=10, min_bin_size=0.05),
     )
 
     pipeline = make_pipeline(bucketing_process)
@@ -130,8 +130,9 @@ def test_get_features_bucket_mapping(df):
 
     nested_pipeline.fit(X, y)
     bm = get_features_bucket_mapping(nested_pipeline)
-    assert bm.get("EDUCATION") == BucketMapping(
-        feature_name="EDUCATION", type="categorical", map={2: 0, 1: 1, 3: 2}, right=True
+    assert (
+        bm.get("EDUCATION").map
+        == BucketMapping(feature_name="EDUCATION", type="categorical", map={2: 0, 1: 1, 3: 2}, right=True).map
     )
 
 
