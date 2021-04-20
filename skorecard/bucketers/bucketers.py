@@ -1,17 +1,22 @@
 import warnings
 import numpy as np
 import pandas as pd
-from probatus.binning import AgglomerativeBucketer
-from probatus.utils import ApproximationWarning
+
+from sklearn.cluster import AgglomerativeClustering
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.tree import _tree
+from sklearn.utils.validation import check_is_fitted
 
 from typing import Union, List, Dict
 from skorecard.bucketers.base_bucketer import BaseBucketer
 from skorecard.bucket_mapping import BucketMapping, FeaturesBucketMapping
 from skorecard.utils import NotInstalledError, NotPreBucketedError
+from skorecard.utils.exceptions import ApproximationWarning
 from skorecard.reporting import build_bucket_table
 
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.tree import _tree
+
 
 try:
     from optbinning import OptimalBinning
@@ -299,10 +304,13 @@ class AgglomerativeClusteringBucketer(BaseBucketer):
     bucketer = AgglomerativeClusteringBucketer(n_bins = 10, variables=['LIMIT_BAL'], specials=specials)
     bucketer.fit_transform(X)
     bucketer.fit_transform(X)['LIMIT_BAL'].value_counts()
+
+    # You can also access the fitted AgglomerativeClustering per feature:
+    bucketer.binners['LIMIT_BAL']
     ```
     """
 
-    def __init__(self, n_bins=-1, variables=[], specials={}, missing_treatment="separate"):
+    def __init__(self, n_bins=-1, variables=[], specials={}, missing_treatment="separate", **kwargs):
         """Init the class.
 
         Args:
@@ -324,16 +332,18 @@ class AgglomerativeClusteringBucketer(BaseBucketer):
                 If a dict, it must be of the following format:
                 {"<column name>": <bucket_number>}
                 This bucket number is where we will put the missing values.
-
+            kwargs: Other parameters passed to AgglomerativeBucketer
         """
         assert isinstance(variables, list)
         assert isinstance(n_bins, int)
+        assert n_bins >= 1
         self._is_allowed_missing_treatment(missing_treatment)
 
         self.variables = variables
         self.n_bins = n_bins
         self.specials = specials
         self.missing_treatment = missing_treatment
+        self.kwargs = kwargs
 
     def fit(self, X, y=None):
         """Fit X, y."""
@@ -342,10 +352,11 @@ class AgglomerativeClusteringBucketer(BaseBucketer):
         self._verify_specials_variables(self.specials, X.columns)
 
         self.features_bucket_mapping_ = {}
+        self.binners = {}
         self.bucket_tables_ = {}
 
         for feature in self.variables:
-            ab = AgglomerativeBucketer(bin_count=self.n_bins)
+            ab = AgglomerativeClustering(n_clusters=self.n_bins, **self.kwargs)
 
             if feature in self.specials.keys():
                 special = self.specials[feature]
@@ -355,13 +366,19 @@ class AgglomerativeClusteringBucketer(BaseBucketer):
                 y_flt = y
                 special = {}
             X_flt, y_flt = self._filter_na_for_fit(X=X_flt, y=y_flt)
-            ab.fit(X_flt.values, y=None)
 
-            # AgglomerativeBucketer returns the min & max values of the fits
-            # On transform, we use np.digitize, which means new data that is outside of this range
-            # will be assigned to their own buckets.
-            # To solve, we remove the min and max boundaries
-            boundaries = ab.boundaries[1:-1]
+            ab.fit(X_flt.values.reshape(-1, 1), y=None)
+            self.binners[feature] = ab
+
+            # Find the boundaries
+            df = pd.DataFrame({"x": X_flt.values, "label": ab.labels_}).sort_values(by="x")
+            cluster_minimum_values = df.groupby("label")["x"].min().sort_values().tolist()
+            cluster_maximum_values = df.groupby("label")["x"].max().sort_values().tolist()
+            # take the mean of the upper boundary of a cluster and the lower boundary of the next cluster
+            boundaries = [
+                np.mean([cluster_minimum_values[i + 1], cluster_maximum_values[i]])
+                for i in range(len(cluster_minimum_values) - 1)
+            ]
 
             self.features_bucket_mapping_[feature] = BucketMapping(
                 feature_name=feature,
@@ -513,6 +530,9 @@ class DecisionTreeBucketer(BaseBucketer):
     dt_bucketer.fit(X, y)
 
     dt_bucketer.fit_transform(X, y)['LIMIT_BAL'].value_counts()
+
+    # You can also access the fitted DecisionTreeClassifier per feature:
+    dt_bucketer.binners['LIMIT_BAL']
     ```
     """
 
