@@ -40,7 +40,7 @@ class BucketMapping:
 
     feature_name: str
     type: str
-    missing_treatment: str or int = field(default='separate')
+    missing_treatment: Union[str, int] = field(default="separate")
     map: Union[Dict, List] = field(default_factory=lambda: [])
     right: bool = True
     specials: Dict = field(default_factory=lambda: {})
@@ -91,8 +91,9 @@ class BucketMapping:
     def _validate_categorical_map(self):
         """Assure that the provided mapping starts at 0 and that it has an incremental trend."""
         if isinstance(self.map, list):
-            #TODO: Fix why we need to do the following line. It's because app_utils.determine_boundaries() adds +1 for numerical buckets
-            self.map = {k: v-1 for k, v in enumerate(self.map)}
+            # TODO: Fix why we need to do the following line.
+            # It's because app_utils.determine_boundaries() adds +1 for numerical buckets
+            self.map = {k: v - 1 for k, v in enumerate(self.map)}
         values = [v for v in self.map.values()]
         if len(values) > 0:
             if not np.array_equal(np.unique(values), np.arange(max(values) + 1)):
@@ -132,7 +133,7 @@ class BucketMapping:
             max_bucket_number = int(max(self.labels.keys()))
 
         if x.isnull().any():
-            if self.missing_treatment == 'separate':
+            if self.missing_treatment == "separate":
                 buckets = np.where(x.isnull(), max_bucket_number + 1, buckets)
                 self.labels[max_bucket_number + 1] = "Missing"
             elif type(self.missing_treatment) == dict:
@@ -141,7 +142,10 @@ class BucketMapping:
                     buckets = np.where(x.isnull(), bucket, buckets)
                     self.labels[bucket] = f"{self.labels[bucket]}, Missing"
                 else:
-                    print(f'Feature {self.feature_name} not in missing_treatment dict. Applying default bucketing for missing values.')
+                    print(
+                        f"Feature {self.feature_name} not in missing_treatment dict.",
+                        "Applying default bucketing for missing values.",
+                    )
                     buckets = np.where(x.isnull(), max_bucket_number + 1, buckets)
                     self.labels[max_bucket_number + 1] = "Missing"
 
