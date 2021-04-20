@@ -328,6 +328,7 @@ class AgglomerativeClusteringBucketer(BaseBucketer):
         """
         assert isinstance(variables, list)
         assert isinstance(n_bins, int)
+        assert n_bins >= 1
         self._is_allowed_missing_treatment(missing_treatment)
 
         self.variables = variables
