@@ -8,10 +8,15 @@ from sklearn.tree import _tree
 from sklearn.utils.validation import check_is_fitted
 
 from typing import Union, List, Dict
-from .base_bucketer import BaseBucketer
+from skorecard.bucketers.base_bucketer import BaseBucketer
 from skorecard.bucket_mapping import BucketMapping, FeaturesBucketMapping
 from skorecard.utils import NotInstalledError, NotPreBucketedError
 from skorecard.utils.exceptions import ApproximationWarning
+from skorecard.reporting import build_bucket_table
+
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.tree import _tree
+
 
 try:
     from optbinning import OptimalBinning
@@ -111,6 +116,7 @@ class OptimalBucketer(BaseBucketer):
             y = y.values
 
         self.features_bucket_mapping_ = {}
+        self.bucket_tables_ = {}
         self.binners = {}
 
         for feature in self.variables:
@@ -243,6 +249,7 @@ class EqualWidthBucketer(BaseBucketer):
         self._verify_specials_variables(self.specials, X.columns)
 
         self.features_bucket_mapping_ = {}
+        self.bucket_tables_ = {}
 
         for feature in self.variables:
 
@@ -272,11 +279,12 @@ class EqualWidthBucketer(BaseBucketer):
                 missing_treatment=self.missing_treatment,
             )
 
-        return self
+            # Calculate the bucket table
+            self.bucket_tables_[feature] = build_bucket_table(
+                X, y, column=feature, bucket_mapping=self.features_bucket_mapping_.get(feature)
+            )
 
-    def transform(self, X):
-        """Transform X."""
-        return super().transform(X)
+        return self
 
 
 class AgglomerativeClusteringBucketer(BaseBucketer):
@@ -345,6 +353,7 @@ class AgglomerativeClusteringBucketer(BaseBucketer):
 
         self.features_bucket_mapping_ = {}
         self.binners = {}
+        self.bucket_tables_ = {}
 
         for feature in self.variables:
             ab = AgglomerativeClustering(n_clusters=self.n_bins, **self.kwargs)
@@ -380,11 +389,12 @@ class AgglomerativeClusteringBucketer(BaseBucketer):
                 missing_treatment=self.missing_treatment,
             )
 
-        return self
+            # Calculate the bucket table
+            self.bucket_tables_[feature] = build_bucket_table(
+                X, y, column=feature, bucket_mapping=self.features_bucket_mapping_.get(feature)
+            )
 
-    def transform(self, X):
-        """Transform X."""
-        return super().transform(X)
+        return self
 
 
 class EqualFrequencyBucketer(BaseBucketer):
@@ -450,6 +460,7 @@ class EqualFrequencyBucketer(BaseBucketer):
         self._verify_specials_variables(self.specials, X.columns)
 
         self.features_bucket_mapping_ = {}
+        self.bucket_tables_ = {}
 
         for feature in self.variables:
 
@@ -483,11 +494,12 @@ class EqualFrequencyBucketer(BaseBucketer):
                 missing_treatment=self.missing_treatment,
             )
 
-        return self
+            # Calculate the bucket table
+            self.bucket_tables_[feature] = build_bucket_table(
+                X, y, column=feature, bucket_mapping=self.features_bucket_mapping_.get(feature)
+            )
 
-    def transform(self, X):
-        """Transform X."""
-        return super().transform(X)
+        return self
 
 
 class DecisionTreeBucketer(BaseBucketer):
@@ -582,6 +594,7 @@ class DecisionTreeBucketer(BaseBucketer):
         self._verify_specials_variables(self.specials, X.columns)
 
         self.features_bucket_mapping_ = {}
+        self.bucket_tables_ = {}
         self.binners = {}
 
         for feature in self.variables:
@@ -640,11 +653,12 @@ class DecisionTreeBucketer(BaseBucketer):
                 missing_treatment=self.missing_treatment,
             )
 
-        return self
+            # Calculate the bucket table
+            self.bucket_tables_[feature] = build_bucket_table(
+                X, y, column=feature, bucket_mapping=self.features_bucket_mapping_.get(feature)
+            )
 
-    def transform(self, X):
-        """Transform X."""
-        return super().transform(X)
+        return self
 
 
 class OrdinalCategoricalBucketer(BaseBucketer):
@@ -750,6 +764,7 @@ class OrdinalCategoricalBucketer(BaseBucketer):
         self._verify_specials_variables(self.specials, X.columns)
 
         self.features_bucket_mapping_ = {}
+        self.bucket_tables_ = {}
 
         for var in self.variables:
 
@@ -806,11 +821,12 @@ class OrdinalCategoricalBucketer(BaseBucketer):
                 missing_treatment=self.missing_treatment,
             )
 
-        return self
+            # Calculate the bucket table
+            self.bucket_tables_[var] = build_bucket_table(
+                X, y, column=var, bucket_mapping=self.features_bucket_mapping_.get(var)
+            )
 
-    def transform(self, X):
-        """Transform X."""
-        return super().transform(X)
+        return self
 
 
 class UserInputBucketer(BaseBucketer):
@@ -868,37 +884,24 @@ class UserInputBucketer(BaseBucketer):
         if not isinstance(features_bucket_mapping, FeaturesBucketMapping):
             if not isinstance(features_bucket_mapping, dict):
                 raise TypeError("'features_bucket_mapping' must be a dict or FeaturesBucketMapping instance")
-            self.features_bucket_mapping = FeaturesBucketMapping(features_bucket_mapping)
+            self.features_bucket_mapping_ = FeaturesBucketMapping(features_bucket_mapping)
         else:
-            self.features_bucket_mapping = features_bucket_mapping
+            self.features_bucket_mapping_ = features_bucket_mapping
 
         # If user did not specify any variables,
         # use all the variables defined in the features_bucket_mapping
         self.variables = variables
         if variables == []:
-            self.variables = list(self.features_bucket_mapping.maps.keys())
-
-        self.is_fitted_ = True
+            self.variables = list(self.features_bucket_mapping_.maps.keys())
 
     def fit(self, X, y=None):
         """Init the class."""
-        return self
-
-    def transform(self, X, y=None):
-        """Transforms an array into the corresponding buckets fitted by the Transformer.
-
-        Args:
-            X (pd.DataFrame): dataframe which will be transformed into the corresponding buckets
-            y (array): target
-
-        Returns:
-            df (pd.DataFrame): df with transformed features
-        """
-        check_is_fitted(self)
-        X = self._is_dataframe(X)
-
+        # bucket tables can only be computed on fit().
+        # so a user will have to .fit() if she/he wants .plot_buckets() and .bucket_table()
+        self.bucket_tables_ = {}
         for feature in self.variables:
-            bucket_mapping = self.features_bucket_mapping.get(feature)
-            X[feature] = bucket_mapping.transform(X[feature])
-
-        return X
+            # Calculate the bucket table
+            self.bucket_tables_[feature] = build_bucket_table(
+                X, y, column=feature, bucket_mapping=self.features_bucket_mapping_.get(feature)
+            )
+        return self

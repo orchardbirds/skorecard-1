@@ -3,8 +3,10 @@ import numpy as np
 from typing import Optional
 import warnings
 
+from sklearn.utils.validation import check_is_fitted
+
 from skorecard.bucket_mapping import BucketMapping
-from skorecard.bucketers import UserInputBucketer
+import skorecard.bucketers
 
 
 def build_bucket_table(
@@ -72,7 +74,7 @@ def build_bucket_table(
         col_bucket_mapping = bucket_mapping
 
     if not bucket_mapping and bucketer:
-        if isinstance(bucketer, UserInputBucketer):
+        if isinstance(bucketer, skorecard.bucketers.UserInputBucketer):
             bucket_dict = bucketer.features_bucket_mapping_.maps
         else:
             bucket_dict = bucketer.features_bucket_mapping_
@@ -80,7 +82,10 @@ def build_bucket_table(
         col_bucket_mapping = bucket_dict[column]
 
     X_transform = pd.DataFrame(data={"bucket_id": col_bucket_mapping.transform(X[column])})
-    X_transform["Event"] = y
+    if y is not None:
+        X_transform["Event"] = y
+    else:
+        X_transform["Event"] = np.nan
 
     stats = X_transform.groupby("bucket_id", as_index=False).agg(
         def_rate=pd.NamedAgg(column="Event", aggfunc="mean"),
@@ -102,6 +107,11 @@ def build_bucket_table(
         )
 
     stats["Count (%)"] = stats["Count"] / stats["Count"].sum()
+
+    # If unsupervised bucketer, we don't always have y info.
+    if y is None:
+        columns = ["bucket_id", "label", "Count", "Count (%)"]
+        return stats.sort_values(by="bucket_id")[columns]
 
     stats["Non-event"] = stats["Count"] - stats["Event"]
     # Default rates
@@ -132,3 +142,76 @@ def build_bucket_table(
         "IV",
     ]
     return stats.sort_values(by="bucket_id")[columns]
+
+
+class BucketTableMethod:
+    """
+    Add method for bucketing tables to another class.
+
+    To be used with skorecard.pipeline.BucketingProcess and skorecard.bucketers.BaseBucketer
+    """
+
+    def bucket_table(self, column):
+        """
+        Generates the statistics for the buckets of a particular column.
+
+        The pre-buckets are matched to the post-buckets, so that the user has a much clearer understanding of how
+        the BucketingProcess ends up with the final buckets.
+        An example is seen below:
+
+        bucket     | label              | Count | Count (%) | Non-event | Event | Event Rate | WoE |  IV
+        ---------------------------------------------------------------------------------------------------
+        0          | (-inf, 25000.0)    | 479.0 | 7.98      | 300.0     | 179.0 | 37.37      | 0.73 | 0.05
+        1          | [25000.0, 45000.0) | 370.0 | 6.17      | 233.0     | 137.0 | 37.03      | 0.71 | 0.04
+
+        Args:
+            column: The column we wish to analyse
+
+        Returns:
+            df (pd.DataFrame): A pandas dataframe of the format above
+        """  # noqa
+        check_is_fitted(self)
+        if column not in self.bucket_tables_.keys():
+            raise ValueError(f"column '{column}' was not part of the bucketingprocess")
+
+        table = self.bucket_tables_.get(column)
+        table = table.rename(columns={"bucket_id": "bucket"})
+
+        return table
+
+
+class PreBucketTableMethod:
+    """
+    Add method for bucketing tables to another class.
+
+    To be used with skorecard.pipeline.BucketingProcess and skorecard.bucketers.BaseBucketer
+    """
+
+    def prebucket_table(self, column):
+        """
+        Generates the statistics for the buckets of a particular column.
+
+        An example is seen below:
+
+        pre-bucket | label      | Count | Count (%) | Non-event | Event | Event Rate | WoE   | IV  | bucket
+        ---------------------------------------------------------------------------------------------------
+        0          | (-inf, 1.0)| 479   | 7.98      | 300       | 179   |  37.37     |  0.73 | 0.05 | 0
+        1          | [1.0, 2.0) | 370   | 6.17      | 233       | 137   |  37.03     |  0.71 | 0.04 | 0
+
+        Args:
+            column: The column we wish to analyse
+
+        Returns:
+            df (pd.DataFrame): A pandas dataframe of the format above
+        """  # noqa
+        check_is_fitted(self)
+        if column not in self.prebucket_tables_.keys():
+            raise ValueError(f"column '{column}' was not part of the pre-bucketing process")
+
+        table = self.prebucket_tables_.get(column)
+        table = table.rename(columns={"bucket_id": "pre-bucket"})
+
+        # Apply bucket mapping
+        bucket_mapping = self.features_bucket_mapping_.get(column)
+        table["bucket"] = bucket_mapping.transform(table["pre-bucket"])
+        return table
