@@ -1,7 +1,9 @@
 from skorecard.bucketers import OptimalBucketer, DecisionTreeBucketer
 from skorecard.preprocessing import WoeEncoder
 from skorecard.pipeline import BucketingProcess
+from skorecard.pipeline.bucketing_process import find_remapped_specials
 from skorecard.utils import NotPreBucketedError, NotBucketObjectError
+
 from sklearn.pipeline import make_pipeline
 from sklearn.linear_model import LogisticRegression
 
@@ -217,3 +219,38 @@ def test_bucketing_process_with_categorical_specials(df):
         assert table[table["column"] == "pet_ownership"]["num_prebuckets"].values[0] == "not_bucketed"
         assert table[table["column"] == "pet_ownership"]["num_buckets"].values[0] == "not_bucketed"
         assert len(table["dtype"].unique()) == 3
+
+
+def test_remapping_specials():
+    """
+    Test remapping works.
+    """
+    bucket_labels = {
+        0: "(-inf, 25000.0)",
+        1: "[25000.0, 45000.0)",
+        2: "[45000.0, 55000.0)",
+        3: "[55000.0, 75000.0)",
+        4: "[75000.0, 85000.0)",
+        5: "[85000.0, 105000.0)",
+        6: "[105000.0, 145000.0)",
+        7: "[145000.0, 175000.0)",
+        8: "[175000.0, 225000.0)",
+        9: "[225000.0, 275000.0)",
+        10: "[275000.0, 325000.0)",
+        11: "[325000.0, 385000.0)",
+        12: "[385000.0, inf)",
+        13: "Missing",
+        14: "Special: =400000.0",
+    }
+
+    var_specials = {"=400000.0": [400000.0]}
+
+    assert find_remapped_specials(bucket_labels, var_specials) == {"=400000.0": [14]}
+
+    assert find_remapped_specials(bucket_labels, None) == {}
+    assert find_remapped_specials(None, None) == {}
+
+    bucket_labels = {13: "Special: =12345 or 123456", 14: "Special: =400000.0"}
+
+    var_specials = {"=400000.0": [400000.0], "=12345 or 123456": [12345, 123456]}
+    assert find_remapped_specials(bucket_labels, var_specials) == {"=400000.0": [14], "=12345 or 123456": [13]}

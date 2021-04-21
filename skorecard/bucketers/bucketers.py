@@ -5,7 +5,6 @@ import pandas as pd
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.tree import _tree
-from sklearn.utils.validation import check_is_fitted
 
 from typing import Union, List, Dict
 from skorecard.bucketers.base_bucketer import BaseBucketer
@@ -13,9 +12,6 @@ from skorecard.bucket_mapping import BucketMapping, FeaturesBucketMapping
 from skorecard.utils import NotInstalledError, NotPreBucketedError
 from skorecard.utils.exceptions import ApproximationWarning
 from skorecard.reporting import build_bucket_table
-
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.tree import _tree
 
 
 try:
