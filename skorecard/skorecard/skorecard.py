@@ -1,13 +1,9 @@
-import pandas as pd
-
 from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.pipeline import make_pipeline, Pipeline
+from sklearn.pipeline import Pipeline
 
 from skorecard.linear_model import LogisticRegression
 from skorecard.utils import BucketingPipelineError
 from skorecard.pipeline import BucketingProcess
-from skorecard.reporting.report import BucketTableMethod, PreBucketTableMethod
-from skorecard.reporting.plotting import PlotBucketMethod, PlotPreBucketMethod
 
 
 class Skorecard(
