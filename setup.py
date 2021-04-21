@@ -8,7 +8,6 @@ base_packages = [
     "numpy>=1.19.2",
     "pandas>=1.1.2",
     "scikit-learn>=0.23.2",
-    "probatus>=1.1.1",
 ]
 
 dashboard_dep = [

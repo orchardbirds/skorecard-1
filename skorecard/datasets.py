@@ -34,7 +34,8 @@ def load_uci_credit_card(return_X_y=False, as_frame=False):
 
 
 def load_credit_card(return_X_y=False, as_frame=False):
-    """Loads the complete UCI Credit Card Dataset, by fetching it from open_ml
+    """
+    Loads the complete UCI Credit Card Dataset, by fetching it from open_ml.
 
     Args:
         return_X_y:  (bool) If True, returns ``(data, target)`` instead of a dict object.
@@ -48,28 +49,30 @@ def load_credit_card(return_X_y=False, as_frame=False):
 
     """
     try:
-        data  = fetch_openml(
-                name="default-of-credit-card-clients",
-                data_home=None,
-                cache=True,
-                as_frame=as_frame,
-                return_X_y=return_X_y,
+        data = fetch_openml(
+            name="default-of-credit-card-clients",
+            data_home=None,
+            cache=True,
+            as_frame=as_frame,
+            return_X_y=return_X_y,
         )
     except Exception as e:
-        #update the error message with a more helpful message.
-        error_msg =  "Cannot retrieve the dataset from repository. Make sure there is no firewall blocking " \
-                     "the connection.\nAlternatively, download it manually from https://www.openml.org/d/42477"
+        # update the error message with a more helpful message.
+        error_msg = (
+            "Cannot retrieve the dataset from repository. Make sure there is no firewall blocking "
+            "the connection.\nAlternatively, download it manually from https://www.openml.org/d/42477"
+        )
         raise type(e)(f"{e.args[0]}\n{error_msg}")
 
     # The target is by default encoded as a string.
     # Ensure it is returned as a integer.
     if as_frame:
-        data = data['frame']
-        data['y'] = data['y'].astype(int)
+        data = data["frame"]
+        data["y"] = data["y"].astype(int)
     if return_X_y:
         X = data[0]
         y = data[1]
-        y =  y.astype(int)
-        return X,y
+        y = y.astype(int)
+        return X, y
 
     return data

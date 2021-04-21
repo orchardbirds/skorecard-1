@@ -9,6 +9,7 @@ class NotPreBucketedError(Exception):
         """
         self.message = message
 
+
 class NotBucketObjectError(Exception):
     """Raise this when a non-bucket object is found in the bucketing_process."""
 
@@ -108,3 +109,15 @@ class NotInstalledError:
     def __call__(self, *args, **kwargs):
         """Raise when accessing a method."""
         raise ModuleNotFoundError(self.msg)
+
+
+class ApproximationWarning(Warning):
+    """
+    Warning for approx.
+    """
+
+    def __init__(self, message):
+        """
+        Init.
+        """
+        self.message = message

@@ -13,6 +13,8 @@ from skorecard.reporting import build_bucket_table
 from skorecard.reporting.report import BucketTableMethod, PreBucketTableMethod
 from skorecard.reporting.plotting import PlotBucketMethod, PlotPreBucketMethod
 
+from typing import Dict
+
 
 class BucketingProcess(
     BaseEstimator, TransformerMixin, BucketTableMethod, PreBucketTableMethod, PlotBucketMethod, PlotPreBucketMethod
@@ -140,7 +142,8 @@ class BucketingProcess(
         X_prebucketed_ = self.prebucketing_pipeline.fit_transform(X, y)
         assert isinstance(X_prebucketed_, pd.DataFrame)
         self.features_prebucket_mapping_ = get_features_bucket_mapping(self.prebucketing_pipeline)
-        # and calculate the prebucket tables.
+
+        # Calculate the prebucket tables.
         self.prebucket_tables_ = dict()
         for column in X.columns:
             if column in self.features_prebucket_mapping_.maps.keys():
@@ -149,8 +152,13 @@ class BucketingProcess(
                 )
 
         # Find the new bucket numbers of the specials after prebucketing,
-        # and set self._bucketing_specials
-        self._retrieve_special_for_bucketing()
+        for var, var_specials in self._prebucketing_specials.items():
+
+            bucket_labels = self.features_prebucket_mapping_.get(var).labels
+            new_specials = find_remapped_specials(bucket_labels, var_specials)
+            if len(new_specials):
+                self._bucketing_specials[var] = new_specials
+
         # Then assign the new specials to all bucketers in the bucketing pipeline
         for step in self.bucketing_pipeline.steps:
             if type(step) != tuple:
@@ -180,9 +188,10 @@ class BucketingProcess(
         bucketingprocess.features_bucket_mapping_.
 
         To be able to update the bucketingprocess, use something like:
-        X_prebucketed = bucketingprocess.prebucket_pipeline.transform(X)
-        feature_bucket_mapping # your edited bucketingprocess.features_bucket_mapping_
-        bucketingprocess._set_bucket_mapping(feature_bucket_mapping, X_prebucketed, y)
+
+        >>> X_prebucketed = bucketingprocess.prebucket_pipeline.transform(X)
+        >>> feature_bucket_mapping # your edited bucketingprocess.features_bucket_mapping_
+        >>> bucketingprocess._set_bucket_mapping(feature_bucket_mapping, X_prebucketed, y)
         """
         # Step 1: replace the bucketing pipeline with a UI bucketer that uses the new mapping
         self.bucketing_pipeline = UserInputBucketer(features_bucket_mapping)
@@ -195,42 +204,6 @@ class BucketingProcess(
                 self.bucket_tables_[column] = build_bucket_table(
                     X_prebucketed, y, column=column, bucket_mapping=self.features_bucket_mapping_.get(column)
                 )
-
-    def _retrieve_special_for_bucketing(self):
-        """
-        Finds the indexes of the specials from the prebucketing step.
-
-        Then it creates a new special dictionary, where it maps the specials
-        for the bucketing step to the respective index from the prebucketing
-        step.
-        """
-        for var in self._prebucketing_specials.keys():
-            feats_preb_map = self.features_prebucket_mapping_.maps[var]
-            # this finds the maximum index within the
-            # the prebucketed maps.  The next index is reserved for the
-            # missing value.
-            max_val = len(feats_preb_map.map)
-            missing_index = max_val + 1
-
-            # Define the bucketing specials by using the same
-            # keys as in the prebucketing specials.
-            # It then assigns to this keys the index that the
-            # prebucketing step maps it to.
-            # This assures that the information propagates between
-            # the two steps.
-            self._bucketing_specials[var] = {
-                key: [missing_index + 1 + key_ix]  # the key
-                for key_ix, key in enumerate(self._prebucketing_specials[var].keys())
-            }
-
-    def _remap_feature_bucket_mapping(self):
-        """
-        Regenerate the feature bucket mapping.
-
-        Generate a feature_bucket_mapping that will take the boundaries from the
-        prebucket_pipeline and the final output from the bucket_pipeline.
-        """
-        raise NotImplementedError("Do this :)")
 
     def transform(self, X):
         """Transform X through the prebucketing and bucketing pipelines."""
@@ -274,3 +247,25 @@ class BucketingProcess(
         return pd.DataFrame(
             {"column": columns, "num_prebuckets": num_prebuckets, "num_buckets": num_buckets, "dtype": dtypes}
         )
+
+
+def find_remapped_specials(bucket_labels: Dict, var_specials: Dict) -> Dict:
+    """
+    Remaps the specials after the prebucketing process.
+
+    Special values will have changed.
+
+    Args:
+        bucket_labels (dict): The label for each unique bucket of a variable
+        var_specials (dict): The specials for a variable, if any.
+    """
+    if bucket_labels is None or var_specials is None:
+        return {}
+
+    new_specials = {}
+    for label in var_specials.keys():
+        for bucket, bucket_label in bucket_labels.items():
+            if bucket_label == f"Special: {label}":
+                new_specials[label] = [bucket]
+
+    return new_specials
