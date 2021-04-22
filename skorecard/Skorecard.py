@@ -1,9 +1,13 @@
+import warnings
+
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.pipeline import Pipeline
 
 from skorecard.linear_model import LogisticRegression
 from skorecard.utils import BucketingPipelineError
 from skorecard.pipeline import BucketingProcess
+from skorecard.preprocessing import WoeEncoder
+from skorecard.bucketers import OptimalBucketer, DecisionTreeBucketer
 
 
 class Skorecard(
@@ -59,7 +63,8 @@ class Skorecard(
                  prebucketing_pipeline=None,
                  bucketing_pipeline=None,
                  bucketing_process=None,
-                 estimator=LogisticRegression()):
+                 estimator=LogisticRegression(),
+                 encoder=WoeEncoder()):
         """
         Init the class.
 
@@ -90,18 +95,22 @@ class Skorecard(
                                If this methodology is used, specials and prebucketing_pipeline and bucketing_pipeline must not be used.
             estimator: The sklearn-compatible model we want to use to compute probabilities.
                        By default, this is the skorecard LogisticRegression() object.
+            encoder: The sklearn-compatible model we want to encode wth.
+                     By default, this is the skorecard WoeEncoder() object.
             
         """
         # Checks that only bucketing_process OR prebucketing + bucketing pipelines are used
         if prebucketing_pipeline is None and bucketing_process is None:
-            msg = "prebucketing_pipeline or bucketing_process must be defined."
-            raise BucketingPipelineError(msg)
+            warnings.warn("prebucketing_pipeline and bucketing_process are undefined, "\
+                          "using DecisionTreeBucketer(max_n_bins=100) as prebucketing_pipeline")
+            prebucketing_pipeline = [DecisionTreeBucketer(max_n_bins=100)]
         elif prebucketing_pipeline is not None and bucketing_process is not None:
             msg = "Choose between prebucketing_pipeline or bucketing_process."
             raise BucketingPipelineError(msg)
         if bucketing_pipeline is None and bucketing_process is None:
-            msg = "bucketing_pipeline or bucketing_process must be defined."
-            raise BucketingPipelineError(msg)
+            warnings.warn("bucketing_pipeline and bucketing_process are undefined, " \
+                          "using OptimalBucketer(max_n_bins=7) as bucketing_pipeline")
+            bucketing_pipeline = [OptimalBucketer(max_n_bins=7)]
         elif prebucketing_pipeline is not None and bucketing_process is not None:
             msg = "Choose between bucketing_pipeline or bucketing_process."
             raise BucketingPipelineError(msg)
@@ -116,15 +125,16 @@ class Skorecard(
                 raise BucketingPipelineError(msg)
             self.prebucketing_pipeline = prebucketing_pipeline
             self.bucketing_pipeline = bucketing_pipeline
-            self._prebucketing_specials = specials
 
-            self.bucketing_process = BucketingProcess(specials=self._prebucketing_specials)
+            self.bucketing_process = BucketingProcess(specials=specials)
             self.bucketing_process.register_prebucketing_pipeline(*self.prebucketing_pipeline)
             self.bucketing_process.register_bucketing_pipeline(*self.bucketing_pipeline)
 
         self.estimator = estimator
+        self.encoder = encoder
         self.pipeline = Pipeline([
         ('bucketing_process', self.bucketing_process),
+        ('encoder', self.encoder),
         ('clf', self.estimator)
         ])
 
