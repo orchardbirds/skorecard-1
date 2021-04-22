@@ -1,3 +1,3 @@
-from skorecard.skorecard import Skorecard
+from .Skorecard import Skorecard
 
 __all__ = ["Skorecard"]
